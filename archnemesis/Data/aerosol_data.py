@@ -14,12 +14,16 @@ Then copy-paste the array to the dictionary
 
 import numpy as np
 
-aerosol_id = {
-    'Mars dust (Wolf et al. 2006)': 1,
-    'Water ice (Warren et al. 2008)': 2,
-    'CO2 ice (Warren et al. 1986)': 3,
-    'Sulfuric acid 75% (Palmer and Williams, 1975)': 4
-}
+def print_id_names():
+    '''
+    Function to print all the IDs and the names of the aerosols in the dictionary
+    '''
+    for key, value in aerosol_info.items():
+        print(key,value['name'])
+
+
+#DICTIONARY
+##################################################################################################
 
 aerosol_info = {
 
