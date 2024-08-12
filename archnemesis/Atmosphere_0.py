@@ -115,18 +115,18 @@ class Atmosphere_0:
         self.NLOCATIONS = NLOCATIONS
 
         # Input the following profiles using the edit_ methods.
-        self.RADIUS = None    #float of (NLOCATIONS)
+        self.RADIUS = None    #float of (NLOCATIONS) #m
         self.LATITUDE = None  #float or (NLOCATIONS)
         self.LONGITUDE = None #float or (NLOCATIONS)
         self.ID = None #np.zeros(NVMR)
         self.ISO = None #np.zeros(NVMR)
         self.H = None # np.zeros(NP) or np.zeros((NP,NLOCATIONS)) #m
         self.P = None # np.zeros(NP) or np.zeros((NP,NLOCATIONS)) #Pa
-        self.T =  None # np.zeros(NP) or np.zeros((NP,NLOCATIONS))
-        self.MOLWT = None #np.zeros(NP) or np.zeros((NP,NLOCATIONS))   /   kg mol-1
+        self.T =  None # np.zeros(NP) or np.zeros((NP,NLOCATIONS)) #K
+        self.MOLWT = None #np.zeros(NP) or np.zeros((NP,NLOCATIONS)) #kg mol-1
         self.GRAV = None #np.zeros(NP) or np.zeros((NP,NLOCATIONS))    
-        self.VMR = None # np.zeros((NP,NVMR)) or np.zeros((NP,NVMR,NLOCATIONS))
-        self.DUST = None # np.zeros((NP,NDUST)) or np.zeros((NP,NDUST,NLOCATIONS))
+        self.VMR = None # np.zeros((NP,NVMR)) or np.zeros((NP,NVMR,NLOCATIONS)) 
+        self.DUST = None # np.zeros((NP,NDUST)) or np.zeros((NP,NDUST,NLOCATIONS)) #particles per m3
 
     def assess(self):
         """
@@ -1140,11 +1140,23 @@ class Atmosphere_0:
     def read_aerosol(self):
         """
         Read the aerosol profiles from an aerosol.ref file
+        
+        Note: The units of the aerosol.ref file in NEMESIS are in particles per gram of atmosphere, while the units of the aerosols
+              in the Atmosphere class are in particles per m3. Therefore, when reading the file an internal unit conversion is
+              applied, but it requires the pressure and temperature profiles to be defined prior to reading the aerosol.ref file.
         """
 
         if self.NLOCATIONS!=1:
             sys.exit('error :: read_aerosol only works if NLOCATIONS=1')
             
+            
+        #Check if the density can be calculated
+        if((self.T is not None) & (self.P is not None)):
+            rho = self.calc_rho()  #kg/m3
+            xscale = rho * 1000.
+        else:
+            xscale = 1.
+            print('warning :: reading aerosol.ref file but density is not define. Units of Atmosphere_0.DUST are in particles per gram of atmosphere')
             
         #Checking if there are lines starting with #
         with open('aerosol.ref', 'r') as file:
@@ -1171,8 +1183,8 @@ class Atmosphere_0:
         naero = tmp[1]
 
         #Reading data
-        height = np.zeros([npro])
-        aerodens = np.zeros([npro,naero])
+        height = np.zeros(npro)
+        aerodens = np.zeros((npro,naero))
         for i in range(npro):
             tmp = np.fromfile(f,sep=' ',count=naero+1,dtype='float')
             height[i] = tmp[0]
@@ -1186,18 +1198,32 @@ class Atmosphere_0:
             if self.NP!=npro:
                 sys.exit('Number of altitude points in aerosol.ref must be equal to NP')
 
+        #Filling the information into the class
         self.NP = npro
         self.NDUST = naero
         self.edit_H(height*1.0e3)   #m
-        self.edit_DUST(aerodens)    #particles m-3
+        self.edit_DUST((aerodens.T*xscale).T)    #particles m-3
 
     def write_aerosol(self):
         """
         Write current aerosol profile to a aerosol.ref file in Nemesis format.
+        
+        Note: The units of the aerosol.ref file in NEMESIS are in particles per gram of atmosphere, while the units of the aerosols
+              in the Atmosphere class are in particles per m3. Therefore, when writing the file an internal unit conversion is
+              applied, but it requires the pressure and temperature profiles to be defined prior to writing the aerosol.ref file.
         """
 
         if self.NLOCATIONS!=1:
             sys.exit('error :: read_aerosol only works if NLOCATIONS=1')
+            
+        #Check if the density can be calculated
+        if((self.T is not None) & (self.P is not None)):
+            rho = self.calc_rho()  #kg/m3
+            xscale = rho * 1000.
+        else:
+            xscale = 1.
+            print('warning :: reading aerosol.ref file but density is not define. Units of Atmosphere_0.DUST are in particles per gram of atmosphere')
+            
 
         f = open('aerosol.ref','w')
         f.write('#aerosol.ref\n')
@@ -1206,7 +1232,7 @@ class Atmosphere_0:
             f.write('\n{:<15.3f} '.format(self.H[i]*1e-3))
             if self.NDUST >= 1:
                 for j in range(self.NDUST):
-                    f.write('{:<15.3E} '.format(self.DUST[i][j]))    #particles per cm-3
+                    f.write('{:<15.3E} '.format(self.DUST[i][j]/xscale[i]))    #particles per m-3
             else:
                 f.write('{:<15.3E}'.format(self.DUST[i]))
         f.close()
