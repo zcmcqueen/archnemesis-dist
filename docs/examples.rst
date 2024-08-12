@@ -8,3 +8,4 @@ This section includes Jupyter notebooks with examples showing how to use the dif
    examples/create_UV_lta/create_UV_lta.ipynb
    examples/makephase/run_makephase.ipynb
    examples/surface_modes/surface.ipynb
+   examples/atmosphere_tutorial/atmosphere_tutorial.ipynb
