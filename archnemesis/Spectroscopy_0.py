@@ -919,6 +919,7 @@ class Spectroscopy_0:
             temp1 = temp[ipoint]
 
             #Getting the levels just above and below the desired points
+            lpress  = np.log(press1)
             ip = np.argmin(np.abs(self.PRESS-press1))
             press0 = self.PRESS[ip]
 
