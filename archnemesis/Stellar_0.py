@@ -1,4 +1,4 @@
-from NemesisPy import *
+from archnemesis import *
 import numpy as np
 import matplotlib.pyplot as plt
 import os,sys
@@ -132,7 +132,6 @@ class Stellar_0:
         """
 
         import h5py
-        from NemesisPy.Utils import file_lines
 
         if solfile is not None:
 
@@ -266,8 +265,6 @@ class Stellar_0:
             Name of the NEMESIS run
         """
 
-        from NemesisPy import file_lines
-        
         #Opening file
         f = open(runname+'.sol','r')
         s = f.readline().split()
@@ -436,3 +433,38 @@ class Stellar_0:
             f.write('\t %7.6f \t %7.5e \n' % (self.WAVE[i],self.SOLSPEC[i]))
 
         f.close()
+        
+###############################################################################################
+        
+# USEFUL FUNCTIONS
+###############################################################################################
+
+def file_lines(fname):
+
+    """
+    FUNCTION NAME : file_lines()
+
+    DESCRIPTION : Returns the number of lines in a given file
+
+    INPUTS : 
+ 
+        fname :: Name of the file
+
+    OPTIONAL INPUTS: none
+            
+    OUTPUTS : 
+ 
+        nlines :: Number of lines in file
+
+    CALLING SEQUENCE:
+
+        nlines = file_lines(fname)
+
+    MODIFICATION HISTORY : Juan Alday (29/04/2019)
+
+    """
+
+    with open(fname) as f:
+        for i, l in enumerate(f):
+            pass
+    return i + 1

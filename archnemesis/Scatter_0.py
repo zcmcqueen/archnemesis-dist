@@ -491,8 +491,6 @@ class Scatter_0:
         Read the aerosol properties from the .xsc file
         """
 
-        from NemesisPy import file_lines
-
         #reading number of lines in file
         nlines = file_lines(runname+'.xsc')
         nwave = int((nlines-1)/ 2)
@@ -570,8 +568,6 @@ class Scatter_0:
         """
         Read the Henyey-Greenstein phase function parameters stored in the hgphaseN.dat files
         """
-
-        from NemesisPy import file_lines
        
         if NDUST!=None:
             self.NDUST = NDUST
@@ -964,9 +960,6 @@ class Scatter_0:
         phase(nwave,ntheta,ndust) :: Phase function evaluated for each wavelength, angle and aerosol population
         """
 
-        #from scipy.special import legendre
-        #from NemesisPy.Fortran.nemesisf import mulscatter
-
         if np.isscalar(Theta)==True:
             ntheta = 1
             Thetax = np.array([Theta])
@@ -976,19 +969,6 @@ class Scatter_0:
         ntheta = len(Thetax)
         phase = np.zeros((self.NWAVE,ntheta,self.NDUST))
 
-        #Fortran version
-        #for IDUST in range(self.NDUST):
-        #    phase[:,:,IDUST] = mulscatter.calc_lpphase(nwave=self.NWAVE,nlpol=self.NLPOL,ntheta=ntheta,
-        #                                                wlpol=self.WLPOL[:,:,IDUST],theta=Thetax)
-            
-        #Python version
-        #for IDUST in range(self.NDUST):
-        #    for IL in range(self.NLPOL):
-        #        leg = legendre(IL)
-        #        P_n = leg(np.cos(Thetax/180.*np.pi))
-        #        for IWAVE in range(self.NWAVE):
-        #            phase[IWAVE,:,IDUST] = phase[IWAVE,:,IDUST] + P_n[:] * self.WLPOL[IWAVE,IL,IDUST]
-        
         cosTheta = np.cos(Thetax / 180.0 * np.pi)
         
         for IL in range(self.NLPOL):
@@ -1066,8 +1046,6 @@ class Scatter_0:
         @REFIND_IM: 1D array
             Imaginary part of the refractive index
         """
-
-        from NemesisPy import file_lines
 
         nlines = file_lines(filename)
 

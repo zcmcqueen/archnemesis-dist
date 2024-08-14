@@ -7,10 +7,9 @@ Created on Tue Mar 16 17:27:12 2021
 
 Atmosphere Class.
 """
+from archnemesis import *
 import numpy as np
 from scipy.special import legendre
-from NemesisPy.Data import *
-from NemesisPy.Utils.Utils import *
 
 class Atmosphere_0:
     """
