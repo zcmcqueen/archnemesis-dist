@@ -230,6 +230,9 @@ class Atmosphere_0:
         """
         Subroutine to print summary of information about the class
         """      
+        
+        from archnemesis.Data.gas_data import gas_info
+        from archnemesis.Data.planet_data import planet_info
 
         data = planet_info[str(self.IPLANET)]
         print('Planet :: '+data['name'])
@@ -262,6 +265,8 @@ class Atmosphere_0:
         """
 
         import h5py
+        from archnemesis.Data.gas_data import gas_info
+        from archnemesis.Data.planet_data import planet_info
 
         #Assessing that all the parameters have the correct type and dimension
         self.assess()
@@ -524,6 +529,8 @@ class Atmosphere_0:
         """
         Subroutine to calculate the molecular weight of the atmosphere (kg/mol)
         """
+        
+        from archnemesis.Data.gas_data import gas_info
 
         if self.NLOCATIONS==1:
 
@@ -561,6 +568,9 @@ class Atmosphere_0:
         """
         Subroutine to calculate the atmospheric density (kg/m3) at each level
         """
+        
+        from archnemesis.Data.gas_data import const
+        
         R = const["R"]
         rho = self.P * self.MOLWT / R / self.T
 
@@ -570,6 +580,9 @@ class Atmosphere_0:
         """
         Subroutine to calculate the atmospheric number density (m-3) at each level
         """
+        
+        from archnemesis.Data.gas_data import const
+        
         k_B = const["k_B"]
         numdens = self.P / k_B / self.T
 
@@ -601,6 +614,9 @@ class Atmosphere_0:
         Subroutine to calculate the gravity at each level following the method
         of Lindal et al., 1986, Astr. J., 90 (6), 1136-1146
         """
+
+        from archnemesis.Data.gas_data import const
+        from archnemesis.Data.planet_data import planet_info
 
         #Reading data and calculating some parameters
         Grav = const["G"]
@@ -673,6 +689,8 @@ class Atmosphere_0:
         Note :: Only valid if NLOCATIONS = 1
             
         """
+        
+        from archnemesis.Data.gas_data import const
 
         #if self.NLOCATIONS>1:
         #    sys.exit('error :: adjust_hydrostatP only works if NLOCATIONS = 1')
@@ -680,7 +698,8 @@ class Atmosphere_0:
         if self.NLOCATIONS==1:
 
             #First find the level below the reference altitude
-            alt0,ialt = find_nearest(self.H,htan)
+            ialt = np.argmin(np.abs(self.H-htan))
+            alt0 = self.H[ialt]
             if ( (alt0>htan) & (ialt>0)):
                 ialt = ialt -1
 
@@ -722,7 +741,8 @@ class Atmosphere_0:
             for iLOC in range(self.NLOCATIONS):
             
                 #First find the level below the reference altitude
-                alt0,ialt = find_nearest(self.H[:,iLOC],htan[iLOC])
+                ialt = np.argmin(np.abs(self.H[:,iLOC]-htan[iLOC]))
+                alt0 = self.H[ialt,iLOC]
                 if ( (alt0>htan[iLOC]) & (ialt>0)):
                     ialt = ialt -1
 
@@ -762,14 +782,13 @@ class Atmosphere_0:
         Note : Only valid if NLOCATIONS = 1
         """
 
-        #if self.NLOCATIONS>1:
-        #    sys.exit('error :: adjust_hydrostatH only works if NLOCATIONS = 1')
-
+        from archnemesis.Data.gas_data import gas_info, const
 
         if self.NLOCATIONS==1:
 
             #First find the level closest to the 0m altitudef
-            alt0,ialt = find_nearest(self.H,0.0)
+            ialt = np.argmin(np.abs(self.H-0.0))
+            alt0 = self.H[ialt]
             if ( (alt0>0.0) & (ialt>0)):
                 ialt = ialt
 
@@ -1281,6 +1300,8 @@ class Atmosphere_0:
         """
         Makes a summary plot of the current atmospheric profiles
         """
+        
+        from archnemesis.Data.gas_data import gas_info, const
 
         fig, (ax1, ax2, ax3) = plt.subplots(1, 3, sharey=True,figsize=(10,4))
 

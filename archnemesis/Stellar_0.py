@@ -47,7 +47,7 @@ class Stellar_0:
         Stellar_0.edit_SOLSPEC
         """
 
-        from archnemesis import archnemesis_path
+        from archnemesis.Data.path_data import archnemesis_path
 
         #Input parameters
         self.SOLEXIST = SOLEXIST
