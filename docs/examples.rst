@@ -10,3 +10,4 @@ This section includes Jupyter notebooks with examples showing how to use the dif
    examples/surface_modes/surface.ipynb
    examples/atmosphere_tutorial/atmosphere_tutorial.ipynb
    examples/lookup_tables/lookup_tables.ipynb
+   examples/stellar/StellarExample.ipynb

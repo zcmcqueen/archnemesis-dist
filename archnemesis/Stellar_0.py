@@ -2,6 +2,7 @@ from archnemesis import *
 import numpy as np
 import matplotlib.pyplot as plt
 import os,sys
+import h5py
 
 #!/usr/local/bin/python3
 # -*- coding: utf-8 -*-
@@ -44,7 +45,16 @@ class Stellar_0:
 
         Methods
         -------
+        Stellar_0.assess
+        Stellar_0.edit_WAVE
         Stellar_0.edit_SOLSPEC
+        Stellar_0.read_hdf5
+        Stellar_0.write_hdf5
+        Stellar_0.read_sol
+        Stellar_0.write_sol
+        Stellar_0.calc_solar_flux
+        Stellar_0.calc_solar_power
+        Stellar_0.write_solar_file
         """
 
         from archnemesis.Data.path_data import archnemesis_path
@@ -93,10 +103,10 @@ class Stellar_0:
             assert self.NWAVE >= 0 , \
                 'NWAVE must be >=0'
              
-            assert len(self.WAVE) == self.WAVE , \
+            assert len(self.WAVE) == self.NWAVE , \
                 'WAVE must have size (NWAVE)'
             
-            assert len(self.SOLSPEC) == self.WAVE , \
+            assert len(self.SOLSPEC) == self.NWAVE , \
                 'SOLSPEC must have size (NWAVE)'
             
 
@@ -131,7 +141,7 @@ class Stellar_0:
         to be defined in the class
         """
 
-        import h5py
+        from archnemesis.Files import file_lines
 
         if solfile is not None:
 
@@ -233,8 +243,6 @@ class Stellar_0:
         Read the Stellar properties from an HDF5 file
         """
 
-        import h5py
-
         f = h5py.File(runname+'.h5','r')
 
         #Checking if Surface exists
@@ -264,6 +272,8 @@ class Stellar_0:
         @param runname: str
             Name of the NEMESIS run
         """
+
+        from archnemesis.Files import file_lines
 
         #Opening file
         f = open(runname+'.sol','r')
@@ -435,36 +445,3 @@ class Stellar_0:
         f.close()
         
 ###############################################################################################
-        
-# USEFUL FUNCTIONS
-###############################################################################################
-
-def file_lines(fname):
-
-    """
-    FUNCTION NAME : file_lines()
-
-    DESCRIPTION : Returns the number of lines in a given file
-
-    INPUTS : 
- 
-        fname :: Name of the file
-
-    OPTIONAL INPUTS: none
-            
-    OUTPUTS : 
- 
-        nlines :: Number of lines in file
-
-    CALLING SEQUENCE:
-
-        nlines = file_lines(fname)
-
-    MODIFICATION HISTORY : Juan Alday (29/04/2019)
-
-    """
-
-    with open(fname) as f:
-        for i, l in enumerate(f):
-            pass
-    return i + 1
