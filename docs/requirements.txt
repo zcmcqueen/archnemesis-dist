@@ -7,4 +7,3 @@ pandoc
 numpydoc
 IPython
 pymdown-extensions
-

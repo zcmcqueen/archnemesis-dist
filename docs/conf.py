@@ -38,7 +38,7 @@ extensions = [
 #Defining each image shown in the gallery
 nbsphinx_thumbnails = {
     'examples/makephase/run_makephase': 'images/mars_sunset2.jpg',
-    'examples/surface_modes/surface': 'images/mars_surface.png',
+    'examples/surface_modes/surface': 'images/mars_duststorm.jpg',
     'examples/atmosphere_tutorial/atmosphere_tutorial': 'images/planetary_atmospheres.png',
     'examples/stellar/StellarExample': 'images/solar_spec.jpg',
     #'examples/mars_solocc/mars_SO': '_static/exomars_SO.jpg',
