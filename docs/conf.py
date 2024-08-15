@@ -37,10 +37,10 @@ extensions = [
 
 #Defining each image shown in the gallery
 nbsphinx_thumbnails = {
-    'examples/stellar/StellarExample': '_static/solar_spec.jpg',
-    'examples/atmosphere_tutorial/atmosphere_tutorial': '_static/planetary_atmospheres.png',
-    'examples/makephase/run_makephase': '_static/mars_sunset2.jpg',
-    'examples/surface_modes/surface': '_static/mars_surface.png'
+    'examples/stellar/StellarExample': 'images/solar_spec.jpg',
+    'examples/atmosphere_tutorial/atmosphere_tutorial': 'images/planetary_atmospheres.png',
+    'examples/makephase/run_makephase': 'images/mars_sunset2.jpg',
+    'examples/surface_modes/surface': 'images/mars_surface.png'
     #'examples/mars_solocc/mars_SO': '_static/exomars_SO.jpg',
     #'examples/Jupiter_CIRS_nadir_thermal_emission/Jupiter_CIRS': '_static/jupiter_cassini.jpg',
     #'examples/Measurement/Measurement': '_static/observation_sketch.png',
