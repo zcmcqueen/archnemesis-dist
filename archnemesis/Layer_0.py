@@ -494,7 +494,7 @@ class Layer_0:
         """
         
         #Making a summary plot 
-        fig,ax = plt.subplots(1,4,figsize=(10,3))
+        fig,ax = plt.subplots(1,4,figsize=(10,3),sharey=True)
 
         #Pressure
         for i in range(self.NLAY):
@@ -510,7 +510,7 @@ class Layer_0:
             ax[1].axhline(self.BASEH[i]/1.0e3,c='black',linestyle='--',linewidth=0.5)
         ax[1].plot(self.TEMP,self.HEIGHT/1.0e3,marker='o',markersize=4.,c='tab:red')
         ax[1].set_xlabel('Effective temperature (K)')
-        ax[1].set_ylabel('Altitude (km)')
+        #ax[1].set_ylabel('Altitude (km)')
         ax[1].set_facecolor('lightgray')
 
         #Gaseous column density
@@ -520,7 +520,7 @@ class Layer_0:
             ax[2].plot(self.AMOUNT[:,i],self.HEIGHT/1.0e3,marker='o',markersize=4.)
         ax[2].set_xscale('log')
         ax[2].set_xlabel('Gaseous column density (m$^{-2}$)')
-        ax[2].set_ylabel('Altitude (km)')
+        #ax[2].set_ylabel('Altitude (km)')
         ax[2].set_facecolor('lightgray')
 
         #Dust column density
@@ -530,7 +530,7 @@ class Layer_0:
             ax[3].plot(self.CONT[:,i],self.HEIGHT/1.0e3,marker='o',markersize=4.)
         ax[3].set_xscale('log')
         ax[3].set_xlabel('Aerosol column density (m$^{-2}$)')
-        ax[3].set_ylabel('Altitude (km)')
+        #ax[3].set_ylabel('Altitude (km)')
         ax[3].set_facecolor('lightgray')
 
         plt.tight_layout()
