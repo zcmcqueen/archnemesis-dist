@@ -12,3 +12,4 @@ This section includes Jupyter notebooks with examples showing how to use the dif
    examples/layer_example/layer_example.ipynb
    examples/create_UV_lta/create_UV_lta.ipynb
    examples/lookup_tables/lookup_tables.ipynb
+   examples/cia_archnemesis/convert_cia_nemesis.ipynb

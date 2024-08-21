@@ -6,6 +6,7 @@ from .Surface_0 import *
 from .Atmosphere_0 import *
 from .Stellar_0 import *
 from .Layer_0 import *
+from .CIA_0 import *
 
 from .Data import *
 from .Files import *
