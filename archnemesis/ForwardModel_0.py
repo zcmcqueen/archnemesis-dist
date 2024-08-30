@@ -473,7 +473,6 @@ class ForwardModel_0:
 
         """
 
-        from NemesisPy import find_nearest
         from scipy import interpolate
         from copy import deepcopy
 
@@ -510,7 +509,8 @@ class ForwardModel_0:
         for i in range(self.MeasurementX.NGEOM):
 
             #Find altitudes above and below the actual tangent height
-            base0,ibase = find_nearest(BASEH_TANHE,self.MeasurementX.TANHE[i])
+            ibase = np.argmin(np.abs(BASEH_TANHE-self.MeasurementX.TANHE[i]))
+            base0 = BASEH_TANHE[ibase]/1.0e3
             if base0<=self.MeasurementX.TANHE[i]:
                 ibasel = ibase
                 ibaseh = ibase + 1
@@ -591,7 +591,6 @@ class ForwardModel_0:
 
         """
 
-        from NemesisPy import find_nearest
         from scipy import interpolate
         from copy import deepcopy
 
@@ -649,7 +648,9 @@ class ForwardModel_0:
         for i in range(self.MeasurementX.NGEOM):
 
             #Find altitudes above and below the actual tangent height
-            base0,ibase = find_nearest(BASEH_TANHE,self.MeasurementX.TANHE[i])
+            ibase = np.argmin(np.abs(BASEH_TANHE-self.MeasurementX.TANHE[i]))
+            base0 = BASEH_TANHE[ibase]
+            
             if base0<=self.MeasurementX.TANHE[i]:
                 ibasel = ibase
                 ibaseh = ibase + 1
@@ -732,7 +733,6 @@ class ForwardModel_0:
 
         """
 
-        from NemesisPy import find_nearest
         from scipy import interpolate
         from copy import copy
 
@@ -2290,7 +2290,7 @@ class ForwardModel_0:
             LAYANG = 90.0
 
         BASEH, BASEP, BASET, HEIGHT, PRESS, TEMP, TOTAM, AMOUNT, PP, CONT, LAYSF, DELH\
-            = Layer.integrate(H=Atmosphere.H,P=Atmosphere.P,T=Atmosphere.T, LAYANG=LAYANG, ID=Atmosphere.ID,VMR=Atmosphere.VMR, DUST=Atmosphere.DUST)
+            = Layer.calc_layering(H=Atmosphere.H,P=Atmosphere.P,T=Atmosphere.T, LAYANG=LAYANG, ID=Atmosphere.ID,VMR=Atmosphere.VMR, DUST=Atmosphere.DUST)
 
         #Setting the flags for the Path and calculation types
         ##############################################################################
@@ -2435,7 +2435,7 @@ class ForwardModel_0:
             LAYANG = 90.0
 
         BASEH, BASEP, BASET, HEIGHT, PRESS, TEMP, TOTAM, AMOUNT, PP, CONT, LAYSF, DELH, DTE, DAM, DCO\
-            = Layer.integrateg(H=Atmosphere.H,P=Atmosphere.P,T=Atmosphere.T, LAYANG=LAYANG, ID=Atmosphere.ID,VMR=Atmosphere.VMR, DUST=Atmosphere.DUST)
+            = Layer.calc_layeringg(H=Atmosphere.H,P=Atmosphere.P,T=Atmosphere.T, LAYANG=LAYANG, ID=Atmosphere.ID,VMR=Atmosphere.VMR, DUST=Atmosphere.DUST)
 
         #Setting the flags for the Path and calculation types
         ##############################################################################
@@ -2539,7 +2539,6 @@ class ForwardModel_0:
         """
 
         from NemesisPy import AtmCalc_0,Path_0
-        from NemesisPy import find_nearest
 
         #Initialise variables
         if Atmosphere is None:
@@ -2562,7 +2561,7 @@ class ForwardModel_0:
         LAYANG = 90.0
 
         BASEH, BASEP, BASET, HEIGHT, PRESS, TEMP, TOTAM, AMOUNT, PP, CONT, LAYSF, DELH\
-            = Layer.integrate(H=Atmosphere.H,P=Atmosphere.P,T=Atmosphere.T, LAYANG=LAYANG, ID=Atmosphere.ID,VMR=Atmosphere.VMR, DUST=Atmosphere.DUST)
+            = Layer.calc_layering(H=Atmosphere.H,P=Atmosphere.P,T=Atmosphere.T, LAYANG=LAYANG, ID=Atmosphere.ID,VMR=Atmosphere.VMR, DUST=Atmosphere.DUST)
 
         #Based on the atmospheric layerinc, we calculate each required atmospheric path to model the measurements
         #############################################################################################################
@@ -2571,7 +2570,9 @@ class ForwardModel_0:
         ITANHE = []
         for igeom in range(Measurement.NGEOM):
 
-            base0,ibase = find_nearest(Layer.BASEH/1.0e3,Measurement.TANHE[igeom])
+            ibase = np.argmin(np.abs(Layer.BASEH/1.0e3,Measurement.TANHE[igeom]))
+            base0 = Layer.BASEH[ibase]/1.0e3
+            
             if base0<=Measurement.TANHE[igeom]:
                 ibasel = ibase
                 ibaseh = ibase + 1
@@ -2629,7 +2630,6 @@ class ForwardModel_0:
         """
 
         from NemesisPy import AtmCalc_0,Path_0
-        from NemesisPy import find_nearest
 
         #Initialise variables
         if Atmosphere is None:
@@ -2653,7 +2653,7 @@ class ForwardModel_0:
         LAYANG = 90.0
 
         BASEH, BASEP, BASET, HEIGHT, PRESS, TEMP, TOTAM, AMOUNT, PP, CONT, LAYSF, DELH, DTE, DAM, DCO\
-            = Layer.integrateg(H=Atmosphere.H,P=Atmosphere.P,T=Atmosphere.T, LAYANG=LAYANG, ID=Atmosphere.ID,VMR=Atmosphere.VMR, DUST=Atmosphere.DUST)
+            = Layer.calc_layeringg(H=Atmosphere.H,P=Atmosphere.P,T=Atmosphere.T, LAYANG=LAYANG, ID=Atmosphere.ID,VMR=Atmosphere.VMR, DUST=Atmosphere.DUST)
 
         #Based on the atmospheric layerinc, we calculate each required atmospheric path to model the measurements
         #############################################################################################################
@@ -2662,7 +2662,9 @@ class ForwardModel_0:
         ITANHE = []
         for igeom in range(Measurement.NGEOM):
 
-            base0,ibase = find_nearest(Layer.BASEH/1.0e3,Measurement.TANHE[igeom])
+            ibase = np.argmin(np.abs(Layer.BASEH/1.0e3,Measurement.TANHE[igeom]))
+            base0 = Layer.BASEH[ibase]/1.0e3
+            
             if base0<=Measurement.TANHE[igeom]:
                 ibasel = ibase
                 ibaseh = ibase + 1
@@ -2770,7 +2772,7 @@ class ForwardModel_0:
             LAYANG = 90.0
 
         BASEH, BASEP, BASET, HEIGHT, PRESS, TEMP, TOTAM, AMOUNT, PP, CONT, LAYSF, DELH\
-            = Layer.integrate(H=Atmosphere.H,P=Atmosphere.P,T=Atmosphere.T, LAYANG=LAYANG, ID=Atmosphere.ID,VMR=Atmosphere.VMR, DUST=Atmosphere.DUST)
+            = Layer.calc_layering(H=Atmosphere.H,P=Atmosphere.P,T=Atmosphere.T, LAYANG=LAYANG, ID=Atmosphere.ID,VMR=Atmosphere.VMR, DUST=Atmosphere.DUST)
 
         #Setting the flags for the Path and calculation types
         ##############################################################################
@@ -3507,7 +3509,7 @@ class ForwardModel_0:
             if Measurement.IFORM==4:  #If IFORM=4 we should multiply the transmission by solar flux
                 Stellar.calc_solar_flux()
                 #Interpolating to the calculation wavelengths
-                f = interpolate.interp1d(Stellar.VCONV,Stellar.SOLFLUX)
+                f = interpolate.interp1d(Stellar.WAVE,Stellar.SOLFLUX)
                 solflux = f(Measurement.WAVE)
                 xfac = solflux
                 for ipath in range(Path.NPATH):
@@ -3540,7 +3542,7 @@ class ForwardModel_0:
             xfac = 1.
             if Measurement.IFORM==1:
                 xfac=np.pi*4.*np.pi*((Atmosphere.RADIUS)*1.0e2)**2.
-                f = interpolate.interp1d(Stellar.VCONV,Stellar.SOLSPEC)
+                f = interpolate.interp1d(Stellar.WAVE,Stellar.SOLSPEC)
                 solpspec = f(Measurement.WAVE)  #Stellar power spectrum (W (cm-1)-1 or W um-1)
                 xfac = xfac / solpspec
 
@@ -3676,7 +3678,6 @@ class ForwardModel_0:
         """
 
         from scipy import interpolate
-        from NemesisPy import find_nearest
         from NemesisPy.CIA_0 import co2cia,n2h2cia,n2n2cia
 
 
@@ -3748,7 +3749,8 @@ class ForwardModel_0:
 
             #Interpolating to the correct temperature
             temp1 = Layer.TEMP[ilay]
-            temp0,it = find_nearest(CIA.TEMP,temp1)
+            it = np.argmin(np.abs(CIA.TEMP-temp1))
+            temp0 = CIA.TEMP[it]
 
             if CIA.TEMP[it]>=temp1:
                 ithi = it
@@ -3913,7 +3915,6 @@ class ForwardModel_0:
         """
 
         from scipy import interpolate
-        from NemesisPy import find_nearest
         from NemesisPy.CIA_0 import co2cia, n2h2cia, n2n2cia
 
         # Initializing variables
@@ -4072,7 +4073,6 @@ class ForwardModel_0:
 
 
         from scipy import interpolate
-        from NemesisPy import find_nearest
 
         if((WAVEC.min()<Scatter.WAVE.min()) & (WAVEC.max()>Scatter.WAVE.min())):
             sys.exit('error in Scatter_0() :: Spectral range for calculation is outside of range in which the Aerosol properties are defined')
