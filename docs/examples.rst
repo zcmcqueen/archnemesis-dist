@@ -14,3 +14,13 @@ This section includes Jupyter notebooks with examples showing how to use the dif
    examples/create_UV_lta/create_UV_lta.ipynb
    examples/lookup_tables/lookup_tables.ipynb
    examples/cia_archnemesis/convert_cia_nemesis.ipynb
+
+
+Forward models
+------------------
+
+This sections includes Jupyter notebookes with examples showing how archNEMESIS can be used to calculate the forward model for different planetary atmosphere and in several observing geometries.
+
+.. nbgallery::
+
+   examples/mars_solocc/mars_SO.ipynb
