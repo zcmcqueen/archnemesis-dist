@@ -1,4 +1,5 @@
 from archnemesis import *
+from archnemesis.Models import *
 import numpy as np
 import matplotlib.pyplot as plt
 import os,sys
@@ -1016,20 +1017,6 @@ class ForwardModel_0:
                     xnx[i-1,i] = 0.05
 
 
-        """
-        #Because of the parallelisation, the parameters that are kept fixed need to be located at the end of the
-        #state vector, otherwise the code crashes
-        ic = 0
-        for i in range(self.Variables.NX):
-
-            if ic==1:
-                if self.Variables.FIX[i]==0:
-                    sys.exit('error :: Fixed parameters in the state vector must be located at the end of the array')
-
-            if self.Variables.FIX[i]==1:
-                ic = 1
-        """
-
         #################################################################################
         # Calculating the first forward model and the analytical part of Jacobian
         #################################################################################
@@ -1083,23 +1070,24 @@ class ForwardModel_0:
 
         print('Calculating numerical part of the Jacobian :: running '+str(nfm)+' forward models ')
         
-        
-        # Splitting into chunks and parallelising
-        NCores = min(NCores,nfm)
-        base_chunk_size = nfm // NCores
-        remainder = nfm % NCores
-        chunks = [(i * base_chunk_size + min(i, remainder), 
-                   (i + 1) * base_chunk_size + min(i, remainder),
-                   xnx, ixrun, nemesisSO, YNtot, nfm) for i in range(NCores)]
+        if nfm>0:
+            
+            # Splitting into chunks and parallelising
+            NCores = min(NCores,nfm)
+            base_chunk_size = nfm // NCores
+            remainder = nfm % NCores
+            chunks = [(i * base_chunk_size + min(i, remainder), 
+                    (i + 1) * base_chunk_size + min(i, remainder),
+                    xnx, ixrun, nemesisSO, YNtot, nfm) for i in range(NCores)]
 
-        with Pool(NCores) as pool:
-            results = pool.map(self.chunked_execution, chunks)
+            with Pool(NCores) as pool:
+                results = pool.map(self.chunked_execution, chunks)
 
-        YNtot = np.sum(np.stack(results), axis=0)
+            YNtot = np.sum(np.stack(results), axis=0)
 
-        if iYN==0:
-            YN = np.zeros(self.Measurement.NY)
-            YN[:] = YNtot[0:self.Measurement.NY,0]
+            if iYN==0:
+                YN = np.zeros(self.Measurement.NY)
+                YN[:] = YNtot[0:self.Measurement.NY,0]
 
         #################################################################################
         # Calculating the Jacobian matrix
@@ -2282,13 +2270,13 @@ class ForwardModel_0:
         #Limb or nadir observation?
         #Is observation at limb? (coded with -ve emission angle where sol_ang is then the tangent altitude)
 
-        LAYANG = 0.0
+        Layer.LAYANG = 0.0
         if Scatter.EMISS_ANG<0.0:
             Layer.LAYHT = Scatter.SOL_ANG * 1.0e3
-            LAYANG = 90.0
+            Layer.LAYANG = 90.0
 
         BASEH, BASEP, BASET, HEIGHT, PRESS, TEMP, TOTAM, AMOUNT, PP, CONT, LAYSF, DELH\
-            = Layer.calc_layering(H=Atmosphere.H,P=Atmosphere.P,T=Atmosphere.T, LAYANG=LAYANG, ID=Atmosphere.ID,VMR=Atmosphere.VMR, DUST=Atmosphere.DUST)
+            = Layer.calc_layering(H=Atmosphere.H,P=Atmosphere.P,T=Atmosphere.T, ID=Atmosphere.ID,VMR=Atmosphere.VMR, DUST=Atmosphere.DUST)
 
         #Setting the flags for the Path and calculation types
         ##############################################################################
@@ -2427,13 +2415,13 @@ class ForwardModel_0:
         #Limb or nadir observation?
         #Is observation at limb? (coded with -ve emission angle where sol_ang is then the tangent altitude)
 
-        LAYANG = 0.0
+        Layer.LAYANG = 0.0
         if Scatter.EMISS_ANG<0.0:
             Layer.LAYHT = Scatter.SOL_ANG * 1.0e3
-            LAYANG = 90.0
+            Layer.LAYANG = 90.0
 
         BASEH, BASEP, BASET, HEIGHT, PRESS, TEMP, TOTAM, AMOUNT, PP, CONT, LAYSF, DELH, DTE, DAM, DCO\
-            = Layer.calc_layeringg(H=Atmosphere.H,P=Atmosphere.P,T=Atmosphere.T, LAYANG=LAYANG, ID=Atmosphere.ID,VMR=Atmosphere.VMR, DUST=Atmosphere.DUST)
+            = Layer.calc_layeringg(H=Atmosphere.H,P=Atmosphere.P,T=Atmosphere.T, ID=Atmosphere.ID,VMR=Atmosphere.VMR, DUST=Atmosphere.DUST)
 
         #Setting the flags for the Path and calculation types
         ##############################################################################
@@ -2556,10 +2544,10 @@ class ForwardModel_0:
 
         #Based on the new reference atmosphere, we split the atmosphere into layers
         #In solar occultation LAYANG = 90.0
-        LAYANG = 90.0
-
-        BASEH, BASEP, BASET, HEIGHT, PRESS, TEMP, TOTAM, AMOUNT, PP, CONT, LAYSF, DELH\
-            = Layer.calc_layering(H=Atmosphere.H,P=Atmosphere.P,T=Atmosphere.T, LAYANG=LAYANG, ID=Atmosphere.ID,VMR=Atmosphere.VMR, DUST=Atmosphere.DUST)
+        Layer.LAYANG = 90.0
+        
+        #Calculating the atmospheric layering
+        Layer.calc_layering(H=Atmosphere.H,P=Atmosphere.P,T=Atmosphere.T, ID=Atmosphere.ID,VMR=Atmosphere.VMR, DUST=Atmosphere.DUST)
 
         #Based on the atmospheric layerinc, we calculate each required atmospheric path to model the measurements
         #############################################################################################################
@@ -2568,7 +2556,7 @@ class ForwardModel_0:
         ITANHE = []
         for igeom in range(Measurement.NGEOM):
 
-            ibase = np.argmin(np.abs(Layer.BASEH/1.0e3,Measurement.TANHE[igeom]))
+            ibase = np.argmin(np.abs(Layer.BASEH/1.0e3-Measurement.TANHE[igeom]))
             base0 = Layer.BASEH[ibase]/1.0e3
             
             if base0<=Measurement.TANHE[igeom]:
@@ -2648,10 +2636,10 @@ class ForwardModel_0:
 
         #Based on the new reference atmosphere, we split the atmosphere into layers
         #In solar occultation LAYANG = 90.0
-        LAYANG = 90.0
+        Layer.LAYANG = 90.0
 
-        BASEH, BASEP, BASET, HEIGHT, PRESS, TEMP, TOTAM, AMOUNT, PP, CONT, LAYSF, DELH, DTE, DAM, DCO\
-            = Layer.calc_layeringg(H=Atmosphere.H,P=Atmosphere.P,T=Atmosphere.T, LAYANG=LAYANG, ID=Atmosphere.ID,VMR=Atmosphere.VMR, DUST=Atmosphere.DUST)
+        #Calculating the atmospheric layering
+        Layer.calc_layeringg(H=Atmosphere.H,P=Atmosphere.P,T=Atmosphere.T, ID=Atmosphere.ID,VMR=Atmosphere.VMR, DUST=Atmosphere.DUST)
 
         #Based on the atmospheric layerinc, we calculate each required atmospheric path to model the measurements
         #############################################################################################################
@@ -2660,7 +2648,7 @@ class ForwardModel_0:
         ITANHE = []
         for igeom in range(Measurement.NGEOM):
 
-            ibase = np.argmin(np.abs(Layer.BASEH/1.0e3,Measurement.TANHE[igeom]))
+            ibase = np.argmin(np.abs(Layer.BASEH/1.0e3-Measurement.TANHE[igeom]))
             base0 = Layer.BASEH[ibase]/1.0e3
             
             if base0<=Measurement.TANHE[igeom]:
@@ -2764,13 +2752,13 @@ class ForwardModel_0:
         #Limb or nadir observation?
         #Is observation at limb? (coded with -ve emission angle where sol_ang is then the tangent altitude)
 
-        LAYANG = 0.0
+        Layer.LAYANG = 0.0
         if Scatter.EMISS_ANG<0.0:
             Layer.LAYHT = Scatter.SOL_ANG * 1.0e3
-            LAYANG = 90.0
+            Layer.LAYANG = 90.0
 
-        BASEH, BASEP, BASET, HEIGHT, PRESS, TEMP, TOTAM, AMOUNT, PP, CONT, LAYSF, DELH\
-            = Layer.calc_layering(H=Atmosphere.H,P=Atmosphere.P,T=Atmosphere.T, LAYANG=LAYANG, ID=Atmosphere.ID,VMR=Atmosphere.VMR, DUST=Atmosphere.DUST)
+        #Calculating the atmospheric layering
+        Layer.calc_layering(H=Atmosphere.H,P=Atmosphere.P,T=Atmosphere.T, ID=Atmosphere.ID,VMR=Atmosphere.VMR, DUST=Atmosphere.DUST)
 
         #Setting the flags for the Path and calculation types
         ##############################################################################

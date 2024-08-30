@@ -491,6 +491,8 @@ class Scatter_0:
         Read the aerosol properties from the .xsc file
         """
 
+        from archnemesis.Files import file_lines
+
         #reading number of lines in file
         nlines = file_lines(runname+'.xsc')
         nwave = int((nlines-1)/ 2)
@@ -568,6 +570,8 @@ class Scatter_0:
         """
         Read the Henyey-Greenstein phase function parameters stored in the hgphaseN.dat files
         """
+       
+        from archnemesis.Files import file_lines
        
         if NDUST!=None:
             self.NDUST = NDUST
@@ -1046,6 +1050,8 @@ class Scatter_0:
         @REFIND_IM: 1D array
             Imaginary part of the refractive index
         """
+        
+        from archnemesis.Files import file_lines
 
         nlines = file_lines(filename)
 

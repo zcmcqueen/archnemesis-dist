@@ -216,10 +216,10 @@ class Layer_0:
         elif self.LAYINT==1:
             print('Layer properties calculated through mass weighted averages')
             
-        print('')
-        print('BASEH(km)','BASEP(bar)','DELH(km)','P(bar)','T(K)','TOTAM(m-2)','DUST_TOTAM(m-2)')
-        for i in range(self.NLAY):
-            print(self.BASEH[i]/1.0e3,self.BASEP[i]/1.0e5,self.DELH[i]/1.0e3,self.PRESS[i]/1.0e5,self.TEMP[i],np.sum(self.AMOUNT[i,:]),np.sum(self.CONT[i,:]))
+        if self.BASEH is not None:
+            print('BASEH(km)','BASEP(bar)','DELH(km)','P(bar)','T(K)','TOTAM(m-2)','DUST_TOTAM(m-2)')
+            for i in range(self.NLAY):
+                print(self.BASEH[i]/1.0e3,self.BASEP[i]/1.0e5,self.DELH[i]/1.0e3,self.PRESS[i]/1.0e5,self.TEMP[i],np.sum(self.AMOUNT[i,:]),np.sum(self.CONT[i,:]))
 
 
     ####################################################################################################
@@ -375,7 +375,7 @@ class Layer_0:
         """
         
         #Splitting the atmosphere into layers - Calculating the BASEH and BASEP of each layer
-        self.layer_split(H=H, P=P, T=T, LAYANG=LAYANG)
+        self.layer_split(H=H, P=P, T=T, LAYANG=self.LAYANG)
         
         #Once we have the layers, we calculate the effective properties of each layer
         self.layer_averageg(ID=ID, VMR=VMR, DUST=DUST)
@@ -1260,13 +1260,9 @@ def layer_split(RADIUS, H, P, LAYANG=0.0, LAYHT=0.0, NLAY=20,
         BASEH = interp(P,H,BASEP,INTERTYP)
 
     elif LAYTYP == 5: # split by specifying input base heights
-        #NLAY,H_base = read_hlay()
         BASEH = H_base
-        #NLAY = len(H_base)
-        
         logBASEP = interp(H,np.log(P),BASEH,INTERTYP)
         BASEP = np.exp(logBASEP)
-
 
     else:
         raise('Layering scheme not defined')

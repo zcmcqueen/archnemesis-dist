@@ -2488,3 +2488,727 @@ class Measurement_0:
         plt.show()
         
     #################################################################################################################
+     
+#################################################################################################################
+#################################################################################################################
+#                                             EXTRA FUNCTIONS
+#################################################################################################################
+#################################################################################################################
+
+
+#################################################################################################################
+#################################################################################################################
+#                                             CONVOLUTIONS
+#################################################################################################################
+#################################################################################################################
+
+###############################################################################################
+@jit(nopython=True)
+def lblconv(nwave,vwave,y,nconv,vconv,ishape,fwhm):
+
+    """
+        FUNCTION NAME : lblconv()
+        
+        DESCRIPTION : Convolve the modelled spectrum with a given instrument line shape.
+                      In this case, the line shape is defined by ISHAPE and FWHM.
+                      Only valid if FWHM>0
+        
+        INPUTS :
+            nwave :: Number of calculation wavenumbers
+            vwave(nwave) :: Calculation wavenumbers
+            y(nwave) :: Modelled spectrum
+            nconv :: Number of convolution wavenumbers
+            vconv(nconv) :: Convolution wavenumbers
+            ishape :: Instrument lineshape (only used if FWHM>0)
+                        (0) Square lineshape
+                        (1) Triangular
+                        (2) Gaussian
+                        (3) Hamming
+                        (4) Hanning
+            fwhm :: Full width at half maximum of the ILS
+
+        OPTIONAL INPUTS: none
+        
+        OUTPUTS :
+        
+            yout(nconv) :: Convolved spectrum
+
+        CALLING SEQUENCE:
+        
+            yout = lblconv(fwhm,ishape,nwave,vwave,y,nconv,vconv)
+        
+        MODIFICATION HISTORY : Juan Alday (29/04/2021)
+        
+    """
+
+    yout = np.zeros(nconv)
+    ynor = np.zeros(nconv)
+
+    #Set total width of Hamming/Hanning function window in terms of
+    #numbers of FWHMs for ISHAPE=3 and ISHAPE=4
+    nfw = 3.
+
+    for j in range(nconv):
+        yfwhm = fwhm
+        vcen = vconv[j]
+        if ishape==0:
+            v1 = vcen-0.5*yfwhm
+            v2 = v1 + yfwhm
+        elif ishape==1:
+            v1 = vcen-yfwhm
+            v2 = vcen+yfwhm
+        elif ishape==2:
+            sig = 0.5*yfwhm/np.sqrt( np.log(2.0)  )
+            v1 = vcen - 3.*sig
+            v2 = vcen + 3.*sig
+        else:
+            v1 = vcen - nfw*yfwhm
+            v2 = vcen + nfw*yfwhm
+
+
+        #Find relevant points in tabulated files
+        inwave1 = np.where( (vwave>=v1) & (vwave<=v2) )
+        inwave = inwave1[0]
+
+        np1 = len(inwave)
+        for i in range(np1):
+            f1=0.0
+            if ishape==0:
+                #Square instrument lineshape
+                f1=1.0
+            elif ishape==1:
+                #Triangular instrument shape
+                f1=1.0 - abs(vwave[inwave[i]] - vcen)/yfwhm
+            elif ishape==2:
+                #Gaussian instrument shape
+                f1 = np.exp(-((vwave[inwave[i]]-vcen)/sig)**2.0)
+            else:
+                #sys.exit('lblconv :: ishape not included yet in function')
+                dummy = 1
+
+            if f1>0.0:
+                yout[j] = yout[j] + f1*y[inwave[i]]
+                ynor[j] = ynor[j] + f1
+
+        yout[j] = yout[j]/ynor[j]
+
+    return yout
+
+###############################################################################################
+@jit(nopython=True)
+def lblconv_ngeom(nwave,vwave,y,nconv,vconv,ishape,fwhm):
+
+    """
+        FUNCTION NAME : lblconv()
+        
+        DESCRIPTION : Convolve the modelled spectra (NGEOM spectra) with a given instrument line shape.
+                      In this case, the line shape is defined by ISHAPE and FWHM.
+                      Only valid if FWHM>0
+        
+        INPUTS :
+            nwave :: Number of calculation wavenumbers
+            vwave(nwave) :: Calculation wavenumbers
+            y(nwave,ngeom) :: Modelled spectrum
+            nconv :: Number of convolution wavenumbers
+            vconv(nconv) :: Convolution wavenumbers
+            ishape :: Instrument lineshape (only used if FWHM>0)
+                        (0) Square lineshape
+                        (1) Triangular
+                        (2) Gaussian
+                        (3) Hamming
+                        (4) Hanning
+            fwhm :: Full width at half maximum of the ILS
+
+        OPTIONAL INPUTS: none
+        
+        OUTPUTS :
+        
+            yout(nconv) :: Convolved spectrum
+
+        CALLING SEQUENCE:
+        
+            yout = lblconv(fwhm,ishape,nwave,vwave,y,nconv,vconv)
+        
+        MODIFICATION HISTORY : Juan Alday (29/04/2021)
+        
+    """
+    if y.ndim==2:
+
+        #It is assumed all geometries cover the same spectral range
+        nconv1 = y.shape[0]
+        ngeom = y.shape[1]
+
+        yout = np.zeros((nconv,ngeom))
+        ynor = np.zeros((nconv,ngeom))
+
+        if fwhm>0.0:
+            #Set total width of Hamming/Hanning function window in terms of
+            #numbers of FWHMs for ISHAPE=3 and ISHAPE=4
+            nfw = 3.
+            for j in range(nconv):
+                yfwhm = fwhm
+                vcen = vconv[j]
+                if ishape==0:
+                    v1 = vcen-0.5*yfwhm
+                    v2 = v1 + yfwhm
+                elif ishape==1:
+                    v1 = vcen-yfwhm
+                    v2 = vcen+yfwhm
+                elif ishape==2:
+                    sig = 0.5*yfwhm/np.sqrt( np.log(2.0)  )
+                    v1 = vcen - 3.*sig
+                    v2 = vcen + 3.*sig
+                else:
+                    v1 = vcen - nfw*yfwhm
+                    v2 = vcen + nfw*yfwhm
+
+                #Find relevant points in tabulated files
+                inwave1 = np.where( (vwave>=v1) & (vwave<=v2) )
+                inwave = inwave1[0]
+
+                np1 = len(inwave)
+                for i in range(np1):
+                    f1=0.0
+                    if ishape==0:
+                        #Square instrument lineshape
+                        f1=1.0
+                    elif ishape==1:
+                        #Triangular instrument shape
+                        f1=1.0 - abs(vwave[inwave[i]] - vcen)/yfwhm
+                    elif ishape==2:
+                        #Gaussian instrument shape
+                        f1 = np.exp(-((vwave[inwave[i]]-vcen)/sig)**2.0)
+                    #else:
+                    #    sys.exit('lblconv :: ishape not included yet in function')
+
+                    if f1>0.0:
+                        yout[j,:] = yout[j,:] + f1*y[inwave[i],:]
+                        ynor[j,:] = ynor[j,:] + f1
+
+                yout[j,:] = yout[j,:]/ynor[j,:]
+
+    return yout
+
+###############################################################################################
+@jit(nopython=True)
+def lblconv_fil(nwave,vwave,y,nconv,vconv,nfil,vfil,afil):
+
+    """
+        FUNCTION NAME : lblconv_fil()
+        
+        DESCRIPTION : Convolve the modelled spectrum with a given instrument line shape.
+                      In this case, the line shape is defined by NFIL,VFIL and AFIL from the
+                      .fil file
+        
+        INPUTS :
+            nwave :: Number of calculation wavenumbers
+            vwave(nwave) :: Calculation wavenumbers
+            y(nwave) :: Modelled spectrum 
+            nconv :: Number of convolution wavenumbers
+            vconv(nconv) :: Convolution wavenumbers
+            nfil(nconv) :: Number of wavenumbers required to define the Instrument Lineshape
+                            in each convolution wavenumber
+            vfil(nfil,nconv) :: Wavenumbers required to define the Instrument 
+                                Lineshape in each convolution wavenumber
+            afil(nfil,nconv) :: Function defining the Instrument Lineshape in each convolution wavenumber
+
+        OPTIONAL INPUTS: none
+        
+        OUTPUTS :
+        
+            yout(nconv) :: Convolved spectrum
+
+        CALLING SEQUENCE:
+        
+            yout = lblconv_fil(nwave,vwave,y,nconv,vconv,nfil,vfil,afil)
+        
+        MODIFICATION HISTORY : Juan Alday (29/04/2021)
+        
+    """
+
+    if y.ndim==1:
+
+        yout = np.zeros((nconv))
+        ynor = np.zeros((nconv))
+
+        for j in range(nconv):
+            v1 = vfil[0,j]
+            v2 = vfil[nfil[j]-1,j]
+            #Find relevant points in tabulated files
+            inwave1 = np.where( (vwave>=v1) & (vwave<=v2) )
+            inwave = inwave1[0]
+
+            np1 = len(inwave)
+            xp = np.zeros((nfil[j]))
+            yp = np.zeros((nfil[j]))
+            xp[:] = vfil[0:nfil[j],j]
+            yp[:] = afil[0:nfil[j],j]
+            for i in range(np1):
+                #Interpolating (linear) for finding the lineshape at the calculation wavenumbers
+                f1 = np.interp(vwave[inwave[i]],xp,yp)
+                if f1>0.0:
+                    yout[j] = yout[j] + f1*y[inwave[i]]
+                    ynor[j] = ynor[j] + f1
+
+            yout[j] = yout[j]/ynor[j]
+
+    return yout
+
+###############################################################################################
+@jit(nopython=True)
+def lblconv_fil_ngeom(nwave,vwave,y,nconv,vconv,nfil,vfil,afil):
+
+    """
+        FUNCTION NAME : lblconv_fil()
+        
+        DESCRIPTION : Convolve the modelled spectra (NGEOM spectra) with a given instrument line shape.
+                      In this case, the line shape is defined by NFIL,VFIL and AFIL from the
+                      .fil file
+        
+        INPUTS :
+            nwave :: Number of calculation wavenumbers
+            vwave(nwave) :: Calculation wavenumbers
+            y(nwave,ngeom) :: Modelled spectrum 
+            nconv :: Number of convolution wavenumbers
+            vconv(nconv) :: Convolution wavenumbers
+            nfil(nconv) :: Number of wavenumbers required to define the Instrument Lineshape
+                            in each convolution wavenumber
+            vfil(nfil,nconv) :: Wavenumbers required to define the Instrument 
+                                Lineshape in each convolution wavenumber
+            afil(nfil,nconv) :: Function defining the Instrument Lineshape in each convolution wavenumber
+
+        OPTIONAL INPUTS: none
+        
+        OUTPUTS :
+        
+            yout(nconv) :: Convolved spectrum
+
+        CALLING SEQUENCE:
+        
+            yout = lblconv_fil(nwave,vwave,y,nconv,vconv,nfil,vfil,afil)
+        
+        MODIFICATION HISTORY : Juan Alday (29/04/2021)
+        
+    """
+
+    if y.ndim==2:
+
+        #It is assumed all geometries cover the same spectral range
+        nconv1 = y.shape[0]
+        ngeom = y.shape[1]
+
+        yout = np.zeros((nconv,ngeom))
+        ynor = np.zeros((nconv,ngeom))
+
+        #Line shape for each convolution number in each case is read from .fil file
+        for j in range(nconv):
+            v1 = vfil[0,j]
+            v2 = vfil[nfil[j]-1,j]
+            #Find relevant points in tabulated files
+            inwave1 = np.where( (vwave>=v1) & (vwave<=v2) )
+            inwave = inwave1[0]
+
+            np1 = len(inwave)
+            xp = np.zeros((nfil[j]))
+            yp = np.zeros((nfil[j]))
+            xp[:] = vfil[0:nfil[j],j]
+            yp[:] = afil[0:nfil[j],j]
+
+            for i in range(np1):
+                #Interpolating (linear) for finding the lineshape at the calculation wavenumbers
+                f1 = np.interp(vwave[inwave[i]],xp,yp)
+                if f1>0.0:
+                    yout[j,:] = yout[j,:] + f1*y[inwave[i],:]
+                    ynor[j,:] = ynor[j,:] + f1
+
+            yout[j,:] = yout[j,:]/ynor[j,:]
+
+    return yout
+
+###############################################################################################
+@jit(nopython=True)
+def lblconvg_ngeom(nwave,vwave,y,dydx,nconv,vconv,ishape,fwhm):
+
+    """
+        FUNCTION NAME : lblconvg_ngeom()
+        
+        DESCRIPTION : Convolve the modelled spectra (NGEOM spectra) and gradients with a given instrument line shape.
+                      In this case, the line shape is defined by ISHAPE and FWHM.
+                      Only valid if FWHM>0
+        
+        INPUTS :
+            nwave :: Number of calculation wavenumbers
+            vwave(nwave) :: Calculation wavenumbers
+            y(nwave,ngeom) :: Modelled spectrum
+            dydx(nwave,ngeom,nx) :: Modelled gradients with respect to each element of the state vector
+            nconv :: Number of convolution wavenumbers
+            vconv(nconv) :: Convolution wavenumbers
+            ishape :: Instrument lineshape (only used if FWHM>0)
+                        (0) Square lineshape
+                        (1) Triangular
+                        (2) Gaussian
+                        (3) Hamming
+                        (4) Hanning
+            fwhm :: Full width at half maximum of the ILS
+
+        OPTIONAL INPUTS: none
+        
+        OUTPUTS :
+        
+            yout(nconv,ngeom) :: Convolved spectrum
+            dyoutdx(nconv,ngeom,nx) :: Convolved gradients
+
+        CALLING SEQUENCE:
+        
+            yout,dyoutdx = lblconvg_ngeom(nwave,vwave,y,dydx,nconv,vconv,ishape,fwhm)
+        
+        MODIFICATION HISTORY : Juan Alday (29/04/2021)
+        
+    """
+
+    #If all geometries are included in the array
+    if ( (y.ndim==2) & (dydx.ndim==3)):
+
+        #It is assumed all geometries cover the same spectral range
+        nx = dydx.shape[2]
+        ngeom = dydx.shape[1]
+
+        #if dydx.shape[0]!=nconv:
+        #    sys.exit('error in lblconvg :: Number of elements in dydx must be nconv')
+        #if y.shape[0]!=nconv:
+        #    sys.exit('error in lblconvg :: Number of elements in y must be nconv')
+
+        yout = np.zeros((nconv,ngeom))
+        ynor = np.zeros((nconv,ngeom))
+        gradout = np.zeros((nconv,ngeom,nx))
+        gradnorm = np.zeros((nconv,ngeom,nx))
+    
+        #Set total width of Hamming/Hanning function window in terms of
+        #numbers of FWHMs for ISHAPE=3 and ISHAPE=4
+        nfw = 3.
+        for j in range(nconv):
+            yfwhm = fwhm
+            vcen = vconv[j]
+            if ishape==0:
+                v1 = vcen-0.5*yfwhm
+                v2 = v1 + yfwhm
+            elif ishape==1:
+                v1 = vcen-yfwhm
+                v2 = vcen+yfwhm
+            elif ishape==2:
+                sig = 0.5*yfwhm/np.sqrt( np.log(2.0)  )
+                v1 = vcen - 3.*sig
+                v2 = vcen + 3.*sig
+            else:
+                v1 = vcen - nfw*yfwhm
+                v2 = vcen + nfw*yfwhm
+
+            #Find relevant points in tabulated files
+            inwave1 = np.where( (vwave>=v1) & (vwave<=v2) )
+            inwave = inwave1[0]
+
+            np1 = len(inwave)
+            for i in range(np1):
+                f1=0.0
+                if ishape==0:
+                    #Square instrument lineshape
+                    f1=1.0
+                elif ishape==1:
+                    #Triangular instrument shape
+                    f1=1.0 - abs(vwave[inwave[i]] - vcen)/yfwhm
+                elif ishape==2:
+                    #Gaussian instrument shape
+                    f1 = np.exp(-((vwave[inwave[i]]-vcen)/sig)**2.0)
+                #else:
+                #    sys.exit('lblconv :: ishape not included yet in function')
+
+                if f1>0.0:
+                    yout[j,:] = yout[j,:] + f1*y[inwave[i],:]
+                    ynor[j,:] = ynor[j,:] + f1
+                    gradout[j,:,:] = gradout[j,:,:] + f1*dydx[inwave[i],:,:]
+                    gradnorm[j,:,:] = gradnorm[j,:,:] + f1
+
+            yout[j,:] = yout[j,:]/ynor[j,:]
+            gradout[j,:,:] = gradout[j,:,:]/gradnorm[j,:,:]
+
+    #else:
+
+    #    sys.exit('error in lblconvg :: Dimensions in y and/or dydx are not correct')
+
+    return yout,gradout
+
+###############################################################################################
+@jit(nopython=True)
+def lblconvg(nwave,vwave,y,dydx,nconv,vconv,ishape,fwhm):
+
+    """
+        FUNCTION NAME : lblconvg()
+        
+        DESCRIPTION : Convolve the modelled spectrum and gradients with a given instrument line shape.
+                      In this case, the line shape is defined by ISHAPE and FWHM.
+                      Only valid if FWHM>0
+        
+        INPUTS :
+            nwave :: Number of calculation wavenumbers
+            vwave(nwave) :: Calculation wavenumbers
+            y(nwave) :: Modelled spectrum
+            dydx(nwave,nx) :: Modelled gradients with respect to each element of the state vector
+            nconv :: Number of convolution wavenumbers
+            vconv(nconv) :: Convolution wavenumbers
+            ishape :: Instrument lineshape (only used if FWHM>0)
+                        (0) Square lineshape
+                        (1) Triangular
+                        (2) Gaussian
+                        (3) Hamming
+                        (4) Hanning
+            fwhm :: Full width at half maximum of the ILS
+
+        OPTIONAL INPUTS: none
+        
+        OUTPUTS :
+        
+            yout(nconv,ngeom) :: Convolved spectrum
+            dyoutdx(nconv,ngeom,nx) :: Convolved gradients
+
+        CALLING SEQUENCE:
+        
+            yout,dyoutdx = lblconvg(nwave,vwave,y,dydx,nconv,vconv,ishape,fwhm)
+        
+        MODIFICATION HISTORY : Juan Alday (29/04/2021)
+        
+    """
+
+    #If only one geometry needs to be convolved
+    if ( (y.ndim==1) & (dydx.ndim==2)):
+    
+        #It is assumed all geometries cover the same spectral range
+        nx = dydx.shape[1]
+
+        #if dydx.shape[0]!=nconv:
+        #    sys.exit('error in lblconvg :: Number of elements in dydx must be nconv')
+        #if y.shape[0]!=nconv:
+        #    sys.exit('error in lblconvg :: Number of elements in y must be nconv')
+
+        yout = np.zeros((nconv))
+        ynor = np.zeros((nconv))
+        gradout = np.zeros((nconv,nx))
+        gradnorm = np.zeros((nconv,nx))
+
+        #Set total width of Hamming/Hanning function window in terms of
+        #numbers of FWHMs for ISHAPE=3 and ISHAPE=4
+        nfw = 3.
+        for j in range(nconv):
+            yfwhm = fwhm
+            vcen = vconv[j]
+            if ishape==0:
+                v1 = vcen-0.5*yfwhm
+                v2 = v1 + yfwhm
+            elif ishape==1:
+                v1 = vcen-yfwhm
+                v2 = vcen+yfwhm
+            elif ishape==2:
+                sig = 0.5*yfwhm/np.sqrt( np.log(2.0)  )
+                v1 = vcen - 3.*sig
+                v2 = vcen + 3.*sig
+            else:
+                v1 = vcen - nfw*yfwhm
+                v2 = vcen + nfw*yfwhm
+
+            #Find relevant points in tabulated files
+            inwave1 = np.where( (vwave>=v1) & (vwave<=v2) )
+            inwave = inwave1[0]
+
+            np1 = len(inwave)
+            for i in range(np1):
+                f1=0.0
+                if ishape==0:
+                    #Square instrument lineshape
+                    f1=1.0
+                elif ishape==1:
+                    #Triangular instrument shape
+                    f1=1.0 - abs(vwave[inwave[i]] - vcen)/yfwhm
+                elif ishape==2:
+                    #Gaussian instrument shape
+                    f1 = np.exp(-((vwave[inwave[i]]-vcen)/sig)**2.0)
+                #else:
+                #    sys.exit('lblconv :: ishape not included yet in function')
+
+                if f1>0.0:
+                    yout[j] = yout[j] + f1*y[inwave[i]]
+                    ynor[j] = ynor[j] + f1
+                    gradout[j,:] = gradout[j,:] + f1*dydx[inwave[i],:]
+                    gradnorm[j,:] = gradnorm[j,:] + f1
+
+            yout[j] = yout[j]/ynor[j]
+            gradout[j,:] = gradout[j,:]/gradnorm[j,:]
+
+    return yout,gradout
+
+###############################################################################################
+@jit(nopython=True)
+def lblconvg_fil_ngeom(nwave,vwave,y,dydx,nconv,vconv,nfil,vfil,afil):
+
+    """
+        FUNCTION NAME : lblconvg_ngeom()
+        
+        DESCRIPTION : Convolve the modelled spectra (NGEOM spectra) and gradients with a given instrument line shape.
+                      In this case, the line shape is defined by NFIL,VFIL and AFIL from the
+                      .fil file
+        
+        INPUTS :
+            nwave :: Number of calculation wavenumbers
+            vwave(nwave) :: Calculation wavenumbers
+            y(nwave,ngeom) :: Modelled spectrum
+            dydx(nwave,ngeom,nx) :: Modelled gradients with respect to each element of the state vector
+            nconv :: Number of convolution wavenumbers
+            vconv(nconv) :: Convolution wavenumbers
+            nfil(nconv) :: Number of wavenumbers required to define the Instrument Lineshape
+                            in each convolution wavenumber
+            vfil(nfil,nconv) :: Wavenumbers required to define the Instrument 
+                                Lineshape in each convolution wavenumber
+            afil(nfil,nconv) :: Function defining the Instrument Lineshape in each convolution wavenumber
+
+
+        OPTIONAL INPUTS: none
+        
+        OUTPUTS :
+        
+            yout(nconv,ngeom) :: Convolved spectrum
+            dyoutdx(nconv,ngeom,nx) :: Convolved gradients
+
+        CALLING SEQUENCE:
+        
+            yout,dyoutdx = lblconvg_fil_ngeom(nwave,vwave,y,dydx,nconv,vconv,ishape,fwhm)
+        
+        MODIFICATION HISTORY : Juan Alday (29/04/2021)
+        
+    """
+
+    #If all geometries are included in the array
+    if ( (y.ndim==2) & (dydx.ndim==3)):
+
+        #It is assumed all geometries cover the same spectral range
+        nx = dydx.shape[2]
+        ngeom = dydx.shape[1]
+
+        #if dydx.shape[0]!=nconv:
+        #    sys.exit('error in lblconvg :: Number of elements in dydx must be nconv')
+        #if y.shape[0]!=nconv:
+        #    sys.exit('error in lblconvg :: Number of elements in y must be nconv')
+
+        yout = np.zeros((nconv,ngeom))
+        ynor = np.zeros((nconv,ngeom))
+        gradout = np.zeros((nconv,ngeom,nx))
+        gradnorm = np.zeros((nconv,ngeom,nx))
+
+        #Line shape for each convolution number in each case is read from .fil file
+        for j in range(nconv):
+            v1 = vfil[0,j]
+            v2 = vfil[nfil[j]-1,j]
+            #Find relevant points in tabulated files
+            inwave1 = np.where( (vwave>=v1) & (vwave<=v2) )
+            inwave = inwave1[0]
+
+            np1 = len(inwave)
+            xp = np.zeros((nfil[j]))
+            yp = np.zeros((nfil[j]))
+            xp[:] = vfil[0:nfil[j],j]
+            yp[:] = afil[0:nfil[j],j]
+
+            for i in range(np1):
+                #Interpolating (linear) for finding the lineshape at the calculation wavenumbers
+                f1 = np.interp(vwave[inwave[i]],xp,yp)
+                if f1>0.0:
+                    yout[j,:] = yout[j,:] + f1*y[inwave[i],:]
+                    ynor[j,:] = ynor[j,:] + f1
+                    gradout[j,:,:] = gradout[j,:,:] + f1*dydx[inwave[i],:,:]
+                    gradnorm[j,:,:] = gradnorm[j,:,:] + f1
+
+            yout[j,:] = yout[j,:]/ynor[j,:]
+            gradout[j,:,:] = gradout[j,:,:]/gradnorm[j,:,:]
+
+    return yout,gradout
+
+###############################################################################################
+@jit(nopython=True)
+def lblconvg_fill(nwave,vwave,y,dydx,nconv,vconv,nfil,vfil,afil):
+
+    """
+        FUNCTION NAME : lblconvg_fill()
+        
+        DESCRIPTION : Convolve the modelled spectrum and gradients with a given instrument line shape.
+                      In this case, the line shape is defined by ISHAPE and FWHM.
+                      Only valid if FWHM>0
+        
+        INPUTS :
+            nwave :: Number of calculation wavenumbers
+            vwave(nwave) :: Calculation wavenumbers
+            y(nwave) :: Modelled spectrum
+            dydx(nwave,nx) :: Modelled gradients with respect to each element of the state vector
+            nconv :: Number of convolution wavenumbers
+            vconv(nconv) :: Convolution wavenumbers
+            nfil(nconv) :: Number of wavenumbers required to define the Instrument Lineshape
+                            in each convolution wavenumber
+            vfil(nfil,nconv) :: Wavenumbers required to define the Instrument 
+                                Lineshape in each convolution wavenumber
+            afil(nfil,nconv) :: Function defining the Instrument Lineshape in each convolution wavenumber
+
+
+        OPTIONAL INPUTS: none
+        
+        OUTPUTS :
+        
+            yout(nconv,ngeom) :: Convolved spectrum
+            dyoutdx(nconv,ngeom,nx) :: Convolved gradients
+
+        CALLING SEQUENCE:
+        
+            yout,dyoutdx = lblconvg_fill(nwave,vwave,y,dydx,nconv,vconv,ishape,fwhm)
+        
+        MODIFICATION HISTORY : Juan Alday (29/04/2021)
+        
+    """
+
+    #If only one geometry needs to be convolved
+    if ( (y.ndim==1) & (dydx.ndim==2)):
+    
+        #It is assumed all geometries cover the same spectral range
+        nx = dydx.shape[1]
+
+        #if dydx.shape[0]!=nconv:
+        #    sys.exit('error in lblconvg :: Number of elements in dydx must be nconv')
+        #if y.shape[0]!=nconv:
+        #    sys.exit('error in lblconvg :: Number of elements in y must be nconv')
+
+        yout = np.zeros((nconv))
+        ynor = np.zeros((nconv))
+        gradout = np.zeros((nconv,nx))
+        gradnorm = np.zeros((nconv,nx))
+
+        #Line shape for each convolution number in each case is read from .fil file
+        for j in range(nconv):
+            v1 = vfil[0,j]
+            v2 = vfil[self.NFIL[j]-1,j]
+            #Find relevant points in tabulated files
+            inwave1 = np.where( (vwave>=v1) & (vwave<=v2) )
+            inwave = inwave1[0]
+
+            np1 = len(inwave)
+            xp = np.zeros((nfil[j]))
+            yp = np.zeros((nfil[j]))
+            xp[:] = vfil[0:nfil[j],j]
+            yp[:] = afil[0:nfil[j],j]
+
+            for i in range(np1):
+                #Interpolating (linear) for finding the lineshape at the calculation wavenumbers
+                f1 = np.interp(vwave[inwave[i]],xp,yp)
+                if f1>0.0:
+                    yout[j] = yout[j] + f1*y[inwave[i]]
+                    ynor[j] = ynor[j] + f1
+                    gradout[j,:] = gradout[j,:] + f1*dydx[inwave[i],:]
+                    gradnorm[j,:] = gradnorm[j,:] + f1
+
+            yout[j] = yout[j]/ynor[j]
+            gradout[j,:] = gradout[j,:]/gradnorm[j,:]
+
+    return yout,gradout

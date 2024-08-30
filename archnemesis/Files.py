@@ -9,7 +9,14 @@
 # MODIFICATION HISTORY: Juan Alday 15/03/2021
 
 from archnemesis import *
+from copy import copy
 
+
+###############################################################################################
+###############################################################################################
+#                                            GENERIC
+###############################################################################################
+###############################################################################################
 
 ########################################################################################
 
@@ -43,4 +50,1295 @@ def file_lines(fname):
             pass
     return i + 1
 
-########################################################################################
+
+###############################################################################################
+###############################################################################################
+#                                     NEMESIS FILES
+###############################################################################################
+###############################################################################################
+
+# read_input_files()
+
+# read_mre()
+# read_cov()
+# read_drv()
+# read_inp()
+# read_set()
+# read_fla()
+# write_fla()
+# write_set()
+# write_inp()
+# write_err()
+# write_fcloud()
+
+
+###############################################################################################
+
+def read_input_files(runname,Fortran=True):
+
+    """
+        FUNCTION NAME : read_input_files()
+        
+        DESCRIPTION : 
+
+            Reads the NEMESIS input files and fills the parameters in the reference classes.
+ 
+        INPUTS :
+      
+            runname :: Name of the NEMESIS run
+
+        OPTIONAL INPUTS:
+        
+            Fortran :: If True, it changes the units of the aerosol.ref from particles per gram to m-3
+        
+        OUTPUTS : 
+
+            Variables :: Python class defining the parameterisations and state vector
+            Measurement :: Python class defining the measurements 
+            Atmosphere :: Python class defining the reference atmosphere
+            Spectroscopy :: Python class defining the parameters required for the spectroscopic calculations
+            Scatter :: Python class defining the parameters required for scattering calculations
+            Stellar :: Python class defining the stellar spectrum
+            Surface :: Python class defining the surface
+            CIA :: Python class defining the Collision-Induced-Absorption cross-sections
+            Layer :: Python class defining the layering scheme to be applied in the calculations
+
+        CALLING SEQUENCE:
+        
+            Atmosphere,Measurement,Spectroscopy,Scatter,Stellar,Surface,CIA,Layer,Variables = read_input_files(runname)
+ 
+        MODIFICATION HISTORY : Juan Alday (29/04/2019)
+    """
+
+    #Initialise Atmosphere class and read file (.ref, aerosol.ref)
+    ##############################################################
+
+    Atm = Atmosphere_0(runname=runname)
+
+    #Read gaseous atmosphere
+    Atm.read_ref()
+
+    #Read aerosol profiles
+    Atm.read_aerosol()
+    
+    if Fortran==True:
+        
+        #Calculating the atmospheric density (kg/m3)
+        rho = Atm.calc_rho()
+        
+        #If the aerosol.ref is written from Fortran the units are in particles per gram of atmosphere
+        #We need to change them to m-3
+        for icont in range(Atm.NDUST):
+            Atm.DUST[:,icont] = Atm.DUST[:,icont] * 1000. * rho[:]   #m-3
+
+    #Reading .set file and starting Scatter, Stellar, Surface and Layer Classes
+    #############################################################################
+
+    Layer = Layer_0(Atm.RADIUS)
+    Scatter,Stellar,Surface,Layer = read_set(runname,Layer=Layer)
+    if Layer.LAYTYP==5:
+        nlay,hbase = read_hlay()
+        Layer.NLAY = nlay
+        Layer.H_base = hbase*1.0e3    #Base height of each layer (m)
+    if Layer.LAYTYP==6:
+        sys.exit('error in read_input_files :: Need to read the press.lay file but not implemented yet')
+
+    #Reading .inp file and starting Measurement,Scatter and Spectroscopy classes
+    #############################################################################
+
+    Measurement,Scatter,Spec,WOFF,fmerrname,NITER,PHILIMIT,NSPEC,IOFF,LIN = read_inp(runname,Scatter=Scatter)
+
+    #Reading surface files if planet has surface
+    #############################################################################
+
+    isurf = planet_info[str(Atm.IPLANET)]["isurf"]
+    if isurf==1:
+        if np.mean(Surface.TSURF)>0.0:
+            Surface.GASGIANT=False
+            Surface.read_sur(runname) #Emissivity (and albedo for Lambert surface)
+            if Surface.LOWBC==2: #Hapke surface
+                Surface.read_hap(runname)
+        else:
+            Surface.GASGIANT=True
+    else:
+        Surface.GASGIANT=True
+
+    #Reading Spectroscopy parameters from .lls or .kls files
+    ##############################################################
+
+    if Spec.ILBL==0:
+        Spec.read_kls(runname)
+    elif Spec.ILBL==2:
+        Spec.read_lls(runname)
+    else:
+        sys.exit('error :: ILBL has to be either 0 or 2')
+
+    #Reading extinction and scattering cross sections
+    #############################################################################
+
+    Scatter.read_xsc(runname)
+
+    if Scatter.NDUST!=Atm.NDUST:
+        sys.exit('error :: Number of aerosol populations must be the same in .xsc and aerosol.ref files')
+
+
+    #Initialise Measurement class and read files (.spx, .sha)
+    ##############################################################
+
+    Measurement.runname = runname
+    Measurement.read_spx()
+
+    #Reading .sha file if FWHM>0.0
+    if Measurement.FWHM>0.0:
+        Measurement.read_sha()
+    #Reading .fil if FWHM<0.0
+    elif Measurement.FWHM<0.0:
+        Measurement.read_fil()
+
+    #Calculating the 'calculation wavelengths'
+    if Spec.ILBL==0:
+        Measurement.wavesetb(Spec,IGEOM=0)
+    elif Spec.ILBL==2:
+        Measurement.wavesetc(Spec,IGEOM=0)
+    else:
+        sys.exit('error :: ILBL has to be either 0 or 2')
+
+    #Now, reading k-tables or lbl-tables for the spectral range of interest
+    Spec.read_tables(wavemin=Measurement.WAVE.min(),wavemax=Measurement.WAVE.max())
+
+
+    #Reading stellar spectrum if required by Measurement units
+    if( (Measurement.IFORM==1) or (Measurement.IFORM==2) or (Measurement.IFORM==3) or (Measurement.IFORM==4)):
+        Stellar.read_sol(runname)
+
+    #Initialise CIA class and read files (.cia)
+    ##############################################################
+
+    if os.path.exists(runname+'.cia')==True:
+        CIA = CIA_0(runname=runname)
+        CIA.read_cia()
+    else:
+        CIA = None
+
+    #Reading .fla file
+    #############################################################################
+
+    inormal,iray,ih2o,ich4,io3,inh3,iptf,imie,iuv = read_fla(runname)
+
+    if CIA is not None:
+        CIA.INORMAL = inormal
+
+    Scatter.IRAY = iray
+    Scatter.IMIE = imie
+
+    if Scatter.ISCAT>0:
+        if Scatter.IMIE==0:
+            Scatter.read_hgphase()
+        elif Scatter.IMIE==1:
+            Scatter.read_phase()
+        elif Scatter.IMIE==2:
+            Scatter.read_lpphase()
+        else:
+            sys.exit('error :: IMIE must be an integer from 0 to 2')
+
+    #Reading .apr file and Variables Class
+    #################################################################
+
+    Variables = Variables_0()
+    Variables.read_apr(runname,Atm.NP)
+    Variables.XN = copy(Variables.XA)
+    Variables.SX = copy(Variables.SA)
+
+    return Atm,Measurement,Spec,Scatter,Stellar,Surface,CIA,Layer,Variables
+
+
+###############################################################################################
+
+def read_mre(runname,MakePlot=False):
+
+    """
+    FUNCTION NAME : read_mre()
+
+    DESCRIPTION : Reads the .mre file from a Nemesis run
+
+    INPUTS :
+    
+        runname :: Name of the Nemesis run
+
+    OPTIONAL INPUTS:
+    
+        MakePlot : If True, a summary plot is made
+            
+    OUTPUTS : 
+
+        lat :: Latitude (degrees)
+        lon :: Longitude (degrees)
+        ngeom :: Number of geometries in the observation
+        nconv :: Number of points in the measurement vector for each geometry (assuming they all have the same number of points)
+        wave(nconv,ngeom) :: Wavelength/wavenumber of each point in the measurement vector
+        specret(nconv,ngeom) :: Retrieved spectrum for each of the geometries
+        specmeas(nconv,ngeom) :: Measured spectrum for each of the geometries
+        specerrmeas(nconv,ngeom) :: Error in the measured spectrum for each of the geometries
+        nx :: Number of points in the state vector
+        varident(nvar,3) :: Retrieved variable ID, as defined in Nemesis manual
+        nxvar :: Number of points in the state vector associated with each retrieved variable
+        varparam(nvar,5) :: Extra parameters containing information about how to read the retrieved variables
+        aprprof(nx,nvar) :: A priori profile for each variable in the state vector
+        aprerr(nx,nvar) :: Error in the a priori profile for each variable in the state vector
+        retprof(nx,nvar) :: Retrieved profile for each variable in the state vector
+        reterr(nx,nvar) :: Error in the retrieved profile for each variable in the state vector
+
+    CALLING SEQUENCE:
+
+        lat,lon,ngeom,ny,wave,specret,specmeas,specerrmeas,nx,Var,aprprof,aprerr,retprof,reterr = read_mre(runname)
+ 
+    MODIFICATION HISTORY : Juan Alday (15/03/2021)
+
+    """
+
+    #Opening .ref file for getting number of altitude levels
+    Atmosphere = Atmosphere_0(runname=runname)
+    Atmosphere.read_ref()
+    
+    #Opening file
+    f = open(runname+'.mre','r')
+
+    #Reading first three lines
+    tmp = np.fromfile(f,sep=' ',count=1,dtype='int')
+    s = f.readline().split()
+    nspec = int(tmp[0])
+    tmp = np.fromfile(f,sep=' ',count=5,dtype='float')
+    s = f.readline().split()
+    ispec = int(tmp[0])
+    ngeom = int(tmp[1])
+    ny2 = int(tmp[2])
+    ny = int(ny2 / ngeom)
+    nx = int(tmp[3])
+    tmp = np.fromfile(f,sep=' ',count=2,dtype='float')
+    s = f.readline().split()
+    lat = float(tmp[0])
+    lon = float(tmp[1])
+    
+    #Reading spectra
+    s = f.readline().split()
+    s = f.readline().split()
+    wave = np.zeros([ny,ngeom])
+    specret = np.zeros([ny,ngeom])
+    specmeas = np.zeros([ny,ngeom])
+    specerrmeas = np.zeros([ny,ngeom])
+    for i in range(ngeom):
+        for j in range(ny):
+            tmp = np.fromfile(f,sep=' ',count=7,dtype='float')
+            wave[j,i] = float(tmp[1])
+            specret[j,i] = float(tmp[5])
+            specmeas[j,i] = float(tmp[2])
+            specerrmeas[j,i] = float(tmp[3])
+
+    #Reading the retrieved state vector
+    s = f.readline().split()
+    if len(s)==2:
+        nvar = int(s[1])
+    else:
+        nvar = int(s[2])
+
+    nxvar = np.zeros([nvar],dtype='int')
+    Var = Variables_0()
+    Var.NVAR = nvar
+    aprprof1 = np.zeros([nx,nvar])
+    aprerr1 = np.zeros([nx,nvar])
+    retprof1 = np.zeros([nx,nvar])
+    reterr1 = np.zeros([nx,nvar])
+    varident = np.zeros([nvar,3],dtype='int')
+    varparam = np.zeros([nvar,5])
+    for i in range(nvar):
+        s = f.readline().split()  #Variable number
+        tmp = np.fromfile(f,sep=' ',count=3,dtype='int')
+        varident[i,:] = tmp[:]
+        tmp = np.fromfile(f,sep=' ',count=5,dtype='float')
+        varparam[i,:] = tmp[:]
+        s = f.readline().split()
+        Var1 = Variables_0()
+        Var1.NVAR = 1
+        Var1.edit_VARIDENT(varident[i,:])
+        Var1.edit_VARPARAM(varparam[i,:])
+        Var1.calc_NXVAR(Atmosphere.NP)
+        for j in range(Var1.NXVAR[0]):
+            #if j==0:
+            #    s = f.readline().split()   #Line indicating values in the following lines
+            tmp = np.fromfile(f,sep=' ',count=6,dtype='float')
+            aprprof1[j,i] = float(tmp[2])
+            aprerr1[j,i] = float(tmp[3])
+            retprof1[j,i] = float(tmp[4])
+            reterr1[j,i] = float(tmp[5])
+
+    Var.edit_VARIDENT(varident)
+    Var.edit_VARPARAM(varparam)
+    Var.calc_NXVAR(Atmosphere.NP)
+
+    aprprof = np.zeros([Var.NXVAR.max(),nvar])
+    aprerr = np.zeros([Var.NXVAR.max(),nvar])
+    retprof = np.zeros([Var.NXVAR.max(),nvar])
+    reterr = np.zeros([Var.NXVAR.max(),nvar])
+
+    for i in range(Var.NVAR):
+        aprprof[0:Var.NXVAR[i],i] = aprprof1[0:Var.NXVAR[i],i]
+        aprerr[0:Var.NXVAR[i],i] = aprerr1[0:Var.NXVAR[i],i]
+        retprof[0:Var.NXVAR[i],i] = retprof1[0:Var.NXVAR[i],i]
+        reterr[0:Var.NXVAR[i],i] = reterr1[0:Var.NXVAR[i],i]
+
+    return lat,lon,ngeom,ny,wave,specret,specmeas,specerrmeas,nx,Var,aprprof,aprerr,retprof,reterr
+
+###############################################################################################
+
+def read_cov(runname,MakePlot=False):
+    
+    
+    """
+        FUNCTION NAME : read_cov()
+        
+        DESCRIPTION :
+        
+            Reads the the .cov file with the standard Nemesis format
+        
+        INPUTS :
+        
+            runname :: Name of the Nemesis run
+        
+        OPTIONAL INPUTS: none
+        
+        OUTPUTS :
+        
+            npro :: Number of points in atmospheric profiles
+            nvar :: Number of retrieved variables
+            varident(nvar,3) :: Variable ID
+            varparam(nvar,mparam) :: Extra parameters for describing the retrieved variable
+            nx :: Number of elements in state vector
+            ny :: Number of elements in measurement vector
+            sa(nx,nx) :: A priori covariance matric
+            sm(nx,nx) :: Final measurement covariance matrix
+            sn(nx,nx) :: Final smoothing error covariance matrix
+            st(nx,nx) :: Final full covariance matrix
+            se(ny,ny) :: Measurement error covariance matrix
+            aa(nx,nx) :: Averaging kernels
+            dd(nx,ny) :: Gain matrix
+            kk(ny,nx) :: Jacobian matrix
+        
+        CALLING SEQUENCE:
+        
+            npro,nvar,varident,varparam,nx,ny,sa,sm,sn,st,se,aa,dd,kk = read_cov(runname)
+        
+        MODIFICATION HISTORY : Juan Alday (29/04/2019)
+        
+    """
+    
+    from matplotlib import gridspec
+    from matplotlib import ticker
+    from mpl_toolkits.axes_grid1 import host_subplot
+    import mpl_toolkits.axisartist as AA
+    from mpl_toolkits.axes_grid1 import make_axes_locatable
+    
+    
+    #Open file
+    f = open(runname+'.cov','r')
+    
+    #Reading variables that were retrieved
+    tmp = np.fromfile(f,sep=' ',count=2,dtype='int')
+    npro = int(tmp[0])
+    nvar = int(tmp[1])
+    
+    varident = np.zeros([nvar,3],dtype='int')
+    varparam = np.zeros([nvar,5],dtype='int')
+    for i in range(nvar):
+        tmp = np.fromfile(f,sep=' ',count=3,dtype='int')
+        varident[i,:] = tmp[:]
+        
+        tmp = np.fromfile(f,sep=' ',count=5,dtype='float')
+        varparam[i,:] = tmp[:]
+    
+    
+    #Reading optimal estimation matrices
+    tmp = np.fromfile(f,sep=' ',count=2,dtype='int')
+    nx = int(tmp[0])
+    ny = int(tmp[1])
+
+
+    sa = np.zeros([nx,nx])
+    sm = np.zeros([nx,nx])
+    sn = np.zeros([nx,nx])
+    st = np.zeros([nx,nx])
+    aa = np.zeros([nx,nx])
+    dd = np.zeros([nx,ny])
+    kk = np.zeros([ny,nx])
+    se = np.zeros([ny,ny])
+    for i in range(nx):
+        for j in range(nx):
+            tmp = np.fromfile(f,sep=' ',count=1,dtype='float')
+            sa[i,j] = tmp[0]
+        for j in range(nx):
+            tmp = np.fromfile(f,sep=' ',count=1,dtype='float')
+            sm[i,j] = tmp[0]
+        for j in range(nx):
+            tmp = np.fromfile(f,sep=' ',count=1,dtype='float')
+            sn[i,j] = tmp[0]
+        for j in range(nx):
+            tmp = np.fromfile(f,sep=' ',count=1,dtype='float')
+            st[i,j] = tmp[0]
+
+    for i in range(nx):
+        for j in range(nx):
+            tmp = np.fromfile(f,sep=' ',count=1,dtype='float')
+            aa[i,j] = tmp[0]
+    
+    
+    for i in range(nx):
+        for j in range(ny):
+            tmp = np.fromfile(f,sep=' ',count=1,dtype='float')
+            dd[i,j] = tmp[0]
+
+    for i in range(ny):
+        for j in range(nx):
+            tmp = np.fromfile(f,sep=' ',count=1,dtype='float')
+            kk[i,j] = tmp[0]
+    
+    for i in range(ny):
+        tmp = np.fromfile(f,sep=' ',count=1,dtype='float')
+        se[i,i] = tmp[0]
+
+    f.close()
+
+    return npro,nvar,varident,varparam,nx,ny,sa,sm,sn,st,se,aa,dd,kk
+
+###############################################################################################
+
+def read_drv(runname,MakePlot=False):
+    
+    """
+        FUNCTION NAME : read_drv()
+        
+        DESCRIPTION : Read the .drv file, which contains all the required information for
+                      calculating the observation paths
+        
+        INPUTS :
+        
+            runname :: Name of the Nemesis run
+        
+        OPTIONAL INPUTS:
+        
+            MakePlot :: If True, a summary plot is generated
+        
+        OUTPUTS :
+        
+            iconv :: Spectral model code
+            flagh2p :: Flag for para-H2
+            ncont :: Number of aerosol populations
+            flagc :: Flag for
+            nlayer :: Number of atmospheric layers
+            npath :: Number of observation paths
+            ngas :: Number of gases in atmosphere
+            gasID(ngas) :: RADTRAN gas ID
+            isoID(ngas) :: RADTRAN isotopologue ID (0 for all isotopes)
+            iproc(ngas) :: Process parameter
+            baseH(nlayer) :: Altitude of the base of each layer (km)
+            delH(nlayer) :: Altitude covered by the layer (km)
+            baseP(nlayer) :: Pressure at the base of each layer (atm)
+            baseT(nlayer) :: Temperature at the base of each layer (K)
+            totam(nlayer) :: Vertical total column density in atmosphere (cm-2)
+            press(nlayer) :: Effective pressure of each layer (atm)
+            temp(nlayer) :: Effective temperature of each layer (K)
+            doppler(nlayer) ::
+            par_coldens(nlayer,ngas) :: Vertical total column density for each gas in atmosphere (cm-2)
+            par_press(nlayer,ngas) :: Partial pressure of each gas (atm)
+            cont_coldens(nlayer,ncont) :: Aerosol column density for each aerosol population in atmosphere (particles per gram of atm)
+            hfp(nlayer) ::
+            hfc(nlayer,ncont) ::
+            nlayin(npath) :: Number of layers seen in each path
+            imod(npath) :: Path model
+            errlim(npath) ::
+            layinc(npath,2*nlayer) :: Layer indices seen in each path
+            emtemp(npath,2*nlayer) :: Emission temperature of each layer in path
+            scale(npath,2*nlayer) :: Factor to be applied to the vertical column density to calculate the line-of-sight column density
+            nfilt :: Number of profile filter points
+            filt(nfilt) :: Filter points
+            vfilt(nfilt) ::
+            ncalc :: Number of calculations
+            itype(ncalc) :: Calculation type
+            nintp(ncalc) ::
+            nrealp(ncalc) ::
+            nchp(ncalc) ::
+            icald(ncalc,10) ::
+            rcald(ncalc,10) ::
+            
+        CALLING SEQUENCE:
+            
+            iconv,flagh2p,ncont,flagc,nlayer,npath,ngas,gasID,isoID,iproc,\
+            baseH,delH,baseP,baseT,totam,press,temp,doppler,par_coldens,par_press,cont_coldens,hfp,hfc,\
+            nlayin,imod,errlim,layinc,emtemp,scale,\
+            nfilt,filt,vfilt,ncalc,itype,nintp,nrealp,nchp,icald,rcald = read_drv(runname)
+            
+        MODIFICATION HISTORY : Juan Alday (29/09/2019)
+            
+    """
+
+    f = open(runname+'.drv','r')
+    
+    #Reading header
+    header = f.readline().split()
+    var1 = f.readline().split()
+    var2 = f.readline().split()
+    linkey = f.readline().split()
+    
+    #Reading flags
+    ###############
+    flags = f.readline().split()
+    iconv = int(flags[0])
+    flagh2p = int(flags[1])
+    ncont = int(flags[2])
+    flagc = int(flags[3])
+    
+    #Reading name of .xsc file
+    xscname1 = f.readline().split()
+    
+    #Reading variables
+    ###################
+    var1 = f.readline().split()
+    nlayer = int(var1[0])
+    npath = int(var1[1])
+    ngas = int(var1[2])
+    
+    gasID = np.zeros([ngas],dtype='int32')
+    isoID = np.zeros([ngas],dtype='int32')
+    iproc = np.zeros([ngas],dtype='int32')
+    for i in range(ngas):
+        var1 = f.readline().split()
+        var2 = f.readline().split()
+        gasID[i] = int(var1[0])
+        isoID[i] = int(var2[0])
+        iproc[i] = int(var2[1])
+
+    #Reading parameters of each layer
+    ##################################
+    header = f.readline().split()
+    header = f.readline().split()
+    header = f.readline().split()
+    header = f.readline().split()
+    baseH = np.zeros([nlayer])
+    delH = np.zeros([nlayer])
+    baseP = np.zeros([nlayer])
+    baseT = np.zeros([nlayer])
+    totam = np.zeros([nlayer])
+    press = np.zeros([nlayer])
+    temp = np.zeros([nlayer])
+    doppler = np.zeros([nlayer])
+    par_coldens = np.zeros([nlayer,ngas])
+    par_press = np.zeros([nlayer,ngas])
+    cont_coldens = np.zeros([nlayer,ncont])
+    hfp = np.zeros([nlayer])
+    hfc = np.zeros([nlayer,ncont])
+    for i in range(nlayer):
+        #Reading layers
+        var1 = f.readline().split()
+        baseH[i] = float(var1[1])
+        delH[i] = float(var1[2])
+        baseP[i] = float(var1[3])
+        baseT[i] = float(var1[4])
+        totam[i] = float(var1[5])
+        press[i] = float(var1[6])
+        temp[i] = float(var1[7])
+        doppler[i] = float(var1[8])
+
+        #Reading partial pressures and densities of gases in each layer
+        nlines = ngas*2./6.
+        if nlines-int(nlines)>0.0:
+            nlines = int(nlines)+1
+        else:
+            nlines = int(nlines)
+
+        ix = 0
+        var = np.zeros([ngas*2])
+        for il in range(nlines):
+            var1 = f.readline().split()
+            for j in range(len(var1)):
+                var[ix] = var1[j]
+                ix = ix + 1
+
+        ix = 0
+        for il in range(ngas):
+            par_coldens[i,il] = var[ix]
+            par_press[i,il] = var[ix+1]
+            ix = ix + 2
+        
+        #Reading amount of aerosols in each layer
+        nlines = ncont/6.
+        if nlines-int(nlines)>0.0:
+            nlines = int(nlines)+1
+        else:
+            nlines = int(nlines)
+        var = np.zeros([ncont])
+        ix = 0
+        for il in range(nlines):
+            var1 = f.readline().split()
+            for j in range(len(var1)):
+                var[ix] = var1[j]
+                ix = ix + 1
+
+        ix = 0
+        for il in range(ncont):
+            cont_coldens[i,il] = var[ix]
+            ix = ix + 1
+
+        #Reading if FLAGH2P is set
+        if flagh2p==1:
+            var1 = f.readline().split()
+            hfp[i] = float(var1[0])
+
+
+        #Reading if FLAGC is set
+        if flagc==1:
+            var = np.zeros([ncont+1])
+            ix = 0
+            for il in range(ncont):
+                var1 = f.readline().split()
+                for j in range(len(var1)):
+                    var[ix] = var1[j]
+                    ix = ix + 1
+
+            ix = 0
+            for il in range(ncont):
+                hfc[i,il] = var[ix]
+                ix = ix + 1
+
+                    
+    #Reading the atmospheric paths
+    #########################################
+    nlayin = np.zeros([npath],dtype='int32')
+    imod = np.zeros([npath])
+    errlim = np.zeros([npath])
+    layinc = np.zeros([npath,2*nlayer],dtype='int32')
+    emtemp = np.zeros([npath,2*nlayer])
+    scale = np.zeros([npath,2*nlayer])
+    for i in range(npath):
+        var1 = f.readline().split()
+        nlayin[i] = int(var1[0])
+        imod[i] = int(var1[1])
+        errlim[i] = float(var1[2])
+        for j in range(nlayin[i]):
+            var1 = f.readline().split()
+            layinc[i,j] = int(var1[1]) - 1   #-1 stands for the fact that arrays in python start in 0, and 1 in fortran
+            emtemp[i,j] = float(var1[2])
+            scale[i,j] = float(var1[3])
+
+    #Reading number of filter profile points
+    #########################################
+    var1 = f.readline().split()
+    nfilt = int(var1[0])
+    filt = np.zeros([nfilt])
+    vfilt = np.zeros([nfilt])
+    for i in range(nfilt):
+        var1 = f.readline().split()
+        filt[i] = float(var1[0])
+        vfilt[i] = float(var1[1])
+                            
+    outfile = f.readline().split()
+
+    #Reading number of calculations
+    ################################
+    var1 = f.readline().split()
+    ncalc = int(var1[0])
+    itype = np.zeros([ncalc],dtype='int32')
+    nintp = np.zeros([ncalc],dtype='int32')
+    nrealp = np.zeros([ncalc],dtype='int32')
+    nchp = np.zeros([ncalc],dtype='int32')
+    icald = np.zeros([ncalc,10],dtype='int32')
+    rcald = np.zeros([ncalc,10])
+    for i in range(ncalc):
+        var1 = f.readline().split()
+        itype[i] = int(var1[0])
+        nintp[i] = int(var1[1])
+        nrealp[i] = int(var1[2])
+        nchp[i] = int(var1[3])
+        for j in range(nintp[i]):
+            var1 = f.readline().split()
+            icald[i,j] = int(var1[0])
+        for j in range(nrealp[i]):
+            var1 = f.readline().split()
+            rcald[i,j] = float(var1[0])
+        for j in range(nchp[i]):
+            var1 = f.readline().split()
+            #NOT FINISHED HERE!!!!!!
+
+    f.close()
+
+    if MakePlot==True:
+        #Plotting the model for the atmospheric layers
+        fig, (ax1,ax2,ax3,ax4) = plt.subplots(1,4,figsize=(15,7))
+        ax1.semilogx(baseP,baseH)
+        ax1.set_xlabel('Pressure (atm)')
+        ax1.set_ylabel('Base altitude (km)')
+        ax1.grid()
+        
+        ax2.plot(baseT,baseH)
+        ax2.set_xlabel('Temperature (K)')
+        ax2.set_ylabel('Base altitude (km)')
+        ax2.grid()
+        
+        ax3.semilogx(totam,baseH)
+        ax3.set_xlabel('Vertical column density in layer (cm$^{-2}$)')
+        ax3.set_ylabel('Base altitude (km)')
+        ax3.grid()
+        
+        for i in range(ngas):
+            #strgas = spec.read_gasname(gasID[i],isoID[i])
+            strgas = 'CHANGE'
+            ax4.semilogx(par_coldens[:,i],baseH,label=strgas)
+    
+        ax4.legend()
+        ax4.set_xlabel('Vertical column density in layer (cm$^{-2}$)')
+        ax4.set_ylabel('Base altitude (km)')
+        ax4.grid()
+        
+        plt.tight_layout()
+        
+        plt.show()
+
+    return iconv,flagh2p,ncont,flagc,nlayer,npath,ngas,gasID,isoID,iproc,\
+            baseH,delH,baseP,baseT,totam,press,temp,doppler,par_coldens,par_press,cont_coldens,hfp,hfc,\
+            nlayin,imod,errlim,layinc,emtemp,scale,\
+            nfilt,filt,vfilt,ncalc,itype,nintp,nrealp,nchp,icald,rcald
+            
+###############################################################################################
+
+def read_inp(runname,Measurement=None,Scatter=None,Spectroscopy=None):
+
+    """
+        FUNCTION NAME : read_inp()
+        
+        DESCRIPTION : Read the .inp file for a Nemesis run
+
+        INPUTS :
+        
+            runname :: Name of the Nemesis run
+        
+        OPTIONAL INPUTS: none
+        
+        OUTPUTS :
+        
+            ispace :: (0) Wavenumber in cm-1 (1) Wavelength in um
+            iscat :: (0) Thermal emission calculation
+                    (1) Multiple scattering required
+                    (2) Internal scattered radiation field is calculated first (required for limb-
+                        scattering calculations)
+                    (3) Single scattering plane-parallel atmosphere calculation
+                    (4) Single scattering spherical atmosphere calculation
+            ilbl :: (0) Pre-tabulated correlated-k calculation
+                    (1) Line by line calculation
+                    (2) Pre-tabulated line by line calculation
+            
+            woff :: Wavenumber/wavelength calibration offset error to be added to the synthetic spectra
+            niter :: Number of iterations of the retrieval model required
+            philimit :: Percentage convergence limit. If the percentage reduction of the cost function phi
+                        is less than philimit then the retrieval is deemed to have converged.
+            nspec :: Number of retrievals to perform (for measurements contained in the .spx file)
+            ioff :: Index of the first spectrum to fit (in case that nspec > 1).
+            lin :: Integer indicating whether the results from previous retrievals are to be used to set any
+                    of the atmospheric profiles. (Look Nemesis manual)
+        
+        CALLING SEQUENCE:
+        
+            Measurement,Scatter,Spectroscopy,WOFF,fmerrname,NITER,PHILIMIT,NSPEC,IOFF,LIN = read_inp(runname)
+        
+        MODIFICATION HISTORY : Juan Alday (29/04/2019)
+        
+    """
+
+    from archnemesis import Scatter_0, Measurement_0, Spectroscopy_0
+
+    #Getting number of lines 
+    nlines = file_lines(runname+'.inp')
+    if nlines==7:
+        iiform=0
+    if nlines==8:
+        iiform=1
+
+    #Opening file
+    f = open(runname+'.inp','r')
+    tmp = f.readline().split()
+    ispace = int(tmp[0])
+    iscat = int(tmp[1])
+    ilbl = int(tmp[2])
+
+    
+    if Measurement==None:
+        Measurement = Measurement_0()
+    Measurement.ISPACE=ispace
+
+    if Scatter==None:
+        Scatter = Scatter_0()
+    Scatter.ISPACE = ispace
+    Scatter.ISCAT = iscat
+
+    if Spectroscopy==None:
+        Spectroscopy = Spectroscopy_0(RUNNAME=runname)
+    Spectroscopy.ILBL = ilbl
+    
+    tmp = f.readline().split()
+    WOFF = float(tmp[0])
+    fmerrname = str(f.readline().split())
+    tmp = f.readline().split()
+    NITER = int(tmp[0])
+    tmp = f.readline().split()
+    PHILIMIT = float(tmp[0])
+    
+    tmp = f.readline().split()
+    NSPEC = int(tmp[0])
+    IOFF = int(tmp[1])
+    
+    tmp = f.readline().split()
+    LIN = int(tmp[0])
+
+    if iiform==1:
+        tmp = f.readline().split()
+        iform = int(tmp[0])
+        Measurement.IFORM=iform
+    else:
+        Measurement.IFORM=0
+    
+    return  Measurement,Scatter,Spectroscopy,WOFF,fmerrname,NITER,PHILIMIT,NSPEC,IOFF,LIN
+
+###############################################################################################
+
+def read_set(runname,Layer=None,Surface=None,Stellar=None,Scatter=None):
+    
+    """
+        FUNCTION NAME : read_set()
+        
+        DESCRIPTION : Read the .set file
+        
+        INPUTS :
+        
+            runname :: Name of the Nemesis run
+        
+        OPTIONAL INPUTS: none
+        
+        OUTPUTS :
+        
+            Scatter :: Python class defining the scattering calculations
+            Stellar :: Python class defining the stellar properties
+            Surface :: Python class defining the surface properties
+            Layer :: Python class defining the layering scheme of the atmosphere
+        
+        CALLING SEQUENCE:
+        
+            Scatter,Stellar,Surface,Layer = read_set(runname)
+        
+        MODIFICATION HISTORY : Juan Alday (29/04/2019)
+        
+    """
+    
+    from archnemesis import Scatter_0, Stellar_0, Surface_0
+
+    #Opening file
+    f = open(runname+'.set','r')
+    dummy = f.readline().split()
+    nmu1 = f.readline().split()
+    nmu = int(nmu1[5])
+    mu = np.zeros([nmu],dtype='d')
+    wtmu = np.zeros([nmu],dtype='d')
+    for i in range(nmu):
+        tmp = np.fromfile(f,sep=' ',count=2,dtype='d')
+        mu[i] = tmp[0]
+        wtmu[i] = tmp[1]
+    
+    dummy = f.readline().split()
+    nf = int(dummy[5])
+    dummy = f.readline().split()
+    nphi = int(dummy[8])
+    dummy = f.readline().split()
+    isol = int(dummy[5])
+    dummy = f.readline().split()
+    dist = float(dummy[5])
+    dummy = f.readline().split()
+    lowbc = int(dummy[6])
+    dummy = f.readline().split()
+    galb = float(dummy[3])
+    dummy = f.readline().split()
+    tsurf = float(dummy[3])
+
+    dummy = f.readline().split()
+
+    dummy = f.readline().split()
+    layht = float(dummy[8])
+    dummy = f.readline().split()
+    nlayer = int(dummy[5])
+    dummy = f.readline().split()
+    laytp = int(dummy[3])
+    dummy = f.readline().split()
+    layint = int(dummy[3])
+
+    #Creating or updating Scatter class
+    if Scatter==None:
+        Scatter = Scatter_0()
+        Scatter.NMU = nmu
+        Scatter.NF = nf
+        Scatter.NPHI = nphi
+        Scatter.calc_GAUSS_LOBATTO()
+    else:
+        Scatter.NMU = nmu
+        Scatter.calc_GAUSS_LOBATTO()
+        Scatter.NF = nf
+        Scatter.NPHI = nphi
+
+    #Creating or updating Stellar class
+    if Stellar==None:
+        Stellar = Stellar_0()
+        Stellar.DIST = dist
+        if isol==1:
+            Stellar.SOLEXIST = True
+            Stellar.read_sol(runname)
+        elif isol==0:
+            Stellar.SOLEXIST = False
+        else:
+            sys.exit('error reading .set file :: SOLEXIST must be either True or False')
+
+    #Creating or updating Surface class
+    if Surface==None:
+        Surface = Surface_0()
+
+    Surface.LOWBC = lowbc
+    Surface.GALB = galb
+    Surface.TSURF = tsurf
+
+    #Creating or updating Layer class
+    if Layer==None:
+        Layer = Layer_0()
+    
+    Layer.LAYHT = layht*1.0e3
+    Layer.LAYTYP = laytp
+    Layer.LAYINT = layint
+    Layer.NLAY = nlayer
+
+    return Scatter,Stellar,Surface,Layer
+
+###############################################################################################
+
+def read_fla(runname):
+    
+    """
+        FUNCTION NAME : read_fla()
+        
+        DESCRIPTION : Read the .fla file
+        
+        INPUTS :
+        
+            runname :: Name of the Nemesis run
+        
+        OPTIONAL INPUTS: none
+        
+        OUTPUTS :
+        
+            runname :: Name of the Nemesis run
+            inormal :: ortho/para-H2 ratio is in equilibrium (0) or normal 3:1 (1)
+            iray :: (0) Rayleigh scattering optical depth not included
+                    (1) Rayleigh optical depths for gas giant atmosphere
+                    (2) Rayleigh optical depth suitable for CO2-dominated atmosphere
+                    (>2) Rayleigh optical depth suitable for a N2-O2 atmosphere
+            ih2o :: Additional H2O continuum off (0) or on (1)
+            ich4 :: Additional CH4 continuum off (0) or on (1)
+            io3 :: Additional O3 continuum off (0) or on (1)
+            inh3 :: Additional NH3 continuum off (0) or on (1)
+            iptf :: Normal partition function calculation (0) or high-temperature partition
+                    function for CH4 for Hot Jupiters
+            imie :: Only relevant for scattering calculations. (0) Phase function is computed
+                    from the associated Henyey-Greenstein hgphase*.dat files. (1) Phase function
+                    computed from the Mie-Theory calculated PHASEN.DAT
+            iuv :: Additional flag for including UV cross sections off (0) or on (1)
+        
+        CALLING SEQUENCE:
+        
+            inormal,iray,ih2o,ich4,io3,inh3,iptf,imie,iuv = read_fla(runname)
+        
+        MODIFICATION HISTORY : Juan Alday (29/04/2019)
+        
+        """
+    
+    #Opening file
+    f = open(runname+'.fla','r')
+    s = f.readline().split()
+    inormal = int(s[0])
+    s = f.readline().split()
+    iray = int(s[0])
+    s = f.readline().split()
+    ih2o = int(s[0])
+    s = f.readline().split()
+    ich4 = int(s[0])
+    s = f.readline().split()
+    io3 = int(s[0])
+    s = f.readline().split()
+    inh3 = int(s[0])
+    s = f.readline().split()
+    iptf = int(s[0])
+    s = f.readline().split()
+    imie = int(s[0])
+    s = f.readline().split()
+    iuv = int(s[0])
+   
+    return inormal,iray,ih2o,ich4,io3,inh3,iptf,imie,iuv
+
+###############################################################################################
+
+def write_fla(runname,inormal,iray,ih2o,ich4,io3,inh3,iptf,imie,iuv):
+
+    """
+        FUNCTION NAME : write_fla()
+        
+        DESCRIPTION : Write the .fla file
+        
+        INPUTS :
+        
+            runname :: Name of the Nemesis run
+            inormal :: ortho/para-H2 ratio is in equilibrium (0) or normal 3:1 (1)
+            iray :: (0) Rayleigh scattering optical depth not included
+                    (1) Rayleigh optical depths for gas giant atmosphere
+                    (2) Rayleigh optical depth suitable for CO2-dominated atmosphere
+                    (>2) Rayleigh optical depth suitable for a N2-O2 atmosphere
+            ih2o :: Additional H2O continuum off (0) or on (1)
+            ich4 :: Additional CH4 continuum off (0) or on (1)
+            io3 :: Additional O3 continuum off (0) or on (1)
+            inh3 :: Additional NH3 continuum off (0) or on (1)
+            iptf :: Normal partition function calculation (0) or high-temperature partition
+                    function for CH4 for Hot Jupiters
+            imie :: Only relevant for scattering calculations. (0) Phase function is computed
+                    from the associated Henyey-Greenstein hgphase*.dat files. (1) Phase function
+                    computed from the Mie-Theory calculated PHASEN.DAT
+            iuv :: Additional flag for including UV cross sections off (0) or on (1)
+        
+        OPTIONAL INPUTS: none
+        
+        OUTPUTS :
+        
+            Nemesis .fla file       
+ 
+        CALLING SEQUENCE:
+        
+            write_fla(runname,inormal,iray,ih2o,ich4,io3,inh3,iptf,imie,iuv)
+        
+        MODIFICATION HISTORY : Juan Alday (29/04/2019)
+        
+    """
+
+    f = open(runname+'.fla','w')
+    f.write('%i \t %s \n' % (inormal,'!INORMAL'))
+    f.write('%i \t %s \n' % (iray,'!IRAY'))
+    f.write('%i \t %s \n' % (ih2o,'!IH2O'))
+    f.write('%i \t %s \n' % (ich4,'!ICH4'))
+    f.write('%i \t %s \n' % (io3,'!IO3'))
+    f.write('%i \t %s \n' % (inh3,'!INH3'))
+    f.write('%i \t %s \n' % (iptf,'!IPTF'))
+    f.write('%i\t %s \n' % (imie,'!IMIE'))
+    f.write('%i\t %s \n' % (iuv,'!IUV'))
+    f.close()
+
+###############################################################################################
+
+def write_set(runname,nmu,nf,nphi,isol,dist,lowbc,galb,tsurf,layht,nlayer,laytp,layint):
+
+    """
+        FUNCTION NAME : write_set()
+        
+        DESCRIPTION : Read the .set file
+        
+        INPUTS :
+        
+            runname :: Name of the Nemesis run
+            nmu :: Number of zenith ordinates
+            nf :: Required number of Fourier components
+            nphi :: Number of azimuth angles
+            isol :: Sunlight on/off
+            dist :: Solar distance (AU)
+            lowbc :: Lower boundary condition (0 Thermal - 1 Lambertian)
+            galb :: Ground albedo
+            tsurf :: Surface temperature (if planet is not gasgiant)
+            layht :: Base height of lowest layer
+            nlayer :: Number of vertical levels to split the atmosphere into
+            laytp :: Flag to indicate how layering is perfomed (radtran)
+            layint :: Flag to indicate how layer amounts are calculated (radtran)
+
+        OPTIONAL INPUTS: none
+        
+        OUTPUTS :
+        
+            Nemesis .set file
+
+        CALLING SEQUENCE:
+        
+            l = write_set(runname,nmu,nf,nphi,isol,dist,lowbc,galb,tsurf,layht,nlayer,laytp,layint)
+        
+        MODIFICATION HISTORY : Juan Alday (15/10/2019)
+        
+    """
+
+    #Calculating the Gauss-Lobatto quadtrature points
+    iScatter = Scatter_0(NMU=nmu)
+
+    #Writin the .set file
+    f = open(runname+'.set','w')
+    f.write('********************************************************* \n')
+    f.write('Number of zenith angles : '+str(nmu)+' \n')
+    for i in range(nmu):
+        f.write('\t %10.12f \t %10.12f \n' % (iScatter.MU[i],iScatter.WTMU[i]))
+    f.write('Number of Fourier components : '+str(nf)+' \n')
+    f.write('Number of azimuth angles for fourier analysis : '+str(nphi)+' \n')
+    f.write('Sunlight on(1) or off(0) : '+str(isol)+' \n')
+    f.write('Distance from Sun (AU) : '+str(dist)+' \n')
+    f.write('Lower boundary cond. Thermal(0) Lambert(1) : '+str(lowbc)+' \n')
+    f.write('Ground albedo : '+str(galb)+' \n')
+    f.write('Surface temperature : '+str(tsurf)+' \n')
+    f.write('********************************************************* \n')
+    f.write('Alt. at base of bot.layer (not limb) : '+str(layht)+' \n')
+    f.write('Number of atm layers : '+str(nlayer)+' \n')
+    f.write('Layer type : '+str(laytp)+' \n')
+    f.write('Layer integration : '+str(layint)+' \n')
+    f.write('********************************************************* \n')
+
+    f.close()
+
+###############################################################################################
+
+def write_inp(runname,ispace,iscat,ilbl,woff,niter,philimit,nspec,ioff,lin,IFORM=-1):
+
+    """
+        FUNCTION NAME : write_inp()
+        
+        DESCRIPTION : Write the .inp file for a Nemesis run
+        
+        INPUTS :
+        
+            runname :: Name of the Nemesis run
+            ispace :: (0) Wavenumber in cm-1 (1) Wavelength in um
+            iscat :: (0) Thermal emission calculation
+                    (1) Multiple scattering required
+                    (2) Internal scattered radiation field is calculated first (required for limb-
+                        scattering calculations)
+                    (3) Single scattering plane-parallel atmosphere calculation
+                    (4) Single scattering spherical atmosphere calculation
+            ilbl :: (0) Pre-tabulated correlated-k calculation
+                    (1) Line by line calculation
+                    (2) Pre-tabulated line by line calculation
+            woff :: Wavenumber/wavelength calibration offset error to be added to the synthetic spectra
+            niter :: Number of iterations of the retrieval model required
+            philimit :: Percentage convergence limit. If the percentage reduction of the cost function phi
+                        is less than philimit then the retrieval is deemed to have converged.
+            nspec :: Number of retrievals to perform (for measurements contained in the .spx file)
+            ioff :: Index of the first spectrum to fit (in case that nspec > 1).
+            lin :: Integer indicating whether the results from previous retrievals are to be used to set any
+                    of the atmospheric profiles. (Look Nemesis manual)
+        
+        OPTIONAL INPUTS: none
+        
+        OUTPUTS :
+        
+        CALLING SEQUENCE:
+
+            write_inp(runname,ispace,iscat,ilbl,woff,niter,philimit,nspec,ioff,lin,IFORM=iform)
+         
+        MODIFICATION HISTORY : Juan Alday (29/04/2019)
+        
+    """
+
+    #Opening file
+    f = open(runname+'.inp','w')
+    f.write('%i \t %i \t %i \n' % (ispace,iscat,ilbl))
+    f.write('%10.5f \n' % (woff))
+    f.write(runname+'.err \n')
+    f.write('%i \n' % (niter))
+    f.write('%10.5f \n' % (philimit))
+    f.write('%i \t %i \n' % (nspec,ioff))
+    f.write('%i \n' % (lin))
+    if IFORM!=-1:
+        f.write('%i \n' % (IFORM))
+    f.close()
+
+###############################################################################################
+
+def write_err(runname,nwave,wave,fwerr):
+
+    """
+        FUNCTION NAME : write_err()
+        
+        DESCRIPTION : Write the .err file, including information about forward modelling error
+        
+        INPUTS :
+        
+            runname :: Name of Nemesis run
+            nwave :: Number of wavelengths at which the albedo is defined
+            wave(nwave) :: Wavenumber/Wavelength array
+            fwerr(nwave) :: Forward modelling error
+        
+        OPTIONAL INPUTS: none
+        
+        OUTPUTS :
+        
+            Nemeis .err file       
+ 
+        CALLING SEQUENCE:
+        
+            write_err(runname,nwave,wave,fwerr)
+         
+        MODIFICATION HISTORY : Juan Alday (29/04/2019)
+        
+    """
+
+    f = open(runname+'.err','w')
+    f.write('\t %i \n' % (nwave))
+    for i in range(nwave):
+        f.write('\t %10.5f \t %10.5f \n' % (wave[i],fwerr[i]))
+    f.close()
+
+###############################################################################################
+
+def write_fcloud(npro,naero,height,frac,icloud, MakePlot=False):
+    
+    """
+        FUNCTION NAME : write_fcloud()
+        
+        DESCRIPTION : Writes the fcloud.ref file, which specifies if the cloud is in the form of
+                      a uniform thin haze or is instead arranged in thicker clouds covering a certain
+                      fraction of the mean area.
+        
+        INPUTS :
+        
+            npro :: Number of altitude profiles in reference atmosphere
+            naero :: Number of aerosol populations in the atmosphere
+            height(npro) :: Altitude (km)
+            frac(npro) :: Fractional cloud cover at each level
+            icloud(npro,naero) :: Flag indicating which aerosol types contribute to the broken cloud
+                                  which has a fractional cloud cover of frac
+        
+        OPTIONAL INPUTS: None
+        
+        OUTPUTS :
+        
+            fcloud.ref file
+        
+        CALLING SEQUENCE:
+        
+            write_fcloud(npro,naero,height,frac,icloud)
+        
+        MODIFICATION HISTORY : Juan Alday (16/03/2021)
+        
+    """
+
+    f = open('fcloud.ref','w')
+
+    f.write('%i \t %i \n' % (npro,naero))
+    
+    for i in range(npro):
+        str1 = str('{0:7.6f}'.format(height[i]))+'\t'+str('{0:7.3f}'.format(frac[i]))
+        for j in range(naero):
+            str1 = str1+'\t'+str('{0:d}'.format(icloud[i,j]))
+            f.write(str1+'\n')
+
+    f.close()
+
+
+
+
