@@ -145,6 +145,11 @@ class Measurement_0:
     Measurement_0.wavesetc()
     Measurement_0.wavesetb()
     
+    Measurement_0.lblconv()
+    Measurement_0.lblconvg()
+    Measurement_0.conv()
+    Measurement_0.cong()
+    
     Measurement_0.calc_doppler_shift()
     Measurement_0.invert_doppler_shift()
     Measurement_0.correct_doppler_shift()
@@ -1568,6 +1573,561 @@ class Measurement_0:
             self.WAVE = wave
             self.NWAVE = self.NCONV[IGEOM]
 
+    #################################################################################################################
+
+    def lblconv(self,ModSpec,IGEOM='All'):
+        """
+        Subroutine to convolve the Modelled spectrum with the Instrument Line Shape 
+
+        Parameters
+        ----------
+        ModSpec : 1D or 2D array (NWAVE,NGEOM)
+            Modelled spectrum
+
+        Other Parameters
+        ----------------
+        IGEOM : int
+            If All, it is assumed all geometries cover exactly the same spetral range and ModSpec is expected to be (NWAVE,NGEOM)
+            If not, IGEOM should be an integer indicating the geometry it corresponds to in the Measurement class (or .spx file)
+
+        Returns
+        -------
+        SPECONV : 1D or 2D array (NCONV,NGEOM)
+            Convolved spectrum with the instrument lineshape
+        """
+        
+        #Accounting for the Doppler shift that was previously introduced
+        wavecorr = self.correct_doppler_shift(self.WAVE)
+
+        if self.FWHM>0.0:    #Convolution with ISHAPE
+            if IGEOM=='All':
+                IG = 0
+                if ModSpec.ndim!=2:
+                    sys.exit('error in lblconvg :: ModSpec must have 2 dimensions (NWAVE,NGEOM)')
+                SPECONV = lblconv_ngeom(self.NWAVE,wavecorr,ModSpec,self.NCONV[IG],self.VCONV[:,IG],self.ISHAPE,self.FWHM)
+            else:
+                if ModSpec.ndim!=1:
+                    sys.exit('error in lblconvg :: ModSpec must have 1 dimensions (NWAVE)')
+                IG = IGEOM
+                SPECONV = lblconv(self.NWAVE,wavecorr,ModSpec,self.NCONV[IG],self.VCONV[:,IG],self.ISHAPE,self.FWHM)
+            
+        elif self.FWHM<0.0:  #Convolution with VFIL,AFIL
+            if IGEOM=='All':
+                if ModSpec.ndim!=2:
+                    sys.exit('error in lblconvg :: ModSpec must have 2 dimensions (NWAVE,NGEOM)')
+                IG = 0
+                SPECONV = lblconv_fil_ngeom(self.NWAVE,wavecorr,ModSpec,self.NCONV[IG],self.VCONV[:,IG],self.NFIL,self.VFIL,self.AFIL)
+            else:
+                if ModSpec.ndim!=1:
+                    sys.exit('error in lblconvg :: ModSpec must have 1 dimensions (NWAVE)')
+                IG = IGEOM
+                SPECONV = lblconv_fil(self.NWAVE,wavecorr,ModSpec,self.NCONV[IG],self.VCONV[:,IG],self.NFIL,self.VFIL,self.AFIL)
+
+        elif self.FWHM==0.0:  #No convolution
+            if IGEOM=='All':
+                if ModSpec.ndim!=2:
+                    sys.exit('error in lblconvg :: ModSpec must have 2 dimensions (NWAVE,NGEOM)')
+                SPECONV = ModSpec
+            else:
+                SPECONV = ModSpec[:,IG]
+
+        return SPECONV
+
+    #################################################################################################################
+
+    def lblconvg(self,ModSpec,ModGrad,IGEOM='All'):
+    
+        """
+        Subroutine to convolve the Modelled spectrum and the gradients with the Instrument Line Shape 
+
+        Parameters
+        ----------
+        ModSpec : 1D or 2D array (NWAVE,NGEOM)
+            Modelled spectrum
+        ModGrad: 2D or 3D array (NWAVE,NGEOM,NX)
+            Modelled gradients
+
+        Other Parameters
+        ----------------
+        IGEOM : int
+            If All, it is assumed all geometries cover exactly the same spetral range and ModSpec is expected to be (NWAVE,NGEOM)
+            If not, IGEOM should be an integer indicating the geometry it corresponds to in the Measurement class (or .spx file)
+
+        Returns
+        -------
+        SPECONV : 1D or 2D array (NCONV,NGEOM)
+            Convolved spectrum with the instrument lineshape
+        dSPECONV : 2D or 3D array (NCONV,NGEOM,NX)
+            Convolved gradients with the instrument lineshape
+        """
+
+        #Accounting for the Doppler shift that was previously introduced
+        wavecorr = self.correct_doppler_shift(self.WAVE)
+
+        if self.FWHM>0.0:   #Convolution with ISHAPE
+
+            if IGEOM=='All':
+                IG = 0
+                if ModSpec.ndim!=2:
+                    sys.exit('error in lblconvg :: ModSpec must have 2 dimensions (NWAVE,NGEOM)')
+                if ModGrad.ndim!=3:
+                    sys.exit('error in lblconvg :: ModGrad must have 3 dimensions (NWAVE,NGEOM,NX)')
+                SPECONV,dSPECONV = lblconvg_ngeom(self.NWAVE,wavecorr,ModSpec,ModGrad,self.NCONV[IG],self.VCONV[:,IG],self.ISHAPE,self.FWHM)
+            else:
+                if ModSpec.ndim!=1:
+                    sys.exit('error in lblconvg :: ModSpec must have 1 dimensions (NWAVE)')
+                if ModGrad.ndim!=2:
+                    sys.exit('error in lblconvg :: ModGrad must have 2 dimensions (NWAVE,NX)')
+                IG = IGEOM
+                SPECONV,dSPECONV = lblconvg(self.NWAVE,wavecorr,ModSpec,ModGrad,self.NCONV[IG],self.VCONV[:,IG],self.ISHAPE,self.FWHM)
+            
+        elif self.FWHM<0.0:  #Convolution with VFIL, AFIL
+
+            if IGEOM=='All':
+                if ModSpec.ndim!=2:
+                    sys.exit('error in lblconvg :: ModSpec must have 2 dimensions (NWAVE,NGEOM)')
+                if ModGrad.ndim!=3:
+                    sys.exit('error in lblconvg :: ModGrad must have 3 dimensions (NWAVE,NGEOM,NX)')
+                IG = 0
+                SPECONV,dSPECONV = lblconvg_fil_ngeom(self.NWAVE,wavecorr,ModSpec,ModGrad,self.NCONV[IG],self.VCONV[:,IG],self.NFIL,self.VFIL,self.AFIL)
+
+            else:
+                if ModSpec.ndim!=1:
+                    sys.exit('error in lblconvg :: ModSpec must have 1 dimensions (NWAVE)')
+                if ModGrad.ndim!=2:
+                    sys.exit('error in lblconvg :: ModGrad must have 2 dimensions (NWAVE,NX)')
+                IG = IGEOM
+                SPECONV,dSPECONV = lblconvg_fil(self.NWAVE,wavecorr,ModSpec,ModGrad,self.NCONV[IG],self.VCONV[:,IG],self.NFIL,self.VFIL,self.AFIL)
+
+        elif self.FWHM==0.0:
+            
+            if IGEOM=='All':
+                if ModSpec.ndim!=2:
+                    sys.exit('error in lblconvg :: ModSpec must have 2 dimensions (NWAVE,NGEOM)')
+                if ModGrad.ndim!=3:
+                    sys.exit('error in lblconvg :: ModGrad must have 3 dimensions (NWAVE,NGEOM,NX)')
+                SPECONV = ModSpec
+                dSPECONV = ModGrad
+                
+            else:
+                if ModSpec.ndim!=1:
+                    sys.exit('error in lblconvg :: ModSpec must have 1 dimensions (NWAVE)')
+                if ModGrad.ndim!=2:
+                    sys.exit('error in lblconvg :: ModGrad must have 2 dimensions (NWAVE,NX)')
+
+                SPECONV = ModSpec[:,IGEOM]
+                dSPECONV = ModGrad[:,IGEOM,:]
+
+        return SPECONV,dSPECONV
+
+    #################################################################################################################
+    
+    def conv(self,ModSpec,IGEOM='All',FWHMEXIST=''):
+    
+        """
+        Subroutine to convolve the Modelled spectrum with the Instrument Line Shape 
+
+        Parameters
+        ----------
+        ModSpec : 1D or 2D array (NWAVE,NGEOM)
+            Modelled spectrum
+
+        Other Parameters
+        ----------------
+        IGEOM : int
+            If All, it is assumed all geometries cover exactly the same spetral range and ModSpec is expected to be (NWAVE,NGEOM)
+            If not, IGEOM should be an integer indicating the geometry it corresponds to in the Measurement class (or .spx file)
+        FWHMEXIST : int
+            If not '', then FWHMEXIST indicates that the .fwhm exists (that includes the variation of FWHM for each wave) and
+            FWHMEXIST is expected to be the name of the Nemesis run
+
+        Returns
+        -------
+        SPECONV : 1D or 2D array (NCONV,NGEOM)
+            Convolved spectrum with the instrument lineshape
+        """
+
+        import os.path
+        from scipy import interpolate
+
+        nstep = 20
+
+        if IGEOM=='All':
+
+            #It is assumed all geometries cover the same spectral range
+            IG = 0 
+            NX = len(ModGrad[0,0,:])
+            yout = np.zeros((self.NCONV[IG],self.NGEOM))
+            ynor = np.zeros((self.NCONV[IG],self.NGEOM))
+
+            if self.FWHM>0.0:
+
+                sys.exit('error in convg :: IGEOM=All with FWHM>0 has not yet been implemented')
+
+            elif self.FWHM==0.0:
+
+                #Channel Integrator mode where the k-tables have been previously
+                #tabulated INCLUDING the filter profile. In which case all we
+                #need do is just transfer the outputs
+                yout[:,:] = ModSpec[:]
+
+            elif self.FWHM<0.0:
+
+                sys.exit('error in convg :: IGEOM=All with FWHM<0 has not yet been implemented')
+
+        else:
+
+            yout = np.zeros(self.NCONV[IGEOM])
+            ynor = np.zeros(self.NCONV[IGEOM])
+
+            if self.FWHM>0.0:
+
+                nwave1 = self.NWAVE
+                wave1 = np.zeros(nwave+2)
+                y1 = np.zeros(nwave+2)
+                wave1[1:nwave+1] = self.WAVE
+                y1[1:nwave+1] = ModSpec[0:self.NWAVE]
+
+                #Extrapolating the last wavenumber
+                iup = 0
+                if(self.VCONV[self.NCONV[IGEOM],IGEOM]>(self.WAVE.max()-self.FWHM/2.)):
+                    nwave1 = nwave1 +1
+                    wave1[nwave1-1] = self.VCONV[self.NCONV[IGEOM],IGEOM] + self.FWHM
+                    frac = (ModSpec[self.NWAVE-1]-ModSpec[self.NWAVE-2])/(self.WAVE[self.NWAVE-1]-self.WAVE[self.NWAVE-2])
+                    y1[nwave-1] = ModSpec[Measurement.NWAVE-1] + frac * (wave1[nwave1-1]-self.WAVE[self.NWAVE-1])
+                    iup=1
+
+                #Extrapolating the first wavenumber
+                idown = 0
+                if(self.VCONV[0,IGEOM]<(self.WAVE.min()+self.FWHM/2.)):
+                    nwave1 = nwave1 + 1
+                    wave1[0] = self.VCONV[0,IGEOM] - self.FWHM
+                    frac = (ModSpec[1] - ModSpec[2])/(self.WAVE[1]-self.WAVE[0])
+                    y1[0] = ModSpec[0] + frac * (wave1[0] - self.WAVE[0])
+                    idown = 1
+
+                #Re-shaping the spectrum
+                nwave = nwave1 + iup + idown
+                wave = np.zeros(nwave)
+                y = np.zeros(nwave)
+                if((idown==1) & (iup==1)):
+                    wave[:] = wave1[:]
+                    y[:] = y1[:]
+                elif((idown==1) & (iup==0)):
+                    wave[0:nwave] = wave1[0:nwave1-1]
+                    y[0:nwave] = y1[0:nwave1-1]
+                elif((idown==0) & (iup==1)):
+                    wave[0:nwave] = wave1[1:nwave1]
+                    y[0:nwave] = y1[1:nwave1]
+                else:
+                    wave[0:nwave] = wave1[1:nwave1-1]
+                    y[0:nwave] = y1[1:nwave1-1]
+
+                #Checking if .fwh file exists (indicating that FWHM varies with wavelength)
+                ifwhm = 0
+                if os.path.exists(FWHMEXIST+'.fwh')==True:
+
+                    #Reading file
+                    f = open(FWHMEXIST+'.fwh')
+                    s = f.readline().split()
+                    nfwhm = int(s[0])
+                    vfwhm = np.zeros(nfwhm)
+                    xfwhm = np.zeros(nfwhm)
+                    for ifwhm in range(nfwhm):
+                        s = f.readline().split()
+                        vfwhm[i] = float(s[0])
+                        xfwhm[i] = float(s[1])
+                    f.close()
+
+                    ffwhm = interpolate.interp1d(vfwhm,xfwhm)
+                    ifwhm==1
+
+                fy = interpolate.CubicSpline(wave,y)
+                for ICONV in range(self.NCONV[IGEOM]):
+                    
+                    if ifwhm==1:
+                        yfwhm = ffwhm(self.VCONV[ICONV,IGEOM])
+                    else:
+                        yfwhm = self.FWHM
+
+                    x1 = self.VCONV[ICONV,IGEOM] - yfwhm/2.
+                    x2 = self.VCONV[ICONV,IGEOM] + yfwhm/2.
+                    delx = (x2-x1)/(nstep-1)
+                    xi = np.linspace(x1,x2,nstep)
+                    yi = fy(xi)
+                    for j in range(nstep):
+                        if j==0:
+                            sum1 = 0.0 
+                        else:
+                            sum1 = sum1 + (yi[j] - yold) * delx/2.
+                        yold = yi[j]
+
+                    yout[ICONV] = sum1 / yfwhm
+
+            elif self.FWHM==0.0:
+
+                #Channel Integrator mode where the k-tables have been previously
+                #tabulated INCLUDING the filter profile. In which case all we
+                #need do is just transfer the outputs
+                yout[:] = ModSpec[:]
+
+            elif self.FWHM<0.0:
+
+                #Channel Integrator Mode: Slightly more advanced than previous
+
+                #In this case the filter function for each convolution wave is defined in the .fil file
+                #This file has been previously read and its variables are stored in NFIL,VFIL,AFIL
+
+                for ICONV in range(self.NCONV[IGEOM]):
+
+                    v1 = self.VFIL[0,ICONV]
+                    v2 = self.VFIL[self.NFIL[ICONV]-1,ICONV]
+                    #Find relevant points in tabulated files
+                    iwavelox = np.where( (self.WAVE<v1) )
+                    iwavelox = iwavelox[0]
+                    iwavehix = np.where( (self.WAVE>v2) )
+                    iwavehix = iwavehix[0]
+                    inwave = np.linspace(iwavelox[len(iwavelox)-1],iwavehix[0],iwavehix[0]-iwavelox[len(iwavelox)-1]+1,dtype='int32')
+                    
+                    np1 = len(inwave)
+                    xp = np.zeros([self.NFIL[ICONV]])
+                    yp = np.zeros([self.NFIL[ICONV]])
+                    xp[:] = self.VFIL[0:self.NFIL[ICONV],ICONV]
+                    yp[:] = self.AFIL[0:self.NFIL[ICONV],ICONV]
+
+
+                    for i in range(np1):
+                        #Interpolating (linear) for finding the lineshape at the calculation wavenumbers
+                        f1 = np.interp(self.WAVE[inwave[i]],xp,yp)
+                        if f1>0.0:
+                            yout[ICONV] = yout[ICONV] + f1*ModSpec[inwave[i]]
+                            ynor[ICONV] = ynor[ICONV] + f1
+
+                    yout[ICONV] = yout[ICONV]/ynor[ICONV]
+                
+        return yout
+
+    #################################################################################################################
+
+    def convg(self,ModSpec,ModGrad,IGEOM='All',FWHMEXIST=''):
+    
+        """
+        Subroutine to convolve the Modelled spectrum and the gradients with the Instrument Line Shape 
+
+        Parameters
+        ----------
+        ModSpec : 1D or 2D array (NWAVE,NGEOM)
+            Modelled spectrum
+        ModGrad: 2D or 3D array (NWAVE,NGEOM,NX)
+            Modelled gradients
+        
+        Other Parameters
+        ----------------
+        IGEOM : int
+            If All, it is assumed all geometries cover exactly the same spetral range and ModSpec is expected to be (NWAVE,NGEOM)
+            If not, IGEOM should be an integer indicating the geometry it corresponds to in the Measurement class (or .spx file)
+        FWHMEXIST : int
+            If not '', then FWHMEXIST indicates that the .fwhm exists (that includes the variation of FWHM for each wave) and
+            FWHMEXIST is expected to be the name of the Nemesis run
+
+        Returns
+        -------
+        SPECONV : 1D or 2D array (NCONV,NGEOM)
+            Convolved spectrum with the instrument lineshape
+        dSPECONV : 2D or 3D array (NCONV,NGEOM,NX)
+            Convolved gradients with the instrument lineshape
+        """
+
+        import os.path
+        from scipy import interpolate
+
+        nstep = 20
+
+        if IGEOM=='All':
+
+            #It is assumed all geometries cover the same spectral range
+            IG = 0 
+            NX = len(ModGrad[0,0,:])
+            yout = np.zeros((self.NCONV[IG],self.NGEOM))
+            ynor = np.zeros((self.NCONV[IG],self.NGEOM))
+            gradout = np.zeros((self.NCONV[IG],self.NGEOM,NX))
+            gradnorm = np.zeros((self.NCONV[IG],self.NGEOM,NX))
+
+            if self.FWHM>0.0:
+
+                sys.exit('error in convg :: IGEOM=All with FWHM>0 has not yet been implemented')
+
+            elif self.FWHM==0.0:
+
+                #Channel Integrator mode where the k-tables have been previously
+                #tabulated INCLUDING the filter profile. In which case all we
+                #need do is just transfer the outputs
+                yout[:,:] = ModSpec[:]
+                gradout[:,:,:] = ModGrad[:,:,:]
+
+            elif self.FWHM<0.0:
+
+                sys.exit('error in convg :: IGEOM=All with FWHM<0 has not yet been implemented')
+            
+
+        else:
+
+            yout = np.zeros(self.NCONV[IGEOM])
+            ynor = np.zeros(self.NCONV[IGEOM])
+            NX = len(ModGrad[0,:])
+            gradout = np.zeros((self.NCONV[IGEOM],NX))
+            gradnorm = np.zeros((self.NCONV[IGEOM],NX))
+
+            if self.FWHM>0.0:
+
+                nwave1 = self.NWAVE
+                wave1 = np.zeros(nwave+2)
+                y1 = np.zeros(nwave+2)
+                grad1 = np.zeros((nwave+2,NX))
+                wave1[1:nwave+1] = self.WAVE
+                y1[1:nwave+1] = ModSpec[0:self.NWAVE]
+                grad1[1:nwave+1,:] = Modgrad[0:self.NWAVE,:]
+
+                #Extrapolating the last wavenumber
+                iup = 0
+                if(self.VCONV[self.NCONV[IGEOM],IGEOM]>(self.WAVE.max()-self.FWHM/2.)):
+                    nwave1 = nwave1 +1
+                    wave1[nwave1-1] = self.VCONV[self.NCONV[IGEOM],IGEOM] + self.FWHM
+                    frac = (ModSpec[self.NWAVE-1]-ModSpec[self.NWAVE-2])/(self.WAVE[self.NWAVE-1]-self.WAVE[self.NWAVE-2])
+                    y1[nwave-1] = ModSpec[Measurement.NWAVE-1] + frac * (wave1[nwave1-1]-self.WAVE[self.NWAVE-1])
+                    grad1[nwave-1,:] = ModGrad[Measurement.NWAVE-1,:] + frac * (wave1[nwave1-1]-self.WAVE[self.NWAVE-1])
+                    iup=1
+
+                #Extrapolating the first wavenumber
+                idown = 0
+                if(self.VCONV[0,IGEOM]<(self.WAVE.min()+self.FWHM/2.)):
+                    nwave1 = nwave1 + 1
+                    wave1[0] = self.VCONV[0,IGEOM] - self.FWHM
+                    frac = (ModSpec[1] - ModSpec[2])/(self.WAVE[1]-self.WAVE[0])
+                    y1[0] = ModSpec[0] + frac * (wave1[0] - self.WAVE[0])
+                    grad1[0,:] = ModGrad[0,:] + frac * (wave1[0] - self.WAVE[0])
+                    idown = 1
+
+                #Re-shaping the spectrum
+                nwave = nwave1 + iup + idown
+                wave = np.zeros(nwave)
+                y = np.zeros(nwave)
+                grad = np.zeros((nwave,NX))
+                if((idown==1) & (iup==1)):
+                    wave[:] = wave1[:]
+                    y[:] = y1[:]
+                    grad[:,:] = grad1[:,:]
+                elif((idown==1) & (iup==0)):
+                    wave[0:nwave] = wave1[0:nwave1-1]
+                    y[0:nwave] = y1[0:nwave1-1]
+                    grad[0:nwave,:] = grad1[0:nwave1-1,:]
+                elif((idown==0) & (iup==1)):
+                    wave[0:nwave] = wave1[1:nwave1]
+                    y[0:nwave] = y1[1:nwave1]
+                    grad[0:nwave,:] = grad1[1:nwave1,:]
+                else:
+                    wave[0:nwave] = wave1[1:nwave1-1]
+                    y[0:nwave] = y1[1:nwave1-1]
+                    grad[0:nwave,:] = grad1[1:nwave1-1,:]
+
+                #Checking if .fwh file exists (indicating that FWHM varies with wavelength)
+                ifwhm = 0
+                if os.path.exists(FWHMEXIST+'.fwh')==True:
+
+                    #Reading file
+                    f = open(FWHMEXIST+'.fwh')
+                    s = f.readline().split()
+                    nfwhm = int(s[0])
+                    vfwhm = np.zeros(nfwhm)
+                    xfwhm = np.zeros(nfwhm)
+                    for ifwhm in range(nfwhm):
+                        s = f.readline().split()
+                        vfwhm[i] = float(s[0])
+                        xfwhm[i] = float(s[1])
+                    f.close()
+
+                    ffwhm = interpolate.interp1d(vfwhm,xfwhm)
+                    ifwhm==1
+
+                fy = interpolate.CubicSpline(wave,y)
+                fpy = []
+                for IX in range(NX):
+                    fpy1 = interpolate.CubicSpline(wave,grad[:,IX])
+                    fpy.append(fpy1)
+
+                print(fpy)
+                print('error in convg :: This part of the programme has not been tested yet')
+                sys.exit()
+                
+                for ICONV in range(self.NCONV[IGEOM]):
+                    
+                    if ifwhm==1:
+                        yfwhm = ffwhm(self.VCONV[ICONV,IGEOM])
+                    else:
+                        yfwhm = self.FWHM
+
+                    x1 = self.VCONV[ICONV,IGEOM] - yfwhm/2.
+                    x2 = self.VCONV[ICONV,IGEOM] + yfwhm/2.
+                    delx = (x2-x1)/(nstep-1)
+                    xi = np.linspace(x1,x2,nstep)
+                    yi = fy(xi)
+                    yg
+                    for j in range(nstep):
+                        if j==0:
+                            sum1 = 0.0 
+                        else:
+                            sum1 = sum1 + (yi[j] - yold) * delx/2.
+                        yold = yi[j]
+
+                    yout[ICONV] = sum1 / yfwhm
+
+            elif self.FWHM==0.0:
+
+                #Channel Integrator mode where the k-tables have been previously
+                #tabulated INCLUDING the filter profile. In which case all we
+                #need do is just transfer the outputs
+                yout[:] = ModSpec[:]
+                gradout[:] = ModGrad[:,:]
+
+            elif self.FWHM<0.0:
+
+                #Channel Integrator Mode: Slightly more advanced than previous
+
+                #In this case the filter function for each convolution wave is defined in the .fil file
+                #This file has been previously read and its variables are stored in NFIL,VFIL,AFIL
+
+                for ICONV in range(self.NCONV[IGEOM]):
+
+                    v1 = self.VFIL[0,ICONV]
+                    v2 = self.VFIL[self.NFIL[ICONV]-1,ICONV]
+                    #Find relevant points in tabulated files
+                    iwavelox = np.where( (self.WAVE<v1) )
+                    iwavelox = iwavelox[0]
+                    iwavehix = np.where( (self.WAVE>v2) )
+                    iwavehix = iwavehix[0]
+                    inwave = np.linspace(iwavelox[len(iwavelox)-1],iwavehix[0],iwavehix[0]-iwavelox[len(iwavelox)-1]+1,dtype='int32')
+                    
+                    np1 = len(inwave)
+                    xp = np.zeros([self.NFIL[ICONV]])
+                    yp = np.zeros([self.NFIL[ICONV]])
+                    xp[:] = self.VFIL[0:self.NFIL[ICONV],ICONV]
+                    yp[:] = self.AFIL[0:self.NFIL[ICONV],ICONV]
+
+
+                    for i in range(np1):
+                        #Interpolating (linear) for finding the lineshape at the calculation wavenumbers
+                        f1 = np.interp(self.WAVE[inwave[i]],xp,yp)
+                        if f1>0.0:
+                            yout[ICONV] = yout[ICONV] + f1*ModSpec[inwave[i]]
+                            ynor[ICONV] = ynor[ICONV] + f1
+                            gradout[ICONV,:] = gradout[ICONV,:] + f1*ModGrad[inwave[i],:]
+                            gradnorm[ICONV,:] = gradnorm[ICONV,:] + f1
+
+                    yout[ICONV] = yout[ICONV]/ynor[ICONV]
+                    gradout[ICONV,:] = gradout[ICONV,:]/gradnorm[ICONV,:]
+                
+        return yout,gradout
+    
     #################################################################################################################
 
     def calc_doppler_shift(self,wave):
