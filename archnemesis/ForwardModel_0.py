@@ -1,5 +1,4 @@
-from NemesisPy import *
-from NemesisPy.Models.Models import *
+from archnemesis import *
 import numpy as np
 import matplotlib.pyplot as plt
 import os,sys
@@ -197,10 +196,10 @@ class ForwardModel_0:
         from copy import copy
         
         if self.Atmosphere.NLOCATIONS!=1:
-            sys.exit('error in nemesisfm :: NemesisPy has not been setup for dealing with multiple locations yet')
+            sys.exit('error in nemesisfm :: archNEMESIS has not been setup for dealing with multiple locations yet')
             
         if self.Surface.NLOCATIONS!=1:
-            sys.exit('error in nemesisfm :: NemesisPy has not been setup for dealing with multiple locations yet')
+            sys.exit('error in nemesisfm :: archNEMESIS has not been setup for dealing with multiple locations yet')
 
         #Estimating the number of calculations that will need to be computed to model the spectra
         #included in the Measurement class (taking into account al geometries and averaging points)
@@ -334,10 +333,10 @@ class ForwardModel_0:
         from copy import deepcopy
         
         if self.Atmosphere.NLOCATIONS!=1:
-            sys.exit('error in nemesisfm :: NemesisPy has not been setup for dealing with multiple locations yet')
+            sys.exit('error in nemesisfm :: archNEMESIS has not been setup for dealing with multiple locations yet')
             
         if self.Surface.NLOCATIONS!=1:
-            sys.exit('error in nemesisfm :: NemesisPy has not been setup for dealing with multiple locations yet')
+            sys.exit('error in nemesisfm :: archNEMESIS has not been setup for dealing with multiple locations yet')
 
         #Estimating the number of calculations that will need to be computed to model the spectra
         #included in the Measurement class (taking into account al geometries and averaging points)
@@ -2265,8 +2264,7 @@ class ForwardModel_0:
         MODIFICATION HISTORY : Juan Alday (15/03/2021)
         """
 
-        from NemesisPy import AtmCalc_0,Path_0
-
+        from archnemesis import AtmCalc_0,Path_0
 
         #Initialise variables
         if Atmosphere is None:
@@ -2410,7 +2408,7 @@ class ForwardModel_0:
         MODIFICATION HISTORY : Juan Alday (15/03/2021)
         """
 
-        from NemesisPy import AtmCalc_0,Path_0
+        from archnemesis import AtmCalc_0,Path_0
         import numpy as np
 
         #Initialise variables
@@ -2538,7 +2536,7 @@ class ForwardModel_0:
         MODIFICATION HISTORY : Juan Alday (15/03/2021)
         """
 
-        from NemesisPy import AtmCalc_0,Path_0
+        from archnemesis import AtmCalc_0,Path_0
 
         #Initialise variables
         if Atmosphere is None:
@@ -2629,7 +2627,7 @@ class ForwardModel_0:
         MODIFICATION HISTORY : Juan Alday (15/03/2021)
         """
 
-        from NemesisPy import AtmCalc_0,Path_0
+        from archnemesis import AtmCalc_0,Path_0
 
         #Initialise variables
         if Atmosphere is None:
@@ -2721,7 +2719,7 @@ class ForwardModel_0:
         MODIFICATION HISTORY : Juan Alday (15/03/2021)
         """
 
-        from NemesisPy import AtmCalc_0,Path_0
+        from archnemesis import AtmCalc_0,Path_0
 
         #Initialise variables
         if Atmosphere is None:
@@ -2826,7 +2824,6 @@ class ForwardModel_0:
         self.PathX = Path_0(AtmCalc_List,COMBINE=True)
 
 
-
     ###############################################################################################
     ###############################################################################################
     # RADIATIVE TRANSFER
@@ -2871,7 +2868,7 @@ class ForwardModel_0:
 
         #import matplotlib as matplotlib
         from scipy import interpolate
-        from NemesisPy import nemesisf
+        #from NemesisPy import nemesisf
         from copy import copy
 
         #Initialise some arrays
@@ -3269,9 +3266,8 @@ class ForwardModel_0:
 
         """
 
-        import matplotlib as matplotlib
         from scipy import interpolate
-        from NemesisPy import nemesisf
+        #from NemesisPy import nemesisf
         from copy import copy
 
         #Initialise some arrays
@@ -3654,7 +3650,7 @@ class ForwardModel_0:
     def calc_tau_cia_new(self,ISPACE=None,WAVEC=None,CIA=None,Atmosphere=None,Layer=None,MakePlot=False):
         """
         Calculate the CIA opacity in each atmospheric layer
-        This is the new version developed for NemesisPy (more versatile in terms of CIA pairs included)
+        This is the new version developed for archNEMESIS (more versatile in terms of CIA pairs included)
         
         @param ISPACE: int
             Flag indicating whether the calculation must be performed in wavenumbers (0) or wavelength (1)
@@ -3678,7 +3674,7 @@ class ForwardModel_0:
         """
 
         from scipy import interpolate
-        from NemesisPy.CIA_0 import co2cia,n2h2cia,n2n2cia
+        from archnemesis.CIA_0 import co2cia,n2h2cia,n2n2cia
 
 
 #       Initialising variables
@@ -3915,7 +3911,7 @@ class ForwardModel_0:
         """
 
         from scipy import interpolate
-        from NemesisPy.CIA_0 import co2cia, n2h2cia, n2n2cia
+        from archnemesis.CIA_0 import co2cia, n2h2cia, n2n2cia
 
         # Initializing variables
         if ISPACE is None:
@@ -4198,7 +4194,7 @@ class ForwardModel_0:
 
         """
 
-        from NemesisPy.nemesisf import spectroscopy
+        #from NemesisPy.nemesisf import spectroscopy
         #Calculating the gaseous line opacity in each layer
         ########################################################################################################
 
@@ -4432,7 +4428,7 @@ class ForwardModel_0:
         """
 
         from scipy.interpolate import interp1d
-        from NemesisPy import nemesisf
+        #from NemesisPy import nemesisf
 
         ################################################################################
         #INITIALISING VARIABLES AND PERFORMING INITIAL CALCULATIONS
@@ -5074,7 +5070,7 @@ class ForwardModel_0:
 
         """
 
-        from NemesisPy import nemesisf
+        #from NemesisPy import nemesisf
 
         #Calculating the phase function at the scattering angles
         #######################################################################
@@ -5287,6 +5283,12 @@ class ForwardModel_0:
         return Reflectivity
 
 #END OF FORWARD MODEL CLASS
+
+###############################################################################################
+###############################################################################################
+#                                 EXTRA FUNCTIONS
+###############################################################################################
+###############################################################################################
 
 
 ###############################################################################################
@@ -5864,7 +5866,7 @@ def calc_spectrum_location_parallel(iLOCATION,Atmosphere,Surface,Measurement,Sca
     """
     
     from copy import copy
-    from NemesisPy.Radtrans import ForwardModel_0
+    from archnemesis import ForwardModel_0
     
     runname = 'dummy'
     FM = ForwardModel_0(runname=runname, Atmosphere=Atmosphere,Surface=Surface,Measurement=Measurement,Spectroscopy=Spectroscopy,Stellar=Stellar,Scatter=Scatter,CIA=CIA,Layer=Layer,Variables=Variables)
@@ -6236,6 +6238,22 @@ def calc_tau_rayleighls(ISPACE,WAVEC,ID,ISO,VMR,TOTAM):
     dtau_ray[:,:] = k_rayleighls[:,:]               #dTAURAY/dTOTAM (m2)
                 
     return tau_ray, dtau_ray
+
+
+###############################################################################################
+###############################################################################################
+#                                     CONVOLUTIONS
+###############################################################################################
+###############################################################################################
+
+
+
+
+###############################################################################################
+###############################################################################################
+#                                    INTERPOLATIONS
+###############################################################################################
+###############################################################################################
 
 @jit(nopython=True)
 def bilinear_xy(Q, x1, x2, y1, y2, x, y):
