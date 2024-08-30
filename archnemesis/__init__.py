@@ -8,6 +8,8 @@ from .Stellar_0 import *
 from .Layer_0 import *
 from .CIA_0 import *
 from .Measurement_0 import *
+from .AtmCalc_0 import *
+from .Path_0 import *
 
 from .Data import *
 from .Files import *
