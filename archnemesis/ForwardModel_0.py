@@ -1039,13 +1039,11 @@ class ForwardModel_0:
                 SPECMOD,dSPECMOD = self.nemesisSOfmg()
             else:
                 SPECMOD,dSPECMOD = self.nemesisfmg()
-
             YN = np.resize(np.transpose(SPECMOD),[self.Measurement.NY])
             for ix in range(self.Variables.NX):
                 KK[:,ix] = np.resize(np.transpose(dSPECMOD[:,:,ix]),[self.Measurement.NY])
 
             iYN = 1 #Indicates that some of the gradients and the measurement vector have already been caculated
-
 
         #################################################################################
         # Calculating all the required forward models for numerical differentiation
@@ -1068,9 +1066,9 @@ class ForwardModel_0:
         #Calling the forward model nfm times to calculate the measurement vector for each case
         YNtot = np.zeros((self.Measurement.NY,nfm))
 
-        print('Calculating numerical part of the Jacobian :: running '+str(nfm)+' forward models ')
         
         if nfm>0:
+            print('Calculating numerical part of the Jacobian :: running '+str(nfm)+' forward models ')
             
             # Splitting into chunks and parallelising
             NCores = min(NCores,nfm)
@@ -2275,9 +2273,9 @@ class ForwardModel_0:
             Layer.LAYHT = Scatter.SOL_ANG * 1.0e3
             Layer.LAYANG = 90.0
 
-        BASEH, BASEP, BASET, HEIGHT, PRESS, TEMP, TOTAM, AMOUNT, PP, CONT, LAYSF, DELH\
-            = Layer.calc_layering(H=Atmosphere.H,P=Atmosphere.P,T=Atmosphere.T, ID=Atmosphere.ID,VMR=Atmosphere.VMR, DUST=Atmosphere.DUST)
-
+        
+        Layer.calc_layering(H=Atmosphere.H,P=Atmosphere.P,T=Atmosphere.T, ID=Atmosphere.ID,VMR=Atmosphere.VMR, DUST=Atmosphere.DUST)
+        
         #Setting the flags for the Path and calculation types
         ##############################################################################
 
@@ -2420,8 +2418,7 @@ class ForwardModel_0:
             Layer.LAYHT = Scatter.SOL_ANG * 1.0e3
             Layer.LAYANG = 90.0
 
-        BASEH, BASEP, BASET, HEIGHT, PRESS, TEMP, TOTAM, AMOUNT, PP, CONT, LAYSF, DELH, DTE, DAM, DCO\
-            = Layer.calc_layeringg(H=Atmosphere.H,P=Atmosphere.P,T=Atmosphere.T, ID=Atmosphere.ID,VMR=Atmosphere.VMR, DUST=Atmosphere.DUST)
+        Layer.calc_layeringg(H=Atmosphere.H,P=Atmosphere.P,T=Atmosphere.T, ID=Atmosphere.ID,VMR=Atmosphere.VMR, DUST=Atmosphere.DUST)
 
         #Setting the flags for the Path and calculation types
         ##############################################################################
@@ -2928,11 +2925,11 @@ class ForwardModel_0:
                 #When using gradients
                 f_gas[i,:] = self.LayerX.AMOUNT[:,IGAS[0]] * 1.0e-4 * 1.0e-20  #Vertical column density of the radiatively active gases in cm-2
 
-            #Combining the k-distributions of the different gases in each layer
-            #k_layer,dk_layer = k_overlapg(Measurement.NWAVE,Spectroscopy.NG,Spectroscopy.DELG,Spectroscopy.NGAS,Layer.NLAY,k_gas,dkgasdT,f_gas)  
             dkgasdT = np.zeros_like(k_gas)
-            k_layer,dk_layer = nemesisf.spectroscopy.k_overlapg(self.SpectroscopyX.DELG,k_gas,dkgasdT,f_gas) #Fortran version
-
+            #Combining the k-distributions of the different gases in each layer
+            k_layer,dk_layer = k_overlapg(self.SpectroscopyX.DELG,k_gas,dkgasdT,f_gas)
+#             k_layer,dk_layer = nemesisf.spectroscopy.k_overlapg(self.SpectroscopyX.DELG,k_gas,dkgasdT,f_gas) #Fortran version
+            # checkpoint for joe
             #Calculating the opacity of each layer
             TAUGAS = k_layer #(NWAVE,NG,NLAY)
             #Calculating the opacity of each layer
@@ -2962,12 +2959,11 @@ class ForwardModel_0:
             #dTAUCIA = np.zeros((self.MeasurementX.NWAVE,self.LayerX.NLAY,7))
             print('CIRSrad :: CIA not included in calculations')
         else:
-            TAUCIA,dTAUCIA = self.calc_tau_cia() #(NWAVE,NLAY);(NWAVE,NLAY,7)
+            TAUCIA,dTAUCIA = self.calc_tau_cia_new() #(NWAVE,NLAY);(NWAVE,NLAY,7)
             self.LayerX.TAUCIA = TAUCIA
             
             #Removing CIA since it is no longer needed 
             self.CIAX = None
-
 
         #Calculating the vertical opacity by Rayleigh scattering
         #################################################################################################################
@@ -3307,7 +3303,7 @@ class ForwardModel_0:
             print('CIRSrad :: CIA not included in calculations')
         else:
             print('CIRSradg :: Calculating CIA opacity')
-            TAUCIA,dTAUCIA = self.calc_tau_cia() #(NWAVE,NLAY);(NWAVE,NLAY,NVMR+2)
+            TAUCIA,dTAUCIA = self.calc_tau_cia_new() #(NWAVE,NLAY);(NWAVE,NLAY,NVMR+2)
             Layer.TAUCIA = TAUCIA
 
             dTAUCON[:,0:Atmosphere.NVMR,:] = dTAUCON[:,0:Atmosphere.NVMR,:] + np.transpose(np.transpose(dTAUCIA[:,:,0:Atmosphere.NVMR],axes=(2,0,1)) / (Layer.TOTAM.T),axes=(1,0,2)) #dTAUCIA/dAMOUNT (m2)
@@ -3404,8 +3400,8 @@ class ForwardModel_0:
                 f_gas[i,:] = Layer.AMOUNT[:,IGAS[0]] * 1.0e-4 * 1.0e-20  #Vertical column density of the radiatively active gases in cm-2
 
             #Combining the k-distributions of the different gases in each layer, as well as their gradients
-            #k_layer,dk_layer = k_overlapg(Measurement.NWAVE,Spectroscopy.NG,Spectroscopy.DELG,Spectroscopy.NGAS,Layer.NLAY,k_gas,dkgasdT,f_gas)
-            k_layer,dk_layer = nemesisf.spectroscopy.k_overlapg(Spectroscopy.DELG,k_gas,dkgasdT,f_gas) #Fortran version
+            k_layer,dk_layer = k_overlapg(self.SpectroscopyX.DELG,k_gas,dkgasdT,f_gas)
+#             k_layer,dk_layer = nemesisf.spectroscopy.k_overlapg(Spectroscopy.DELG,k_gas,dkgasdT,f_gas) #Fortran version
 
             #Calculating the opacity of each layer
             TAUGAS = k_layer #(NWAVE,NG,NLAY)
@@ -3630,8 +3626,10 @@ class ForwardModel_0:
         SPECOUT = np.tensordot(SPECOUT, Spectroscopy.DELG, axes=([1],[0])) #NWAVE,NPATH
         dSPECOUT = np.tensordot(dSPECOUT, Spectroscopy.DELG, axes=([1],[0])) #(WAVE,NGAS+2+NDUST,NLAYIN,NPATH)
         dTSURF = np.tensordot(dTSURF, Spectroscopy.DELG, axes=([1],[0])) #NWAVE,NPATH
-
-        return SPECOUT,dSPECOUT,dTSURF
+        
+#         print(dSPECOUT)
+        
+        return SPECOUT,np.nan_to_num(dSPECOUT),dTSURF
 
 
 ###############################################################################################
@@ -5987,7 +5985,7 @@ def calc_tau_rayleighj(ISPACE,WAVEC,TOTAM):
     tau_ray = np.zeros((NWAVE,NLAY))
     dtau_ray = np.zeros((NWAVE,NLAY))
     for iwave in range(NWAVE):
-        for ilay in range(Layer.NLAY):
+        for ilay in range(NLAY):
             tau_ray[iwave,ilay] = k_rayleighj[iwave] * TOTAM[ilay] #(NWAVE,NLAY) 
             dtau_ray[iwave,ilay] = k_rayleighj[iwave] #dTAURAY/dTOTAM (m2)
 
@@ -6294,3 +6292,312 @@ def trilinear_interpolation(grid, x_values, y_values, z_values, x_array, y_array
                 result[k, i] = ((z2 - z + 1e-30) / (z2 - z1 + 2e-30)) * fz1 + ((z - z1 + 1e-30) / (z2 - z1 + 2e-30)) * fz2
     return result
 
+
+# @jit(nopython=True)
+# def k_overlap(del_g,k_gas_g,dkgasdT,amount):
+#     """
+#     Combine k distributions of multiple gases given their number densities.
+
+#     Parameters
+#     ----------
+#     k_gas_g(NGAS,NG) : ndarray
+#         K-distributions of the different gases.
+#         Each row contains a k-distribution defined at NG g-ordinates.
+#         Unit: cm^2 (per particle)
+#     amount(NGAS) : ndarray
+#         Absorber amount of each gas,
+#         i.e. amount = VMR x layer absorber per area
+#         Unit: (no. of partiicles) cm^-2
+#     del_g(NG) : ndarray
+#         Gauss quadrature weights for the g-ordinates.
+#         These are the widths of the bins in g-space.
+
+#     Returns
+#     -------
+#     tau_g(NG) : ndarray
+#         Opatical path from mixing k-distribution weighted by absorber amounts.
+#         Unit: dimensionless
+#     """
+#     NGAS = len(amount)
+#     NG = len(del_g)
+#     tau_g = np.zeros(NG)
+#     random_weight = np.zeros(NG*NG)
+#     random_tau = np.zeros(NG*NG)
+#     cutoff = 1e-12
+#     for igas in range(NGAS-1):
+#         # first pair of gases
+#         if igas == 0:
+#             # if opacity due to first gas is negligible
+#             if k_gas_g[igas,:][-1] * amount[igas] < cutoff:
+#                 tau_g = k_gas_g[igas+1,:] * amount[igas+1]
+#             # if opacity due to second gas is negligible
+#             elif k_gas_g[igas+1,:][-1] * amount[igas+1] < cutoff:
+#                 tau_g = k_gas_g[igas,:] * amount[igas]
+#             # else resort-rebin with random overlap approximation
+#             else:
+#                 iloop = 0
+#                 for ig in range(NG):
+#                     for jg in range(NG):
+#                         random_weight[iloop] = del_g[ig] * del_g[jg]
+#                         random_tau[iloop] = k_gas_g[igas,:][ig] * amount[igas] \
+#                             + k_gas_g[igas+1,:][jg] * amount[igas+1]
+#                         iloop = iloop + 1
+#                 tau_g = rank(random_weight,random_tau,del_g)
+#         # subsequent gases, add amount*k to previous summed k
+#         else:
+#             # if opacity due to next gas is negligible
+#             if k_gas_g[igas+1,:][-1] * amount[igas+1] < cutoff:
+#                 pass
+#             # if opacity due to previous gases is negligible
+#             elif tau_g[-1] < cutoff:
+#                 tau_g = k_gas_g[igas+1,:] * amount[igas+1]
+#             # else resort-rebin with random overlap approximation
+#             else:
+#                 iloop = 0
+#                 for ig in range(NG):
+#                     for jg in range(NG):
+#                         random_weight[iloop] = del_g[ig] * del_g[jg]
+
+#                         random_tau[iloop] = tau_g[ig] \
+#                             + k_gas_g[igas+1,:][jg] * amount[igas+1]
+#                         iloop = iloop + 1
+#                 tau_g = rank(random_weight,random_tau,del_g)
+#     return tau_g
+
+# @jit(nopython=True)
+# def rank(weight, cont, del_g):
+#     """
+#     Combine the randomly overlapped k distributions of two gases into a single
+#     k distribution.
+
+#     Parameters
+#     ----------
+#     weight(NG) : ndarray
+#         Weights of points in the random k-dist
+#     cont(NG) : ndarray
+#         Random k-coeffs in the k-dist.
+#     del_g(NG) : ndarray
+#         Required weights of final k-dist.
+
+#     Returns
+#     -------
+#     k_g(NG) : ndarray
+#         Combined k-dist.
+#         Unit: cm^2 (per particle)
+#     """
+#     ng = len(del_g)
+#     nloop = len(weight.flatten())
+
+#     # sum delta gs to get cumulative g ordinate
+#     g_ord = np.zeros(ng+1)
+#     g_ord[1:] = np.cumsum(del_g)
+#     g_ord[ng] = 1
+    
+#     # Sort random k-coeffs into ascending order. Integer array ico records
+#     # which swaps have been made so that we can also re-order the weights.
+#     ico = np.argsort(cont)
+#     cont = cont[ico]
+#     weight = weight[ico] # sort weights accordingly
+#     gdist = np.cumsum(weight)
+#     k_g = np.zeros(ng)
+#     ig = 0
+#     sum1 = 0.0
+#     cont_weight = cont * weight
+#     for iloop in range(nloop):
+#         if gdist[iloop] < g_ord[ig+1] and ig < ng:
+#             k_g[ig] = k_g[ig] + cont_weight[iloop]
+#             sum1 = sum1 + weight[iloop]
+#         else:
+#             frac = (g_ord[ig+1] - gdist[iloop-1])/(gdist[iloop]-gdist[iloop-1])
+#             k_g[ig] = k_g[ig] + frac*cont_weight[iloop]
+
+#             sum1 = sum1 + frac * weight[iloop]
+#             k_g[ig] = k_g[ig]/sum1
+
+#             ig = ig +1
+#             if ig < ng:
+#                 sum1 = (1.0-frac)*weight[iloop]
+#                 k_g[ig] = (1.0-frac)*cont_weight[iloop]
+
+#     if ig == ng-1:
+#         k_g[ig] = k_g[ig]/sum1
+
+#     return k_g
+
+@jit(nopython=True)
+def k_overlapg(del_g,k_w_g_l_gas,dkdT_w_g_l_gas,amount_layer):
+    """
+    Combine k distributions of multiple gases given their number densities.
+
+    Parameters
+    ----------
+    k_w_g_l_gas(NGAS,NG) : ndarray
+        K-distributions of the different gases.
+        Each row contains a k-distribution defined at NG g-ordinates.
+        Unit: cm^2 (per particle)
+    amount(NGAS) : ndarray
+        Absorber amount of each gas,
+        i.e. amount = VMR x layer absorber per area
+        Unit: (no. of partiicles) cm^-2
+    del_g(NG) : ndarray
+        Gauss quadrature weights for the g-ordinates.
+        These are the widths of the bins in g-space.
+
+    Returns
+    -------
+    tau_g(NG) : ndarray
+        Opatical path from mixing k-distribution weighted by absorber amounts.
+        Unit: dimensionless
+    """
+    NWAVE, NG, NLAYER, NGAS = k_w_g_l_gas.shape
+    tau_w_g_l = np.zeros((NWAVE, NG, NLAYER))
+    dk_w_g_l_param = np.zeros((NWAVE, NG, NLAYER,NGAS+1))
+    for iwave in range(NWAVE):
+        for ilayer in range(NLAYER):
+            amount = amount_layer[:,ilayer]
+            k_g_gas = k_w_g_l_gas[iwave,:,ilayer,:]
+            dkdT_g_param = dkdT_w_g_l_gas[iwave,:,ilayer,:]
+            
+            random_weight = np.zeros(NG*NG)
+            random_tau = np.zeros(NG*NG)
+            random_grad = np.zeros((NG*NG,NGAS+1))
+            
+            cutoff = 1e-12
+            
+            tau_g = np.zeros(NG)
+            dk_g_param = np.zeros((NG,NGAS+1))
+            
+            for igas in range(NGAS-1):
+                # first pair of gases
+                if igas == 0:
+                    # if opacity due to first gas is negligible
+                    if k_g_gas[:,igas][-1] * amount[igas] < cutoff:
+                        tau_g = k_g_gas[:,igas+1] * amount[igas+1]
+                        dk_g_param[:,igas+1] = k_g_gas[:,igas+1]
+                        dk_g_param[:,igas+2] = dkdT_g_param[:,igas+1] * amount[igas+1]
+                        
+                        
+                    # if opacity due to second gas is negligible
+                    elif k_g_gas[igas+1,:][-1] * amount[igas+1] < cutoff:
+                        tau_g = k_g_gas[:,igas] * amount[igas]
+                        dk_g_param[:,igas] = k_g_gas[:,igas]
+                        dk_g_param[:,igas+2] = dkdT_g_param[:,igas] * amount[igas]                       
+                        
+                        
+                    # else resort-rebin with random overlap approximation
+                    else:
+                        iloop = 0
+                        for ig in range(NG):
+                            for jg in range(NG):
+                                random_weight[iloop] = del_g[ig] * del_g[jg]
+                                random_tau[iloop] = k_g_gas[ig,igas] * amount[igas] \
+                                    + k_g_gas[jg,igas+1] * amount[igas+1]
+                                random_grad[iloop,igas] = k_g_gas[ig,igas]
+                                random_grad[iloop,igas+1] = k_g_gas[jg,igas+1]
+                                random_grad[iloop,igas+2] = dkdT_g_param[ig,igas]*amount[igas]+\
+                                                            dkdT_g_param[jg,igas+1]*amount[igas+1]
+                                iloop = iloop + 1
+                                
+                                
+                        tau_g,dk_g_param = rankg(random_weight,random_tau,del_g,random_grad)
+                # subsequent gases, add amount*k to previous summed k
+                
+                else:
+                    # if opacity due to next gas is negligible
+                    if k_g_gas[:,igas+1][-1] * amount[igas+1] < cutoff:
+                        pass
+                    # if opacity due to previous gases is negligible
+                    elif tau_g[-1] < cutoff:
+                        tau_g = k_g_gas[:,igas+1] * amount[igas+1]
+                        dk_g_param[:,igas+1] = k_g_gas[:,igas+1]
+                        dk_g_param[:,igas+2] = dkdT_g_param[:,igas+1] * amount[igas+1]
+                    # else resort-rebin with random overlap approximation
+                    else:
+                        iloop = 0
+                        for ig in range(NG):
+                            for jg in range(NG):
+                                random_weight[iloop] = del_g[ig] * del_g[jg]
+                                random_tau[iloop] = tau_g[ig] + k_g_gas[jg,igas+1] * amount[igas+1]
+                                
+                                random_grad[iloop,:igas+1] = dk_g_param[iloop,:igas+1]
+                                random_grad[iloop,igas+2] = dk_g_param[iloop,igas+1]+\
+                                                            dkdT_g_param[jg,igas+1]*amount[igas+1]
+                                random_grad[iloop,igas+1] = k_g_gas[jg,igas+1]
+                                
+                                
+                                iloop = iloop + 1
+                        tau_g,dk_g_param = rankg(random_weight,random_tau,del_g,random_grad)
+            tau_w_g_l[iwave,:,ilayer] = tau_g
+            dk_w_g_l_param[iwave,:,ilayer,:] = dk_g_param
+                        
+    return tau_w_g_l, dk_w_g_l_param
+
+
+
+@jit(nopython=True)
+def rankg(weight, cont, del_g, grad):
+    """
+    Combine the randomly overlapped k distributions of two gases into a single
+    k distribution.
+
+    Parameters
+    ----------
+    weight(NG) : ndarray
+        Weights of points in the random k-dist
+    cont(NG) : ndarray
+        Random k-coeffs in the k-dist.
+    del_g(NG) : ndarray
+        Required weights of final k-dist.
+    grad(NG, NPARAM) : ndarray
+
+    Returns
+    -------
+    k_g(NG) : ndarray
+        Combined k-dist.
+        Unit: cm^2 (per particle)
+    """
+    ng = len(del_g)
+    nloop = len(weight.flatten())
+    nparam = grad.shape[1]
+    # sum delta gs to get cumulative g ordinate
+    g_ord = np.zeros(ng+1)
+    g_ord[1:] = np.cumsum(del_g)
+    g_ord[ng] = 1
+    
+    # Sort random k-coeffs into ascending order. Integer array ico records
+    # which swaps have been made so that we can also re-order the weights.
+    ico = np.argsort(cont)
+    cont = cont[ico]
+    weight = weight[ico] # sort weights accordingly
+    gdist = np.cumsum(weight)
+    k_g = np.zeros(ng)
+    dkdq = np.zeros((ng,nparam))
+    ig = 0
+    sum1 = 0.0
+    cont_weight = cont * weight
+    grad_weight = grad * weight[:,None]
+    for iloop in range(nloop):
+        if gdist[iloop] < g_ord[ig+1] and ig < ng:
+            k_g[ig] = k_g[ig] + cont_weight[iloop]
+            dkdq[ig] += grad_weight[iloop]
+            
+            sum1 = sum1 + weight[iloop]
+        else:
+            frac = (g_ord[ig+1] - gdist[iloop-1])/(gdist[iloop]-gdist[iloop-1])
+            k_g[ig] = k_g[ig] + frac*cont_weight[iloop]
+            dkdq[ig] += frac * grad_weight[iloop]
+                
+            sum1 = sum1 + frac * weight[iloop]
+            k_g[ig] = k_g[ig]/sum1
+            dkdq[ig] = dkdq[ig]/sum1
+                
+            ig = ig + 1
+            if ig < ng:
+                sum1 = (1.0-frac)*weight[iloop]
+                k_g[ig] = (1.0-frac)*cont_weight[iloop]
+                dkdq[ig] = (1.0-frac)* grad_weight[iloop]
+                    
+    if ig == ng-1:
+        k_g[ig] = k_g[ig]/sum1
+        dkdq[ig] = dkdq[ig]/sum1
+    return k_g, dkdq

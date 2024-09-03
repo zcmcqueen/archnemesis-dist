@@ -286,7 +286,7 @@ class CIA_0:
 
         #Changing the units of the CIA table (NEMESIS format) from cm-1 amagat-2 to cm5 molecule-2
         AMAGAT = 2.68675E19 #molecule cm-3 (definition of amagat unit)
-        K_CIA = K_CIA * (AMAGAT**2.) #cm5 molecule-2
+        K_CIA = K_CIA / (AMAGAT**2.) #cm5 molecule-2
 
         self.NWAVE = NWAVE
         self.NT = NT

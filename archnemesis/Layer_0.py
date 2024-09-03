@@ -744,7 +744,7 @@ def layer_average(RADIUS, H, P, T, ID, VMR, DUST, BASEH, BASEP,
     # PP = gas partial pressures
     PP     = np.zeros((NLAY, NVMR))
     # MOLWT = mean molecular weight
-    MOLWT  = np.zeros(NLAY)
+    MOLWT  = np.zeros(NPRO)
     # CONT = no. of particles/area for each dust population (particles/m2)
     CONT = np.zeros((NLAY,NDUST))
 
