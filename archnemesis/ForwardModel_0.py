@@ -6462,7 +6462,7 @@ def k_overlapg(del_g,k_w_g_l_gas,dkdT_w_g_l_gas,amount_layer):
             random_tau = np.zeros(NG*NG)
             random_grad = np.zeros((NG*NG,NGAS+1))
             
-            cutoff = 1e-12
+            cutoff = 0
             
             tau_g = np.zeros(NG)
             dk_g_param = np.zeros((NG,NGAS+1))
@@ -6471,14 +6471,14 @@ def k_overlapg(del_g,k_w_g_l_gas,dkdT_w_g_l_gas,amount_layer):
                 # first pair of gases
                 if igas == 0:
                     # if opacity due to first gas is negligible
-                    if k_g_gas[:,igas][-1] * amount[igas] < cutoff:
+                    if k_g_gas[:,igas][-1] * amount[igas] <= cutoff:
                         tau_g = k_g_gas[:,igas+1] * amount[igas+1]
                         dk_g_param[:,igas+1] = k_g_gas[:,igas+1]
                         dk_g_param[:,igas+2] = dkdT_g_param[:,igas+1] * amount[igas+1]
                         
                         
                     # if opacity due to second gas is negligible
-                    elif k_g_gas[igas+1,:][-1] * amount[igas+1] < cutoff:
+                    elif k_g_gas[igas+1,:][-1] * amount[igas+1] <= cutoff:
                         tau_g = k_g_gas[:,igas] * amount[igas]
                         dk_g_param[:,igas] = k_g_gas[:,igas]
                         dk_g_param[:,igas+2] = dkdT_g_param[:,igas] * amount[igas]                       
@@ -6499,15 +6499,16 @@ def k_overlapg(del_g,k_w_g_l_gas,dkdT_w_g_l_gas,amount_layer):
                                 iloop = iloop + 1
                                 
                                 
-                        tau_g,dk_g_param = rankg(random_weight,random_tau,del_g,random_grad)
+                        tau_g,dk_g_param = rankg(random_weight,random_tau,del_g,random_grad,igas+3)
                 # subsequent gases, add amount*k to previous summed k
                 
                 else:
                     # if opacity due to next gas is negligible
-                    if k_g_gas[:,igas+1][-1] * amount[igas+1] < cutoff:
-                        pass
+                    if k_g_gas[:,igas+1][-1] * amount[igas+1] <= cutoff:
+                        dk_g_param[:,igas+2] = dk_g_param[:,igas+1]
+                        dk_g_param[:,igas+1] *= 0
                     # if opacity due to previous gases is negligible
-                    elif tau_g[-1] < cutoff:
+                    elif tau_g[-1] <= cutoff:
                         tau_g = k_g_gas[:,igas+1] * amount[igas+1]
                         dk_g_param[:,igas+1] = k_g_gas[:,igas+1]
                         dk_g_param[:,igas+2] = dkdT_g_param[:,igas+1] * amount[igas+1]
@@ -6519,23 +6520,21 @@ def k_overlapg(del_g,k_w_g_l_gas,dkdT_w_g_l_gas,amount_layer):
                                 random_weight[iloop] = del_g[ig] * del_g[jg]
                                 random_tau[iloop] = tau_g[ig] + k_g_gas[jg,igas+1] * amount[igas+1]
                                 
-                                random_grad[iloop,:igas+1] = dk_g_param[iloop,:igas+1]
-                                random_grad[iloop,igas+2] = dk_g_param[iloop,igas+1]+\
-                                                            dkdT_g_param[jg,igas+1]*amount[igas+1]
+                                random_grad[iloop,:igas+1] = dk_g_param[ig,:igas+1]
                                 random_grad[iloop,igas+1] = k_g_gas[jg,igas+1]
+                                random_grad[iloop,igas+2] = dk_g_param[ig,igas+1]+\
+                                                            dkdT_g_param[jg,igas+1]*amount[igas+1]
                                 
                                 
                                 iloop = iloop + 1
-                        tau_g,dk_g_param = rankg(random_weight,random_tau,del_g,random_grad)
+                        tau_g,dk_g_param = rankg(random_weight,random_tau,del_g,random_grad,igas+3)
             tau_w_g_l[iwave,:,ilayer] = tau_g
             dk_w_g_l_param[iwave,:,ilayer,:] = dk_g_param
                         
     return tau_w_g_l, dk_w_g_l_param
 
-
-
 @jit(nopython=True)
-def rankg(weight, cont, del_g, grad):
+def rankg(weight, cont, del_g, grad, n):
     """
     Combine the randomly overlapped k distributions of two gases into a single
     k distribution.
@@ -6569,6 +6568,7 @@ def rankg(weight, cont, del_g, grad):
     ico = np.argsort(cont)
     cont = cont[ico]
     weight = weight[ico] # sort weights accordingly
+    grad = grad[ico,:]
     gdist = np.cumsum(weight)
     k_g = np.zeros(ng)
     dkdq = np.zeros((ng,nparam))
@@ -6579,25 +6579,25 @@ def rankg(weight, cont, del_g, grad):
     for iloop in range(nloop):
         if gdist[iloop] < g_ord[ig+1] and ig < ng:
             k_g[ig] = k_g[ig] + cont_weight[iloop]
-            dkdq[ig] += grad_weight[iloop]
+            dkdq[ig,:n] += grad_weight[iloop,:n]
             
             sum1 = sum1 + weight[iloop]
         else:
             frac = (g_ord[ig+1] - gdist[iloop-1])/(gdist[iloop]-gdist[iloop-1])
             k_g[ig] = k_g[ig] + frac*cont_weight[iloop]
-            dkdq[ig] += frac * grad_weight[iloop]
+            dkdq[ig,:n] += frac * grad_weight[iloop,:n]
                 
             sum1 = sum1 + frac * weight[iloop]
             k_g[ig] = k_g[ig]/sum1
-            dkdq[ig] = dkdq[ig]/sum1
+            dkdq[ig,:n] = dkdq[ig,:n]/sum1
                 
             ig = ig + 1
             if ig < ng:
                 sum1 = (1.0-frac)*weight[iloop]
                 k_g[ig] = (1.0-frac)*cont_weight[iloop]
-                dkdq[ig] = (1.0-frac)* grad_weight[iloop]
+                dkdq[ig,:n] = (1.0-frac)* grad_weight[iloop,:n]
                     
     if ig == ng-1:
         k_g[ig] = k_g[ig]/sum1
-        dkdq[ig] = dkdq[ig]/sum1
+        dkdq[ig,:n] = dkdq[ig,:n]/sum1
     return k_g, dkdq
