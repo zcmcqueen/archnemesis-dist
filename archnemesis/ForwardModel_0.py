@@ -2932,12 +2932,9 @@ class ForwardModel_0:
             print(k_gas.shape)
             print(f_gas.shape)
             print(k_layer.shape)
-#             k_layer,dk_layer = nemesisf.spectroscopy.k_overlapg(self.SpectroscopyX.DELG,k_gas,dkgasdT,f_gas) #Fortran version
-            # checkpoint for joe
             #Calculating the opacity of each layer
             TAUGAS = k_layer #(NWAVE,NG,NLAY)
             #Calculating the opacity of each layer
-            #TAUGAS = k_layer * utotl   #(NWAVE,NG,NLAY)
 
             #Removing necessary data to save memory
             del k_gas
@@ -6458,6 +6455,14 @@ def k_overlapg(del_g,k_w_g_l_gas,dkdT_w_g_l_gas,amount_layer):
     NWAVE, NG, NLAYER, NGAS = k_w_g_l_gas.shape
     tau_w_g_l = np.zeros((NWAVE, NG, NLAYER))
     dk_w_g_l_param = np.zeros((NWAVE, NG, NLAYER,NGAS+1))
+    
+    if NGAS == 1:
+        tau_w_g_l = k_w_g_l_gas[:,:,:,0]*amount_layer[None,None,0,:]
+        dk_w_g_l_param[:,:,:,0] = k_w_g_l_gas[:,:,:,0]
+        dk_w_g_l_param[:,:,:,1] = dkdT_w_g_l_gas[:,:,:,0]**amount_layer[None,None,0,:]
+        
+        return tau_w_g_l
+    
     for iwave in range(NWAVE):
         for ilayer in range(NLAYER):
             amount = amount_layer[:,ilayer]
