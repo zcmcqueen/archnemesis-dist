@@ -914,7 +914,7 @@ class ForwardModel_0:
         for ifm in range(start, end):
             inp = (ifm, nfm, xnx, ixrun, nemesisSO, results)
             results = self.execute_fm(inp)
-        return results
+        return start, results
 
     def execute_fm(self, inp):
         
@@ -1075,13 +1075,15 @@ class ForwardModel_0:
             base_chunk_size = nfm // NCores
             remainder = nfm % NCores
             chunks = [(i * base_chunk_size + min(i, remainder), 
-                    (i + 1) * base_chunk_size + min(i, remainder),
+                    min((i + 1) * base_chunk_size + min(i, remainder)+1,nfm),
                     xnx, ixrun, nemesisSO, YNtot, nfm) for i in range(NCores)]
 
             with Pool(NCores) as pool:
                 results = pool.map(self.chunked_execution, chunks)
 
-            YNtot = np.sum(np.stack(results), axis=0)
+            # Reorder and combine results based on their starting index
+            ordered_results = sorted(results, key=lambda x: x[0])
+            YNtot = np.sum(np.stack([res[1] for res in ordered_results]), axis=0)
 
             if iYN==0:
                 YN = np.zeros(self.Measurement.NY)
@@ -2925,9 +2927,11 @@ class ForwardModel_0:
                 #When using gradients
                 f_gas[i,:] = self.LayerX.AMOUNT[:,IGAS[0]] * 1.0e-4 * 1.0e-20  #Vertical column density of the radiatively active gases in cm-2
 
-            dkgasdT = np.zeros_like(k_gas)
             #Combining the k-distributions of the different gases in each layer
-            k_layer,dk_layer = k_overlapg(self.SpectroscopyX.DELG,k_gas,dkgasdT,f_gas)
+            k_layer = k_overlap(self.SpectroscopyX.DELG,k_gas,f_gas)
+            print(k_gas.shape)
+            print(f_gas.shape)
+            print(k_layer.shape)
 #             k_layer,dk_layer = nemesisf.spectroscopy.k_overlapg(self.SpectroscopyX.DELG,k_gas,dkgasdT,f_gas) #Fortran version
             # checkpoint for joe
             #Calculating the opacity of each layer
@@ -3146,14 +3150,14 @@ class ForwardModel_0:
             solar = np.zeros(self.MeasurementX.NWAVE)
             if self.StellarX.SOLEXIST==True:
                 self.StellarX.calc_solar_flux()
-                f = interpolate.interp1d(self.StellarX.VCONV,self.StellarX.SOLFLUX)
+                f = interpolate.interp1d(self.StellarX.WAVE,self.StellarX.SOLFLUX)
                 solar[:] = f(self.MeasurementX.WAVE)  #W cm-2 (cm-1)-1 or W cm-2 um-1
 
             #Defining the units of the output spectrum
             xfac = 1.
             if self.MeasurementX.IFORM==1:
                 xfac=np.pi*4.*np.pi*((self.AtmosphereX.RADIUS)*1.0e2)**2.
-                f = interpolate.interp1d(self.StellarX.VCONV,self.StellarX.SOLSPEC)
+                f = interpolate.interp1d(self.StellarX.WAVE,self.StellarX.SOLSPEC)
                 solpspec = f(self.MeasurementX.WAVE)  #Stellar power spectrum (W (cm-1)-1 or W um-1)
                 xfac = xfac / solpspec
             elif self.MeasurementX.IFORM==3:
@@ -3180,7 +3184,7 @@ class ForwardModel_0:
                 solar = np.zeros(self.MeasurementX.NWAVE)
                 if self.StellarX.SOLEXIST==True:
                     self.StellarX.calc_solar_flux()
-                    f = interpolate.interp1d(self.StellarX.VCONV,self.StellarX.SOLFLUX)
+                    f = interpolate.interp1d(self.StellarX.WAVE,self.StellarX.SOLFLUX)
                     solar[:] = f(self.MeasurementX.WAVE)  #W cm-2 (cm-1)-1 or W cm-2 um-1
 
 
@@ -3188,7 +3192,7 @@ class ForwardModel_0:
                 xfac = 1.
                 if self.MeasurementX.IFORM==1:
                     xfac=np.pi*4.*np.pi*((self.AtmosphereX.RADIUS)*1.0e2)**2.
-                    f = interpolate.interp1d(self.StellarX.VCONV,self.StellarX.SOLSPEC)
+                    f = interpolate.interp1d(self.StellarX.WAVE,self.StellarX.SOLSPEC)
                     solpspec = f(self.MeasurementX.WAVE)  #Stellar power spectrum (W (cm-1)-1 or W um-1)
                     xfac = xfac / solpspec
                 elif self.MeasurementX.IFORM==3:
@@ -4320,7 +4324,7 @@ class ForwardModel_0:
 
         # Calculate the fraction of each aerosol scattering
         FRAC = np.zeros((Measurement.NWAVE, Layer.NLAY, NCONT))
-        iiscat = np.where((Layer.TAUSCAT + Layer.TAURAY) > 0.0)
+        iiscat = np.where(Layer.TAUSCAT > 0.0)
         if iiscat[0].size > 0:
             FRAC[iiscat[0], iiscat[1], 0:Scatter.NDUST] = (
                 Layer.TAUCLSCAT[iiscat[0], iiscat[1], :].T /
@@ -4342,6 +4346,8 @@ class ForwardModel_0:
         PHASE_ARRAY[:, :, 0, :] = np.transpose(Scatter.calc_phase(Scatter.THETA, Measurement.WAVE), (2, 0, 1))
         PHASE_ARRAY[:, :, 1, :] = np.cos(Scatter.THETA * np.pi / 180)
 
+        
+        
         # Core function call
         SPEC = scloud11wave_core(
             phasarr=PHASE_ARRAY[:, :, :, ::-1],
@@ -6601,3 +6607,150 @@ def rankg(weight, cont, del_g, grad, n):
         k_g[ig] = k_g[ig]/sum1
         dkdq[ig,:n] = dkdq[ig,:n]/sum1
     return k_g, dkdq
+
+
+@jit(nopython=True)
+def k_overlap(del_g,k_w_g_l_gas,amount_layer):
+    """
+    Combine k distributions of multiple gases given their number densities.
+
+    Parameters
+    ----------
+    k_w_g_l_gas(NGAS,NG) : ndarray
+        K-distributions of the different gases.
+        Each row contains a k-distribution defined at NG g-ordinates.
+        Unit: cm^2 (per particle)
+    amount(NGAS) : ndarray
+        Absorber amount of each gas,
+        i.e. amount = VMR x layer absorber per area
+        Unit: (no. of partiicles) cm^-2
+    del_g(NG) : ndarray
+        Gauss quadrature weights for the g-ordinates.
+        These are the widths of the bins in g-space.
+
+    Returns
+    -------
+    tau_g(NG) : ndarray
+        Opatical path from mixing k-distribution weighted by absorber amounts.
+        Unit: dimensionless
+    """
+    NWAVE, NG, NLAYER, NGAS = k_w_g_l_gas.shape
+    tau_w_g_l = np.zeros((NWAVE, NG, NLAYER))
+    if NGAS == 1:
+        tau_w_g_l = k_w_g_l_gas[:,:,:,0]*amount_layer[None,None,0,:]
+        return tau_w_g_l
+    
+    for iwave in range(NWAVE):
+        for ilayer in range(NLAYER):
+            amount = amount_layer[:,ilayer]
+            k_g_gas = k_w_g_l_gas[iwave,:,ilayer,:]
+            
+            random_weight = np.zeros(NG*NG)
+            random_tau = np.zeros(NG*NG)
+            cutoff = 0
+            
+            tau_g = np.zeros(NG)
+            
+            for igas in range(NGAS-1):
+                # first pair of gases
+                if igas == 0:
+                    # if opacity due to first gas is negligible
+                    if k_g_gas[:,igas][-1] * amount[igas] <= cutoff:
+                        tau_g = k_g_gas[:,igas+1] * amount[igas+1]
+                        
+                    # if opacity due to second gas is negligible
+                    elif k_g_gas[igas+1,:][-1] * amount[igas+1] <= cutoff:
+                        tau_g = k_g_gas[:,igas] * amount[igas]
+                        
+                    # else resort-rebin with random overlap approximation
+                    else:
+                        iloop = 0
+                        for ig in range(NG):
+                            for jg in range(NG):
+                                random_weight[iloop] = del_g[ig] * del_g[jg]
+                                random_tau[iloop] = k_g_gas[ig,igas] * amount[igas] \
+                                    + k_g_gas[jg,igas+1] * amount[igas+1]
+                                iloop = iloop + 1
+                                
+                                
+                        tau_g = rank(random_weight,random_tau,del_g)
+                # subsequent gases, add amount*k to previous summed k
+                
+                else:
+                    # if opacity due to next gas is negligible
+                    if k_g_gas[:,igas+1][-1] * amount[igas+1] <= cutoff:
+                        pass
+                    # if opacity due to previous gases is negligible
+                    elif tau_g[-1] <= cutoff:
+                        tau_g = k_g_gas[:,igas+1] * amount[igas+1]
+                    # else resort-rebin with random overlap approximation
+                    else:
+                        iloop = 0
+                        for ig in range(NG):
+                            for jg in range(NG):
+                                random_weight[iloop] = del_g[ig] * del_g[jg]
+                                random_tau[iloop] = tau_g[ig] + k_g_gas[jg,igas+1] * amount[igas+1]
+                                
+                                iloop = iloop + 1
+                        tau_g = rank(random_weight,random_tau,del_g)
+            tau_w_g_l[iwave,:,ilayer] = tau_g
+                        
+    return tau_w_g_l
+
+@jit(nopython=True)
+def rank(weight, cont, del_g):
+    """
+    Combine the randomly overlapped k distributions of two gases into a single
+    k distribution.
+
+    Parameters
+    ----------
+    weight(NG) : ndarray
+        Weights of points in the random k-dist
+    cont(NG) : ndarray
+        Random k-coeffs in the k-dist.
+    del_g(NG) : ndarray
+        Required weights of final k-dist.
+
+    Returns
+    -------
+    k_g(NG) : ndarray
+        Combined k-dist.
+        Unit: cm^2 (per particle)
+    """
+    ng = len(del_g)
+    nloop = len(weight.flatten())
+    # sum delta gs to get cumulative g ordinate
+    g_ord = np.zeros(ng+1)
+    g_ord[1:] = np.cumsum(del_g)
+    g_ord[ng] = 1
+    
+    # Sort random k-coeffs into ascending order. Integer array ico records
+    # which swaps have been made so that we can also re-order the weights.
+    ico = np.argsort(cont)
+    cont = cont[ico]
+    weight = weight[ico] # sort weights accordingly
+    gdist = np.cumsum(weight)
+    k_g = np.zeros(ng)
+    ig = 0
+    sum1 = 0.0
+    cont_weight = cont * weight
+    for iloop in range(nloop):
+        if gdist[iloop] < g_ord[ig+1] and ig < ng:
+            k_g[ig] = k_g[ig] + cont_weight[iloop]
+            sum1 = sum1 + weight[iloop]
+        else:
+            frac = (g_ord[ig+1] - gdist[iloop-1])/(gdist[iloop]-gdist[iloop-1])
+            k_g[ig] = k_g[ig] + frac*cont_weight[iloop]
+                
+            sum1 = sum1 + frac * weight[iloop]
+            k_g[ig] = k_g[ig]/sum1
+                
+            ig = ig + 1
+            if ig < ng:
+                sum1 = (1.0-frac)*weight[iloop]
+                k_g[ig] = (1.0-frac)*cont_weight[iloop]
+                    
+    if ig == ng-1:
+        k_g[ig] = k_g[ig]/sum1
+    return k_g
