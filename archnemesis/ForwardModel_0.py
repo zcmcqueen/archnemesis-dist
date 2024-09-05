@@ -6461,7 +6461,7 @@ def k_overlapg(del_g,k_w_g_l_gas,dkdT_w_g_l_gas,amount_layer):
         dk_w_g_l_param[:,:,:,0] = k_w_g_l_gas[:,:,:,0]
         dk_w_g_l_param[:,:,:,1] = dkdT_w_g_l_gas[:,:,:,0]**amount_layer[None,None,0,:]
         
-        return tau_w_g_l
+        return tau_w_g_l,dk_w_g_l_param
     
     for iwave in range(NWAVE):
         for ilayer in range(NLAYER):
