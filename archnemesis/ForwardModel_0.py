@@ -4315,7 +4315,9 @@ class ForwardModel_0:
 
             
         # Layers
-        BB = planck(Measurement.ISPACE, Measurement.WAVE, Layer.TEMP)
+        BB = np.zeros(Layer.TAURAY.shape)  #Blackbody in each layer
+        for ilay in range(Layer.NLAY):
+            BB[:,ilay] = planck(Measurement.ISPACE, Measurement.WAVE, Layer.TEMP[ilay])
         TAU = Layer.TAUTOT
         TAURAY = Layer.TAURAY
 
@@ -4499,7 +4501,9 @@ class ForwardModel_0:
         print('scloud11flux :: Calculating thermal emission of each layer')
 
         #Calculating the thermal emission of each atmospheric layer
-        BB = planck(Measurement.ISPACE,Measurement.WAVE,Layer.TEMP)  #(NWAVE,NLAY)
+        BB = np.zeros((Spectroscopy.NWAVE,Layer.NLAY))  #Blackbody in each layer
+        for ilay in range(Layer.NLAY):
+            BB[:,ilay] = planck(Measurement.ISPACE, Measurement.WAVE, Layer.TEMP[ilay])
 
 
 
@@ -5390,150 +5394,6 @@ def map2xvec(dSPECIN,NWAVE,NVMR,NDUST,NPRO,NPATH,NX,xmap):
     return dSPECOUT
 
 ###############################################################################################
-def planck(ispace,wave,temp,MakePlot=False):
-
-
-    """
-    FUNCTION NAME : planck()
-
-    DESCRIPTION : Function to calculate the blackbody radiation given by the Planck function
-
-    INPUTS : 
-
-        ispace :: Flag indicating the spectral units
-                  (0) Wavenumber (cm-1)
-                  (1) Wavelength (um)
-        wave(nwave) :: Wavelength or wavenumber array
-        temp(ntemp) :: Temperature of the blackbody (K)
-
-    OPTIONAL INPUTS:  none
-
-    OUTPUTS : 
-
-	    bb(nwave,ntemp) :: Planck function (W cm-2 sr-1 (cm-1)-1 or W cm-2 sr-1 um-1)
- 
-    CALLING SEQUENCE:
-
-	    bb = planck(ispace,wave,temp)
- 
-    MODIFICATION HISTORY : Juan Alday (29/07/2021)
-
-    """
-
-    if(np.isscalar(temp)==True):  #Only one temperature value bb(nwave)
-        ntemp = 0
-    else:  #Several temperature values bb(nwave,ntemp)
-        ntemp = len(temp)
-        wave = np.repeat(wave[:, np.newaxis],ntemp,axis=1)
-
-    c1 = 1.1911e-12
-    c2 = 1.439
-    if ispace==0:
-        y = wave
-        a = c1 * (y**3.)
-    elif ispace==1:
-        y = 1.0e4/wave
-        a = c1 * (y**5.) / 1.0e4
-    else:
-        sys.exit('error in planck :: ISPACE must be either 0 or 1')
-
-    tmp = c2 * y / temp
-    b = np.exp(tmp) - 1
-    bb = a/b
-
-
-    if MakePlot==True:
-        fig,ax1 = plt.subplots(1,1,figsize=(10,3))
-        ax1.plot(wave,bb)
-        if ispace==0:
-            ax1.set_xlabel('Wavenumber (cm$^{-1}$)')
-            ax1.set_ylabel('Radiance (W cm$^{-2}$ sr$^{-1}$ (cm$^{-1}$)$^{-1}$)')
-        else:
-            ax1.set_xlabel('Wavelength ($\mu$m)')
-            ax1.set_ylabel('Radiance (W cm$^{-2}$ sr$^{-1}$ $\mu$m$^{-1}$)')
-        ax1.grid()
-        plt.tight_layout()
-        plt.show()
-
-    return bb
-
-###############################################################################################
-def planckg(ispace,wave,temp,MakePlot=False):
-
-
-    """
-    FUNCTION NAME : planckg()
-
-    DESCRIPTION : Function to calculate the blackbody radiation given by the Planck function
-                    as well as its derivative with respect to temperature
-
-    INPUTS : 
-
-        ispace :: Flag indicating the spectral units
-                  (0) Wavenumber (cm-1)
-                  (1) Wavelength (um)
-        wave(nwave) :: Wavelength or wavenumber array
-        temp :: Temperature of the blackbody (K)
-
-    OPTIONAL INPUTS:  none
-
-    OUTPUTS : 
-
-	    bb(nwave) :: Planck function (W cm-2 sr-1 (cm-1)-1 or W cm-2 sr-1 um-1)
-        dBdT(nwave) :: Temperature gradient (W cm-2 sr-1 (cm-1)-1 or W cm-2 sr-1 um-1)/K
- 
-    CALLING SEQUENCE:
-
-	    bb,dBdT = planckg(ispace,wave,temp)
- 
-    MODIFICATION HISTORY : Juan Alday (29/07/2021)
-
-    """
-
-    c1 = 1.1911e-12
-    c2 = 1.439
-    if ispace==0:
-        y = wave
-        a = c1 * (y**3.)
-        ap = c1 * c2 * (y**4.)/temp**2.
-    elif ispace==1:
-        y = 1.0e4/wave
-        a = c1 * (y**5.) / 1.0e4
-        ap = c1 * c2 * (y**6.) / 1.0e4 / temp**2.
-    else:
-        sys.exit('error in planck :: ISPACE must be either 0 or 1')
-
-    tmp = c2 * y / temp
-    b = np.exp(tmp) - 1
-    bb = a/b
-
-    tmpp = c2 * y / temp
-    bp = (np.exp(tmp) - 1.)**2.
-    tp = np.exp(tmpp) * ap
-    dBdT = tp/bp
-
-    if MakePlot==True:
-        fig,(ax1,ax2) = plt.subplots(2,1,figsize=(10,5))
-        ax1.plot(wave,bb)
-        ax2.plot(wave,dBdT)
-        if ispace==0:
-            ax1.set_xlabel('Wavenumber (cm$^{-1}$)')
-            ax1.set_ylabel('Radiance (W cm$^{-2}$ sr$^{-1}$ (cm$^{-1}$)$^{-1}$)')
-            ax2.set_xlabel('Wavenumber (cm$^{-1}$)')
-            ax2.set_ylabel('dB/dT (W cm$^{-2}$ sr$^{-1}$ (cm$^{-1}$)$^{-1}$ K$^{-1}$)')    
-        else:
-            ax1.set_xlabel('Wavelength ($\mu$m)')
-            ax1.set_ylabel('Radiance (W cm$^{-2}$ sr$^{-1}$ $\mu$m$^{-1}$)')
-            ax2.set_xlabel('Wavelength ($\mu$m)')
-            ax2.set_ylabel('Radiance (W cm$^{-2}$ sr$^{-1}$ $\mu$m$^{-1}$ K$^{-1}$)')
-        ax1.grid()
-        ax2.grid()
-        plt.tight_layout()
-        plt.show()
-
-    return bb,dBdT
-
-###############################################################################################
 @jit(nopython=True)
 def add_layer(R1,T1,J1,R2,T2,J2):
     """
@@ -6296,6 +6156,12 @@ def trilinear_interpolation(grid, x_values, y_values, z_values, x_array, y_array
     return result
 
 
+###############################################################################################
+###############################################################################################
+#                                 K-COEFFICIENT OVERLAP
+###############################################################################################
+###############################################################################################
+
 # @jit(nopython=True)
 # def k_overlap(del_g,k_gas_g,dkgasdT,amount):
 #     """
@@ -6759,3 +6625,113 @@ def rank(weight, cont, del_g):
     if ig == ng-1:
         k_g[ig] = k_g[ig]/sum1
     return k_g
+
+
+###############################################################################################
+###############################################################################################
+#                                    THERMAL EMISSION
+###############################################################################################
+###############################################################################################
+
+###############################################################################################
+@jit(nopython=True)
+def planck(ispace,wave,temp):
+
+
+    """
+    FUNCTION NAME : planck()
+
+    DESCRIPTION : Function to calculate the blackbody radiation given by the Planck function
+
+    INPUTS : 
+
+        ispace :: Flag indicating the spectral units
+                  (0) Wavenumber (cm-1)
+                  (1) Wavelength (um)
+        wave(nwave) :: Wavelength or wavenumber array
+        temp(ntemp) :: Temperature of the blackbody (K)
+
+    OPTIONAL INPUTS:  none
+
+    OUTPUTS : 
+
+	    bb(nwave,ntemp) :: Planck function (W cm-2 sr-1 (cm-1)-1 or W cm-2 sr-1 um-1)
+ 
+    CALLING SEQUENCE:
+
+	    bb = planck(ispace,wave,temp)
+ 
+    MODIFICATION HISTORY : Juan Alday (29/07/2021)
+
+    """
+
+    c1 = 1.1911e-12
+    c2 = 1.439
+    if ispace==0:
+        y = wave
+        a = c1 * (y**3.)
+    elif ispace==1:
+        y = 1.0e4/wave
+        a = c1 * (y**5.) / 1.0e4
+
+    tmp = c2 * y / temp
+    b = np.exp(tmp) - 1
+    bb = a/b
+
+    return bb
+
+###############################################################################################
+@jit(nopython=True)
+def planckg(ispace,wave,temp):
+
+
+    """
+    FUNCTION NAME : planckg()
+
+    DESCRIPTION : Function to calculate the blackbody radiation given by the Planck function
+                    as well as its derivative with respect to temperature
+
+    INPUTS : 
+
+        ispace :: Flag indicating the spectral units
+                  (0) Wavenumber (cm-1)
+                  (1) Wavelength (um)
+        wave(nwave) :: Wavelength or wavenumber array
+        temp :: Temperature of the blackbody (K)
+
+    OPTIONAL INPUTS:  none
+
+    OUTPUTS : 
+
+	    bb(nwave) :: Planck function (W cm-2 sr-1 (cm-1)-1 or W cm-2 sr-1 um-1)
+        dBdT(nwave) :: Temperature gradient (W cm-2 sr-1 (cm-1)-1 or W cm-2 sr-1 um-1)/K
+ 
+    CALLING SEQUENCE:
+
+	    bb,dBdT = planckg(ispace,wave,temp)
+ 
+    MODIFICATION HISTORY : Juan Alday (29/07/2021)
+
+    """
+
+    c1 = 1.1911e-12
+    c2 = 1.439
+    if ispace==0:
+        y = wave
+        a = c1 * (y**3.)
+        ap = c1 * c2 * (y**4.)/temp**2.
+    elif ispace==1:
+        y = 1.0e4/wave
+        a = c1 * (y**5.) / 1.0e4
+        ap = c1 * c2 * (y**6.) / 1.0e4 / temp**2.
+
+    tmp = c2 * y / temp
+    b = np.exp(tmp) - 1
+    bb = a/b
+
+    tmpp = c2 * y / temp
+    bp = (np.exp(tmp) - 1.)**2.
+    tp = np.exp(tmpp) * ap
+    dBdT = tp/bp
+
+    return bb,dBdT

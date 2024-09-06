@@ -450,6 +450,7 @@ def model9(atm,ipar,href,fsh,tau,MakePlot=False):
     """
 
     from scipy.integrate import simpson
+    from archnemesis.Data.gas_data import const
 
     #Checking that profile is for aerosols
     if(ipar<=atm.NVMR):
@@ -580,6 +581,7 @@ def model32(atm,ipar,pref,fsh,tau,MakePlot=False):
     """
 
     from scipy.integrate import simpson
+    from archnemesis.Data.gas_data import const
 
     #Checking that profile is for aerosols
     if(ipar<=atm.NVMR):
