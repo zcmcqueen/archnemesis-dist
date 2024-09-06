@@ -2929,12 +2929,9 @@ class ForwardModel_0:
 
             #Combining the k-distributions of the different gases in each layer
             k_layer = k_overlap(self.SpectroscopyX.DELG,k_gas,f_gas)
-            print(k_gas.shape)
-            print(f_gas.shape)
-            print(k_layer.shape)
+
             #Calculating the opacity of each layer
             TAUGAS = k_layer #(NWAVE,NG,NLAY)
-            #Calculating the opacity of each layer
 
             #Removing necessary data to save memory
             del k_gas
@@ -3047,7 +3044,7 @@ class ForwardModel_0:
 
         IMODM = np.unique(self.PathX.IMOD)
 
-        if IMODM==0:
+        if IMODM==0:  #Pure transmission
 
             #Calculating the line-of-sight opacities
             TAUTOT_LAYINC = self.LayerX.TAUTOT[:,:,self.PathX.LAYINC[:,:]] * self.PathX.SCALE[:,:]  #(NWAVE,NG,NLAYIN,NPATH)
@@ -3069,7 +3066,7 @@ class ForwardModel_0:
                     for ig in range(self.SpectroscopyX.NG):
                         SPECOUT[:,ig,ipath] = SPECOUT[:,ig,ipath] * xfac
 
-        elif IMODM==1:
+        elif IMODM==1: #Absorption (useful for small transmissions)
 
             #Calculating the line-of-sight opacities
             TAUTOT_LAYINC = self.LayerX.TAUTOT[:,:,self.PathX.LAYINC[:,:]] * self.PathX.SCALE[:,:]  #(NWAVE,NG,NLAYIN,NPATH)
@@ -3082,60 +3079,36 @@ class ForwardModel_0:
 
         elif IMODM==3: #Thermal emission from planet
 
+            print('CIRSrad :: Performing thermal emission calculation')
+
             #Calculating the line-of-sight opacities
             TAUTOT_LAYINC = self.LayerX.TAUTOT[:,:,self.PathX.LAYINC[:,:]] * self.PathX.SCALE[:,:]  #(NWAVE,NG,NLAYIN,NPATH)
 
-            SPECOUT = np.zeros((self.MeasurementX.NWAVE,self.SpectroscopyX.NG,self.PathX.NPATH))
-
             #Defining the units of the output spectrum
-            xfac = 1.
+            xfac = np.ones(self.MeasurementX.NWAVE)
             if self.MeasurementX.IFORM==1:
-                xfac=np.pi*4.*np.pi*((self.AtmosphereX.RADIUS)*1.0e2)**2.
+                xfac *= np.pi*4.*np.pi*((self.AtmosphereX.RADIUS)*1.0e2)**2.
                 f = interpolate.interp1d(self.StellarX.VCONV,self.StellarX.SOLSPEC)
                 solpspec = f(self.MeasurementX.WAVE)  #Stellar power spectrum (W (cm-1)-1 or W um-1)
                 xfac = xfac / solpspec
 
-            #Calculating spectrum
+            #Interpolating the emissivity of the surface to the correct wavelengths
+            if self.SurfaceX.TSURF>0.0:
+                f = interpolate.interp1d(self.SurfaceX.VEM,self.SurfaceX.EMISSIVITY)
+                EMISSIVITY = f(self.MeasurementX.WAVE)
+            else:
+                EMISSIVITY = np.zeros(self.MeasurementX.NWAVE)
+            
+            #Calculating the spectra
+            SPECOUT = np.zeros((self.MeasurementX.NWAVE,self.SpectroscopyX.NG,self.PathX.NPATH))
             for ipath in range(self.PathX.NPATH):
-
-
-                #Calculating atmospheric contribution
-                taud = np.zeros((self.MeasurementX.NWAVE,self.SpectroscopyX.NG))
-                trold = np.ones((self.MeasurementX.NWAVE,self.SpectroscopyX.NG))
-                specg = np.zeros((self.MeasurementX.NWAVE,self.SpectroscopyX.NG))
-
-                for j in range(self.PathX.NLAYIN[ipath]):
-
-                    taud[:,:] = taud[:,:] + TAUTOT_LAYINC[:,:,j,ipath]
-                    tr = np.exp(-taud)
-
-                    bb = planck(self.MeasurementX.ISPACE,self.MeasurementX.WAVE,self.PathX.EMTEMP[j,ipath])
-                    for ig in range(self.SpectroscopyX.NG):
-                        specg[:,ig] = specg[:,ig] + (trold[:,ig]-tr[:,ig])*bb[:] * xfac
-
-                    trold = copy(tr)
-
-                #Calculating surface contribution
-
-                p1 = self.LayerX.PRESS[self.PathX.LAYINC[int(self.PathX.NLAYIN[ipath]/2)-1,ipath]]
-                p2 = self.LayerX.PRESS[self.PathX.LAYINC[int(self.PathX.NLAYIN[ipath]-1),ipath]]
-
-                if p2>p1:  #If not limb path, we add the surface contribution
-
-                    if self.SurfaceX.TSURF<=0.0:
-                        radground = planck(self.MeasurementX.ISPACE,self.MeasurementX.WAVE,self.PathX.EMTEMP[self.PathX.NLAYIN[ipath]-1,ipath])
-                    else:
-                        bbsurf = planck(self.MeasurementX.ISPACE,self.MeasurementX.WAVE,self.SurfaceX.TSURF)
-
-                        f = interpolate.interp1d(self.SurfaceX.VEM,self.SurfaceX.EMISSIVITY)
-                        emissivity = f(self.MeasurementX.WAVE)
-
-                        radground = bbsurf * emissivity
-
-                    for ig in range(self.SpectroscopyX.NG):
-                        specg[:,ig] = specg[:,ig] + trold[:,ig] * radground[:] * xfac
-
-                SPECOUT[:,:,ipath] = specg[:,:]
+                NLAYIN = self.PathX.NLAYIN[ipath]
+                EMTEMP = self.PathX.EMTEMP[0:NLAYIN,ipath]
+                EMPRESS = self.LayerX.PRESS[self.PathX.LAYINC[0:NLAYIN,ipath]]
+                SPECOUT[:,:,ipath] = calc_thermal_emission_spectrum(self.MeasurementX.ISPACE,self.MeasurementX.WAVE,TAUTOT_LAYINC[:,:,0:NLAYIN,ipath],EMTEMP,EMPRESS,self.SurfaceX.TSURF,EMISSIVITY)
+        
+                #Changing the units of the spectra
+                SPECOUT[:,:,ipath] = (SPECOUT[:,:,ipath].T * xfac).T
 
         elif IMODM==15: #Multiple scattering calculation
 
@@ -3520,107 +3493,31 @@ class ForwardModel_0:
         elif IMODM==3: #Thermal emission from planet
 
             #Defining the units of the output spectrum
-            xfac = 1.
+            xfac = np.ones(Measurement.NWAVE)
             if Measurement.IFORM==1:
-                xfac=np.pi*4.*np.pi*((Atmosphere.RADIUS)*1.0e2)**2.
+                xfac*=np.pi*4.*np.pi*((Atmosphere.RADIUS)*1.0e2)**2.
                 f = interpolate.interp1d(Stellar.WAVE,Stellar.SOLSPEC)
                 solpspec = f(Measurement.WAVE)  #Stellar power spectrum (W (cm-1)-1 or W um-1)
                 xfac = xfac / solpspec
 
-            #Calculating spectrum
+            #Interpolating the emissivity of the surface to the calculation wavelengths
+            if Surface.TSURF>0.0:
+                f = interpolate.interp1d(Surface.VEM,Surface.EMISSIVITY)
+                EMISSIVITY = f(Measurement.WAVE)
+            else:
+                EMISSIVITY = np.zeros(Measurement.NWAVE)
+                
+            #Calculating the spectra
             for ipath in range(Path.NPATH):
-
-
-                #Calculating atmospheric contribution
-                tlayer = np.zeros([Measurement.NWAVE,Spectroscopy.NG])
-                taud = np.zeros([Measurement.NWAVE,Spectroscopy.NG])
-                trold = np.ones([Measurement.NWAVE,Spectroscopy.NG])
-                specg = np.zeros([Measurement.NWAVE,Spectroscopy.NG])
-
-                dtolddq = np.zeros([Measurement.NWAVE,Spectroscopy.NG,Atmosphere.NVMR+2+Scatter.NDUST,Path.NLAYIN.max()])
-                dtrdq = np.zeros([Measurement.NWAVE,Spectroscopy.NG,Atmosphere.NVMR+2+Scatter.NDUST,Path.NLAYIN.max()])
-                dspecg = np.zeros([Measurement.NWAVE,Spectroscopy.NG,Atmosphere.NVMR+2+Scatter.NDUST,Path.NLAYIN.max()])
-
-
-                for j in range(Path.NLAYIN[ipath]):
-
-                    tlayer[:,:] = np.exp(-TAUTOT_LAYINC[:,:,j,ipath])
-                    taud[:,:] = taud[:,:] + TAUTOT_LAYINC[:,:,j,ipath]
-                    tr = trold[:,:] * tlayer[:,:]
-
-                    #Calculating the spectrum
-                    bb,dBdT = planckg(Measurement.ISPACE,Measurement.WAVE,Path.EMTEMP[j,ipath])
-                    specg = specg + np.transpose( np.transpose(trold-tr)*bb*xfac)
-                    #for ig in range(Spectroscopy.NG):
-                    #    specg[:,ig] = specg[:,ig] + (trold[:,ig]-tr[:,ig])*bb[:] * xfac
-
-                    #Setting up the gradients
-                    for k in range(Atmosphere.NVMR+2+Atmosphere.NDUST):
-
-                        j1 = 0
-                        while j1<j:
-                            dtrdq[:,:,k,j1] = dtolddq[:,:,k,j1] * tlayer[:,:]
-                            dspecg[:,:,k,j1] = dspecg[:,:,k,j1] + np.transpose(np.transpose(dtolddq[:,:,k,j1]-dtrdq[:,:,k,j1])*bb[:] * xfac)
-                            #for ig in range(Spectroscopy.NG):
-                            #    dspecg[:,ig,k,j1] = dspecg[:,ig,k,j1] + (dtolddq[:,ig,k,j1]-dtrdq[:,ig,k,j1])*bb[:] * xfac
-                            j1 = j1 + 1
-
-                        tmp = dTAUTOT_LAYINC[:,:,k,j1]
-                        dtrdq[:,:,k,j1] = -tmp[:,:,0] * tlayer[:,:] * trold[:,:]
-
-                        dspecg[:,:,k,j1] = dspecg[:,:,k,j1] + np.transpose(np.transpose(dtolddq[:,:,k,j1]-dtrdq[:,:,k,j1])*bb[:] * xfac)
-                        #for ig in range(Spectroscopy.NG):
-                        #    dspecg[:,ig,k,j1] = dspecg[:,ig,k,j1] + (dtolddq[:,ig,k,j1]-dtrdq[:,ig,k,j1])*bb[:] * xfac
-
-                        if k==Atmosphere.NVMR:
-                            #for ig in range(Spectroscopy.NG):
-                            #    dspecg[:,ig,k,j] = dspecg[:,ig,k,j] + (trold[:,ig]-tr[:,ig]) * xfac * dBdT[:]
-                            dspecg[:,:,k,j] = dspecg[:,:,k,j] + np.transpose(np.transpose(trold[:,:]-tr[:,:])*dBdT[:] * xfac)
-
-
-                    #Saving arrays for next iteration
-                    trold = copy(tr)
-                    j1 = 0
-                    while j1<j:
-                        dtolddq[:,:,:,j1] = dtrdq[:,:,:,j1]
-                        j1 = j1 + 1
-                    dtolddq[:,:,:,j1] = dtrdq[:,:,:,j1]
-
-
-                #Calculating surface contribution
-
-                p1 = Layer.PRESS[Path.LAYINC[int(Path.NLAYIN[ipath]/2)-1,ipath]]
-                p2 = Layer.PRESS[Path.LAYINC[int(Path.NLAYIN[ipath]-1),ipath]]
-
-                tempgtsurf = np.zeros((Measurement.NWAVE,Spectroscopy.NG))
-                if p2>p1:  #If not limb path, we add the surface contribution
-
-                    if Surface.TSURF<=0.0:
-                        radground,dradgrounddT = planckg(Measurement.ISPACE,Measurement.WAVE,Path.EMTEMP[Path.NLAYIN[ipath]-1,ipath])
-                    else:
-                        bbsurf,dbsurfdT = planckg(Measurement.ISPACE,Measurement.WAVE,Surface.TSURF)
-
-                        f = interpolate.interp1d(Surface.VEM,Surface.EMISSIVITY)
-                        emissivity = f(Measurement.WAVE)
-
-                        radground = bbsurf * emissivity
-                        dradgrounddT = dbsurfdT * emissivity
-
-                    specg = specg + np.transpose( np.transpose(trold)*radground*xfac )
-                    tempgtsurf = np.transpose(xfac * np.transpose(trold) * dradgrounddT)
-
-                    #for ig in range(Spectroscopy.NG):
-                    #    specg[:,ig] = specg[:,ig] + trold[:,ig] * radground[:] * xfac
-                    #    tempgtsurf[:,ig] = xfac * trold[:,ig] * dradgrounddT[:]
-
-                    for j in range(Path.NLAYIN[ipath]):
-                        for k in range(Atmosphere.NVMR+2+Atmosphere.NDUST):
-                            for ig in range(Spectroscopy.NG):
-                                dspecg[:,ig,k,j] = dspecg[:,ig,k,j] + xfac * radground[:] * dtolddq[:,ig,k,j]
-
-                SPECOUT[:,:,ipath] = specg[:,:]
-                dSPECOUT[:,:,:,:,ipath] = dspecg[:,:,:,:]
-                dTSURF[:,:,ipath] = tempgtsurf[:,:]
+                NLAYIN = Path.NLAYIN[ipath]
+                EMTEMP = Path.EMTEMP[0:NLAYIN,ipath]
+                EMPRESS = Layer.PRESS[Path.LAYINC[0:NLAYIN,ipath]]
+                SPECOUT[:,:,ipath],dSPECOUT[:,:,:,:,ipath],dTSURF[:,:,ipath] = calc_thermal_emission_spectrumg(Measurement.ISPACE,Measurement.WAVE,TAUTOT_LAYINC[:,:,0:NLAYIN,ipath],dTAUTOT_LAYINC[:,:,:,0:NLAYIN,ipath],Atmosphere.NVMR,EMTEMP,EMPRESS,Surface.TSURF,EMISSIVITY)
+        
+                #Changing the units of the spectra and gradients
+                SPECOUT[:,:,ipath] = (SPECOUT[:,:,ipath].T * xfac).T
+                dTSURF[:,:,ipath] = (dTSURF[:,:,ipath].T * xfac).T
+                dSPECOUT[:,:,:,:,ipath] = np.transpose(np.transpose(dSPECOUT[:,:,:,:,ipath],axes=[1,2,3,0])*xfac,axes=[3,0,1,2])
 
         #Now integrate over g-ordinates
         print('CIRSradg :: Integrading over g-ordinates')
@@ -6735,3 +6632,212 @@ def planckg(ispace,wave,temp):
     dBdT = tp/bp
 
     return bb,dBdT
+
+
+###############################################################################################
+@jit(nopython=True)
+def calc_thermal_emission_spectrum(ISPACE,WAVE,TAUTOT_PATH,TEMP,PRESS,TSURF,EMISSIVITY):
+
+
+    """
+    FUNCTION NAME : thermal_emission()
+
+    DESCRIPTION : Function to calculate the spectrum considering only thermal emission from 
+                  the surface and atmosphere (no scattering and no solar component)
+
+    INPUTS : 
+
+        ISPACE :: Flag indicating the spectral units (0 - Wavenumber in cm-1 ; 1 - Wavelength in um)
+        WAVE(NWAVE) :: Wavenumber of wavelength array
+        TAUTOT_PATH(NWAVE,NG,NLAYIN) :: Total optical depth along the line-of-sight in each layer and wavelength
+        TEMP(NLAYIN) :: Temperature of each layer along the path (K)
+        PRESS(NLAYIN) :: Pressure of each layer along the path (Pa)
+        TSURF :: Surface temperature (K) - If TSURF<0, then the planet is considered not to have surface
+        EMISSIVITY(NWAVE) :: Emissivity of the surface
+
+    OPTIONAL INPUTS:  none
+
+    OUTPUTS : 
+
+	    SPECOUT(NWAVE,NG) :: Spectrum in W cm-2 sr-1 (cm-1)-1 or W cm-2 sr-1 um-1
+ 
+    CALLING SEQUENCE:
+
+	    SPECOUT = calc_thermal_emission_spectrum(ISPACE,WAVE,TAUTOT_PATH,TEMP,PRESS,TSURF,EMISSIVITY)
+ 
+    MODIFICATION HISTORY : Juan Alday (29/07/2021)
+
+    """
+    
+    #Getting relevant array sizes
+    NWAVE = TAUTOT_PATH.shape[0]
+    NG = TAUTOT_PATH.shape[1]
+    NLAYIN = TAUTOT_PATH.shape[2]
+    
+    SPECOUT = np.zeros((NWAVE,NG))  #Output spectrum
+
+    for iwave in range(NWAVE):
+        for ig in range(NG):
+            
+            #Initialising values
+            taud = 0.
+            trold = 1.
+            specg = 0.
+            
+            #Calculating the atmospheric contribution
+            #Looping through each layer along the path
+            for j in range(NLAYIN):
+
+                taud += TAUTOT_PATH[iwave,ig,j]
+                tr = np.exp(-taud)
+                bb = planck(ISPACE,WAVE[iwave],TEMP[j])
+                specg += (trold-tr)*bb
+                trold = tr
+
+            #Calculating surface contribution
+            p1 = PRESS[int(NLAYIN/2)-1]
+            p2 = PRESS[int(NLAYIN-1)]
+
+            if p2>p1:  #If not limb path, we add the surface contribution
+
+                if TSURF<=0.0: #No surface contribution, getting temperature from bottom of atm
+                    radground = planck(ISPACE,WAVE[iwave],TEMP[NLAYIN-1])
+                else:
+                    bbsurf = planck(ISPACE,WAVE[iwave],TSURF)
+                    radground = bbsurf * EMISSIVITY[iwave]
+
+                specg += trold * radground
+
+            SPECOUT[iwave,ig] = specg
+            
+    return SPECOUT
+
+
+
+###############################################################################################
+@jit(nopython=True)
+def calc_thermal_emission_spectrumg(ISPACE,WAVE,TAUTOT_PATH,dTAUTOT_PATH,NVMR,TEMP,PRESS,TSURF,EMISSIVITY):
+
+
+    """
+    FUNCTION NAME : thermal_emission()
+
+    DESCRIPTION : Function to calculate the spectrum considering only thermal emission from 
+                  the surface and atmosphere (no scattering and no solar component)
+
+    INPUTS : 
+
+        ISPACE :: Flag indicating the spectral units (0 - Wavenumber in cm-1 ; 1 - Wavelength in um)
+        WAVE(NWAVE) :: Wavenumber of wavelength array
+        TAUTOT_PATH(NWAVE,NG,NLAYIN) :: Total optical depth along the line-of-sight in each layer and wavelength
+        dTAUTOT_PATH(NWAVE,NG,NVMR+2+NDUST,NLAYIN) :: Derivative of TAUTOT_PATH wrt each of the atmospheric parameters (gases+temperature+dust)
+        NVMR :: Number of gases in the atmosphere
+        TEMP(NLAYIN) :: Temperature of each layer along the path (K)
+        PRESS(NLAYIN) :: Pressure of each layer along the path (Pa)
+        TSURF :: Surface temperature (K) - If TSURF<0, then the planet is considered not to have surface
+        EMISSIVITY(NWAVE) :: Emissivity of the surface
+
+    OPTIONAL INPUTS:  none
+
+    OUTPUTS : 
+
+	    SPECOUT(NWAVE,NG) :: Spectrum in W cm-2 sr-1 (cm-1)-1 or W cm-2 sr-1 um-1
+        dSPECOUT(NWAVE,NG,NVMR+2+NDUST,NLAYIN) :: Gradient of the spectrum wrt each of the atmospheric parameters in each layer
+        dTSURF(NWAVE,NG) :: Gradient of the spectrum wrt the surface temperature
+ 
+    CALLING SEQUENCE:
+
+	    SPECOUT,dSPECOUT,dTSURF = calc_thermal_emission_spectrumg(ISPACE,WAVE,TAUTOT_PATH,dTAUTOT_PATH,NVMR,TEMP,PRESS,TSURF,EMISSIVITY)
+ 
+    MODIFICATION HISTORY : Juan Alday (29/07/2021)
+
+    """
+    
+    #Getting relevant array sizes
+    NWAVE = TAUTOT_PATH.shape[0]
+    NG = TAUTOT_PATH.shape[1]
+    NLAYIN = TAUTOT_PATH.shape[2]
+    NPAR = dTAUTOT_PATH.shape[2]
+    
+    SPECOUT = np.zeros((NWAVE,NG))  #Output spectrum
+    dSPECOUT = np.zeros((NWAVE,NG,NPAR,NLAYIN))  #Gradient with respect to each atmospheric parameter in each layer
+    dTSURF = np.zeros((NWAVE,NG)) #Gradient with respect to the surface temperature
+    
+
+    for iwave in range(NWAVE):
+        for ig in range(NG):
+            
+            #Initialising values
+            tlayer = 0.
+            taud = 0.
+            trold = 1.
+            specg = 0.
+            
+            dtolddq = np.zeros((NPAR,NLAYIN))
+            dtrdq = np.zeros((NPAR,NLAYIN))
+            dspecg = np.zeros((NPAR,NLAYIN))
+            
+            #Calculating atmospheric contribution
+            #Looping through the layers along the path
+            for j in range(NLAYIN):
+                
+                tlayer = np.exp(-TAUTOT_PATH[iwave,ig,j])
+                taud += TAUTOT_PATH[iwave,ig,j]
+                tr = trold * tlayer
+
+                #Calculating the spectrum
+                bb,dBdT = planckg(ISPACE,WAVE[iwave],TEMP[j])
+                specg += (trold-tr)*bb
+                
+                #Setting up the gradients
+                for k in range(NPAR):
+                    
+                    j1 = 0
+                    while j1<j:
+                        dtrdq[k,j1] = dtolddq[k,j1] * tlayer
+                        dspecg[k,j1] += (dtolddq[k,j1]-dtrdq[k,j1])*bb
+                        j1 += 1
+
+                    tmp = dTAUTOT_PATH[iwave,ig,k,j1]
+                    dtrdq[k,j1] = -tmp * tlayer * trold
+                    dspecg[k,j1] += (dtolddq[k,j1]-dtrdq[k,j1])*bb
+                    
+                    if k==NVMR:  #This is the index of the gradient with respect to the temperature
+                        dspecg[k,j] += (trold-tr)*dBdT
+
+                #Saving arrays for next iteration
+                trold = tr
+                j1 = 0
+                while j1<j:
+                    dtolddq[:,j1] = dtrdq[:,j1]
+                    j1 += 1
+                dtolddq[:,j1] = dtrdq[:,j1]
+
+
+            #Calculating surface contribution
+            p1 = PRESS[int(NLAYIN/2)-1]
+            p2 = PRESS[int(NLAYIN-1)]
+
+            tempgtsurf = 0.
+            if p2>p1:  #If not limb path, we add the surface contribution
+
+                if TSURF<=0.0: #No surface contribution, getting temperature from bottom of atm
+                    radground,dradgrounddT = planckg(ISPACE,WAVE[iwave],TEMP[NLAYIN-1])
+                else:
+                    bbsurf,dbsurfdT = planckg(ISPACE,WAVE[iwave],TSURF)
+                    
+                    radground = bbsurf * EMISSIVITY[iwave]
+                    dradgrounddT = dbsurfdT * EMISSIVITY[iwave]
+
+                    specg += trold*radground
+                    tempgtsurf = trold * dradgrounddT
+
+                for j in range(NLAYIN):
+                    for k in range(NPAR):
+                        dspecg[k,j] += radground * dtolddq[k,j]
+
+            SPECOUT[iwave,ig] = specg
+            dSPECOUT[iwave,ig,:,:] = dspecg[:,:]
+            dTSURF[iwave,ig] = tempgtsurf
+            
+    return SPECOUT,dSPECOUT,dTSURF

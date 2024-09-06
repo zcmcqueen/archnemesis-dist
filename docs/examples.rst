@@ -24,3 +24,4 @@ This sections includes Jupyter notebookes with examples showing how archNEMESIS 
 .. nbgallery::
 
    examples/mars_solocc/mars_SO.ipynb
+   examples/Jupiter_CIRS_nadir_thermal_emission/Jupiter_CIRS.ipynb
