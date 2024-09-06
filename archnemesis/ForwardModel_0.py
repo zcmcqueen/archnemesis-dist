@@ -1074,9 +1074,10 @@ class ForwardModel_0:
             NCores = min(NCores,nfm)
             base_chunk_size = nfm // NCores
             remainder = nfm % NCores
-            chunks = [(i * base_chunk_size + min(i, remainder), 
-                    min((i + 1) * base_chunk_size + min(i, remainder)+1,nfm),
-                    xnx, ixrun, nemesisSO, YNtot, nfm) for i in range(NCores)]
+
+            chunks = [(i * base_chunk_size + min(i, remainder),
+                       (i + 1) * base_chunk_size + min(i + 1, remainder),
+                       xnx, ixrun, nemesisSO, YNtot, nfm) for i in range(NCores)]
 
             with Pool(NCores) as pool:
                 results = pool.map(self.chunked_execution, chunks)
