@@ -194,7 +194,7 @@ class ForwardModel_0:
 
         """
 
-        from copy import copy
+        from copy import copy, deepcopy
         
         if self.Atmosphere.NLOCATIONS!=1:
             sys.exit('error in nemesisfm :: archNEMESIS has not been setup for dealing with multiple locations yet')
@@ -224,13 +224,13 @@ class ForwardModel_0:
                 self.select_Measurement(IGEOM,IAV)
 
                 #Making copy of classes to avoid overwriting them
-                self.AtmosphereX = copy(self.Atmosphere)
-                self.ScatterX = copy(self.Scatter)
-                self.StellarX = copy(self.Stellar)
-                self.SurfaceX = copy(self.Surface)
-                self.SpectroscopyX = copy(self.Spectroscopy)
-                self.LayerX = copy(self.Layer)
-                self.CIAX = copy(self.CIA)
+                self.AtmosphereX = deepcopy(self.Atmosphere)
+                self.ScatterX = deepcopy(self.Scatter)
+                self.StellarX = deepcopy(self.Stellar)
+                self.SurfaceX = deepcopy(self.Surface)
+                self.SpectroscopyX = deepcopy(self.Spectroscopy)
+                self.LayerX = deepcopy(self.Layer)
+                self.CIAX = deepcopy(self.CIA)
                 flagh2p = False
 
                 #Updating the required parameters based on the current geometry
@@ -1177,7 +1177,6 @@ class ForwardModel_0:
                         htan = self.Variables.VARPARAM[i,0] * 1000.
                 ptan = np.exp(self.Variables.XN[self.Variables.JPRE]) * 101325.
                 self.AtmosphereX.adjust_hydrostatP(htan,ptan)
-
 
         #Adjust VMRs to add up to 1 if AMFORM=1 and re-calculate molecular weight in atmosphere
         if self.AtmosphereX.AMFORM==1:
@@ -2276,7 +2275,6 @@ class ForwardModel_0:
             Layer.LAYHT = Scatter.SOL_ANG * 1.0e3
             Layer.LAYANG = 90.0
 
-        
         Layer.calc_layering(H=Atmosphere.H,P=Atmosphere.P,T=Atmosphere.T, ID=Atmosphere.ID,VMR=Atmosphere.VMR, DUST=Atmosphere.DUST)
         
         #Setting the flags for the Path and calculation types
@@ -4197,7 +4195,7 @@ class ForwardModel_0:
         AZI_ANGS = Path.AZI_ANG
 
         # Surface parameters
-        RADGROUND = np.zeros((Measurement.NWAVE, Scatter.NMU))
+        RADGROUND = np.zeros((Measurement.NWAVE,Scatter.NMU))
         ALBEDO = np.zeros(Measurement.NWAVE)
         EMISSIVITY = np.zeros(Measurement.NWAVE)
         LOWBC = Surface.LOWBC
@@ -4207,7 +4205,8 @@ class ForwardModel_0:
         else:
             bbsurf = planck(Measurement.ISPACE, Measurement.WAVE, Surface.TSURF)
             EMISSIVITY[:] = interp1d(Surface.VEM, Surface.EMISSIVITY)(Measurement.WAVE)
-            RADGROUND[:] = bbsurf * EMISSIVITY
+            for imu in range(Scatter.NMU):
+                RADGROUND[:,imu] = bbsurf * EMISSIVITY
 
             ALBEDO[:] = 1.0 - EMISSIVITY[:] if Surface.GALB < 0.0 else Surface.GALB
 
