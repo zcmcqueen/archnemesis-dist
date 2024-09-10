@@ -15,7 +15,7 @@ class Atmosphere_0:
     """
     Clear atmosphere. Simplest possible profile.
     """
-    def __init__(self, runname='', NP=10, NVMR=6, NDUST=0, NLOCATIONS=1, IPLANET=1, AMFORM=1):
+    def __init__(self, runname='', NP=10, NVMR=6, NDUST=0, NLOCATIONS=1, IPLANET=-1, AMFORM=1):
         """
         Set up an atmosphere profile with NP points and NVMR gases.
         Use the class methods to edit Height, Pressure, Temperature and
@@ -127,6 +127,8 @@ class Atmosphere_0:
         self.VMR = None # np.zeros((NP,NVMR)) or np.zeros((NP,NVMR,NLOCATIONS)) 
         self.DUST = None # np.zeros((NP,NDUST)) or np.zeros((NP,NDUST,NLOCATIONS)) #particles per m3
 
+    ##################################################################################
+
     def assess(self):
         """
         Assess whether the different variables have the correct dimensions and types
@@ -157,6 +159,8 @@ class Atmosphere_0:
         
         assert np.issubdtype(type(self.IPLANET), np.integer) == True , \
             'IPLANET must be int'
+        assert self.IPLANET > 0 , \
+            'IPLANET must be >0'
 
         assert len(self.ID) == self.NVMR , \
             'ID must have size (NVMR)'
@@ -226,6 +230,8 @@ class Atmosphere_0:
                 assert self.DUST.shape == (self.NP,self.NDUST,self.NLOCATIONS) , \
                     'DUST must have size (NP,NDUST,NLOCATIONS)'
 
+    ##################################################################################
+
     def summary_info(self):
         """
         Subroutine to print summary of information about the class
@@ -258,6 +264,8 @@ class Atmosphere_0:
             print('Number of aerosol populations :: ', self.NDUST)
         else:
             print('Number of aerosol populations :: ', 0)
+
+    ##################################################################################
 
     def write_hdf5(self,runname):
         """
@@ -344,6 +352,7 @@ class Atmosphere_0:
 
         f.close()
 
+    ##################################################################################
 
     def read_hdf5(self,runname):
         """
@@ -397,6 +406,7 @@ class Atmosphere_0:
 
         f.close()       
 
+    ##################################################################################
 
     def edit_H(self, array):
         """
@@ -415,6 +425,8 @@ class Atmosphere_0:
         
         self.H = array
 
+    ##################################################################################
+
     def edit_P(self, array):
         """
         Edit the Pressure profile.
@@ -430,6 +442,8 @@ class Atmosphere_0:
         
         self.P = array
 
+    ##################################################################################
+
     def edit_T(self, array):
         """
         Edit the Temperature profile.
@@ -444,6 +458,8 @@ class Atmosphere_0:
             assert array.shape == (self.NP,self.NLOCATIONS), 'T should have (NP,NLOCATIONS) elements'
         
         self.T = array
+
+    ##################################################################################
 
     def edit_VMR(self, array):
         """
@@ -461,6 +477,8 @@ class Atmosphere_0:
         
         self.VMR = array
 
+    ##################################################################################
+
     def edit_DUST(self, array):
         """
         Edit the aerosol abundance profile.
@@ -475,6 +493,8 @@ class Atmosphere_0:
             assert array.shape == (self.NP,self.NDUST,self.NLOCATIONS), 'DUST should have (NP,NDUST,NLOCATIONS) elements'
         
         self.DUST = array
+
+    ##################################################################################
 
     def adjust_VMR(self, ISCALE=[1,1,1,1,1,1]):
 
@@ -524,6 +544,7 @@ class Atmosphere_0:
 
             self.edit_VMR(vmr)
 
+    ##################################################################################
 
     def calc_molwt(self):
         """
@@ -564,6 +585,8 @@ class Atmosphere_0:
         molwt = molwt / vmrtot
         self.MOLWT = molwt / 1000.
 
+    ##################################################################################
+
     def calc_rho(self):
         """
         Subroutine to calculate the atmospheric density (kg/m3) at each level
@@ -575,6 +598,8 @@ class Atmosphere_0:
         rho = self.P * self.MOLWT / R / self.T
 
         return rho
+    
+    ##################################################################################
     
     def calc_numdens(self):
         """
@@ -588,6 +613,7 @@ class Atmosphere_0:
 
         return numdens
 
+    ##################################################################################
 
     def calc_radius(self):
         """
@@ -608,6 +634,8 @@ class Atmosphere_0:
         radius = (xradius/Rr)*1.0e-5     #Radius of the planet at the given distance (km)
 
         self.RADIUS = radius * 1.0e3     #Metres
+
+    ##################################################################################
 
     def calc_grav(self):
         """
@@ -676,6 +704,8 @@ class Atmosphere_0:
         gtot = np.sqrt(gradial**2. + gtheta**2.)*0.01   #m/s2
 
         self.GRAV = gtot
+
+    ##################################################################################
 
     def adjust_hydrostatP(self,htan,ptan):
         """
@@ -773,6 +803,7 @@ class Atmosphere_0:
                 #self.edit_P(p)
                 self.P[:,iLOC] = p[:]
 
+    ##################################################################################
 
     def adjust_hydrostatH(self):
         """
@@ -899,6 +930,7 @@ class Atmosphere_0:
                 #Re-Calculate the gravity at each altitude level
                 self.calc_grav()
 
+    ##################################################################################
 
     def add_gas(self,gasID,isoID,vmr):
         """
@@ -948,6 +980,7 @@ class Atmosphere_0:
                 self.ISO = isoID1
                 self.edit_VMR(vmr1)
 
+    ##################################################################################
 
     def remove_gas(self,gasID,isoID):
         """
@@ -971,6 +1004,8 @@ class Atmosphere_0:
             self.ID = np.delete(self.ID,igas,axis=0)
             self.ISO = np.delete(self.ISO,igas,axis=0)
             self.edit_VMR(np.delete(self.VMR,igas,axis=1))
+
+    ##################################################################################
 
     def update_gas(self,gasID,isoID,vmr):
         """
@@ -1001,6 +1036,38 @@ class Atmosphere_0:
                 vmr1[:,igas[0],:] = vmr[:,:]
                 self.edit_VMR(vmr1)
 
+    ##################################################################################
+
+    def normalise_dust(self,idust):
+        """
+        Subroutine to normalise the column of a given aerosol population so that the column optical
+        depth is given by the values in Scatter.KEXT
+        
+        This function is very useful if wanting to work with optical depths rather than with aerosol density.
+        
+        If normalising the aerosol profile with this function, the column optical depth for the aerosol population
+        will be given by the value in Scatter.KEXT. 
+    
+        Inputs
+        ______
+        
+        idust :: Index of the aerosol population to normalise
+        """
+
+        from scipy import integrate
+
+        #We assume that what is in DUST is in particles m-3, and we integrate it over altitude to get dust column in particles m-2
+        dust_col = integrate.simpson(self.DUST[:,idust], x=self.H) 
+
+        #Normalising the aerosol profile so that the column is 1 particles m-2
+        self.DUST[:,idust] /= dust_col
+        
+        #Applying a factor of 1.0e4 because the values in Scatter.KEXT are in cm2
+        self.DUST[:,idust] *= 1.0e4
+        
+        #This way we will have that the column optical depth of this aerosol population is given by Scatter.KEXT 
+
+    ##################################################################################
 
     def select_location(self,iLOCATION):
         """
@@ -1030,7 +1097,7 @@ class Atmosphere_0:
         
         self.assess()
         
-        
+    ##################################################################################
 
     def read_ref(self):
         """
@@ -1116,6 +1183,8 @@ class Atmosphere_0:
 
         self.calc_grav()
 
+    ##################################################################################
+
     def write_ref(self):
         """
         Write the current atmospheric profiles into the .ref file
@@ -1154,6 +1223,8 @@ class Atmosphere_0:
             fref.write(str1+'\n')
 
         fref.close()
+
+    ##################################################################################
 
     def read_aerosol(self):
         """
@@ -1222,6 +1293,8 @@ class Atmosphere_0:
         self.edit_H(height*1.0e3)   #m
         self.edit_DUST((aerodens.T*xscale).T)    #particles m-3
 
+    ##################################################################################
+
     def write_aerosol(self):
         """
         Write current aerosol profile to a aerosol.ref file in Nemesis format.
@@ -1255,6 +1328,7 @@ class Atmosphere_0:
                 f.write('{:<15.3E}'.format(self.DUST[i]))
         f.close()
 
+    ##################################################################################
 
     def calc_coldens(self):
         """
@@ -1271,8 +1345,6 @@ class Atmosphere_0:
         
         #Calculate the number density at each layer (m-3)
         numdens = self.calc_numdens()
-        
-        print(numdens.shape)
         
         #Calculating the partial number density of each gas (m-3)
         if self.NLOCATIONS>1:
@@ -1292,8 +1364,7 @@ class Atmosphere_0:
         
         return par_coldens
         
-
-
+    ##################################################################################
 
     def plot_Atm(self,SavePlot=None,ILOCATION=0):
 
@@ -1338,6 +1409,7 @@ class Atmosphere_0:
         else:
             plt.show()
 
+    ##################################################################################
 
     def plot_Dust(self,SavePlot=None,ILOCATION=0):
         """
@@ -1370,6 +1442,7 @@ class Atmosphere_0:
 
             print('warning :: there are no aerosol populations defined in Atmosphere')
             
+    ##################################################################################
             
     def plot_map(self,varplot,labelplot='Variable (unit)',subobs_lat=None,subobs_lon=None,cmap='viridis',vmin=None,vmax=None):
         """
