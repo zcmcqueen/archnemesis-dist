@@ -53,6 +53,185 @@ def file_lines(fname):
 
 ###############################################################################################
 ###############################################################################################
+#                                   archNEMESIS FILES
+###############################################################################################
+###############################################################################################
+
+# read_input_files_hdf5()
+
+###############################################################################################
+
+def read_input_files_hdf5(runname):
+
+    """
+        FUNCTION NAME : read_input_files_hdf5()
+        
+        DESCRIPTION : 
+
+            Reads the NEMESIS HDF5 input file and fills the parameters in the reference classes.
+ 
+        INPUTS :
+      
+            runname :: Name of the NEMESIS run
+
+        OPTIONAL INPUTS: None
+        
+        OUTPUTS : 
+
+            Variables :: Python class defining the parameterisations and state vector
+            Measurement :: Python class defining the measurements 
+            Atmosphere :: Python class defining the reference atmosphere
+            Spectroscopy :: Python class defining the parameters required for the spectroscopic calculations
+            Scatter :: Python class defining the parameters required for scattering calculations
+            Stellar :: Python class defining the stellar spectrum
+            Surface :: Python class defining the surface
+            CIA :: Python class defining the Collision-Induced-Absorption cross-sections
+            Layer :: Python class defining the layering scheme to be applied in the calculations
+
+        CALLING SEQUENCE:
+        
+            Atmosphere,Measurement,Spectroscopy,Scatter,Stellar,Surface,CIA,Layer,Variables,Retrieval = read_input_files_hdf5(runname)
+ 
+        MODIFICATION HISTORY : Juan Alday (25/03/2023)
+    """
+
+    from archnemesis import OptimalEstimation_0,Layer_0,Surface_0,Scatter_0,CIA_0,Measurement_0,Spectroscopy_0,Stellar_0
+    import h5py
+
+    #Initialise Atmosphere class and read file
+    ##############################################################
+
+    Atmosphere = Atmosphere_0()
+
+    #Read gaseous atmosphere
+    Atmosphere.read_hdf5(runname)
+    
+    #Initialise Layer class and read file
+    ###############################################################
+
+    Layer = Layer_0(Atmosphere.RADIUS)
+    Layer.read_hdf5(runname)
+
+    #Initialise Surface class and read file
+    ###############################################################
+
+    isurf = planet_info[str(Atmosphere.IPLANET)]["isurf"]
+    Surface = Surface_0()
+    if isurf==1:
+        Surface.read_hdf5(runname)
+        if np.mean(Surface.TSURF)<0.0:
+            Surface.GASGIANT=True   #If T is negative then we omit the surface
+    else:
+        Surface.GASGIANT=True
+
+    #Initialise Scatter class and read file
+    ###############################################################
+
+    Scatter = Scatter_0()
+    Scatter.read_hdf5(runname)
+
+    #Initialise CIA class and read files (.cia)  - NOT FROM HDF5 YET
+    ##############################################################
+
+    f = h5py.File(runname+'.h5','r')
+    #Checking if CIA exists
+    e = "/CIA" in f
+    f.close()
+    
+    if e==True:
+        CIA = CIA_0()
+        CIA.read_hdf5(runname)
+    else:
+        CIA = None
+
+    #Old version of CIA
+    #if os.path.exists(runname+'.cia')==True:
+    #    CIA = CIA_0(runname=runname)
+    #    CIA.read_cia()
+    #    #CIA.read_hdf5(runname)
+    #else:
+    #    CIA = None
+
+    #Initialise Spectroscopy class and read file
+    ###############################################################
+
+    f = h5py.File(runname+'.h5','r')
+    #Checking if Spectroscopy exists
+    e = "/Spectroscopy" in f
+    f.close()
+
+    if e is True:
+        Spectroscopy = Spectroscopy_0()
+        Spectroscopy.read_hdf5(runname)
+    else:
+        Spectroscopy = None
+
+    #Initialise Measurement class and read file
+    ###############################################################
+
+    Measurement = Measurement_0()
+    Measurement.read_hdf5(runname)
+    Measurement.calc_MeasurementVector()
+    
+    if Spectroscopy is not None:
+
+        #Calculating the 'calculation wavelengths'
+        if Spectroscopy.ILBL==0:
+            Measurement.wavesetb(Spectroscopy,IGEOM=0)
+        elif Spectroscopy.ILBL==2:
+            Measurement.wavesetc(Spectroscopy,IGEOM=0)
+        else:
+            sys.exit('error :: ILBL has to be either 0 or 2')
+
+        #Now, reading k-tables or lbl-tables for the spectral range of interest
+        Spectroscopy.read_tables(wavemin=Measurement.WAVE.min(),wavemax=Measurement.WAVE.max())
+        
+    else:
+        
+        Measurement.wavesetc(Spectroscopy,IGEOM=0)
+        
+        #Creating dummy Spectroscopy file if it does not exist
+        Spectroscopy = Spectroscopy_0()
+        Spectroscopy.NWAVE = Measurement.NWAVE
+        Spectroscopy.WAVE = Measurement.WAVE
+        Spectroscopy.NG = 1
+        Spectroscopy.ILBL = 0
+        Spectroscopy.G_ORD = np.array([1.])
+        Spectroscopy.NGAS = 1
+        Spectroscopy.ID = np.array([Atmosphere.ID[0]],dtype='int32')
+        Spectroscopy.ISO = np.array([Atmosphere.ISO[0]],dtype='int32')
+        Spectroscopy.NP = 2
+        Spectroscopy.NT = 2
+        Spectroscopy.PRESS = np.array([Atmosphere.P.min()/101325.,Atmosphere.P.max()/101325.])
+        Spectroscopy.TEMP = np.array([Atmosphere.T.min(),Atmosphere.T.max()])
+        Spectroscopy.K = np.zeros([Spectroscopy.NWAVE,Spectroscopy.NG,Spectroscopy.NP,Spectroscopy.NT,Spectroscopy.NGAS])
+        Spectroscopy.DELG = np.array([1])
+    
+    #Reading Stellar class
+    ################################################################
+
+    Stellar = Stellar_0()
+    Stellar.read_hdf5(runname)
+
+    #Reading .apr file and Variables Class
+    #################################################################
+
+    Variables = Variables_0()
+    Variables.read_apr(runname,Atmosphere.NP,nlocations=Atmosphere.NLOCATIONS)
+    Variables.XN = copy(Variables.XA)
+    Variables.SX = copy(Variables.SA)
+
+    #Reading retrieval setup
+    #################################################################
+
+    Retrieval = OptimalEstimation_0()
+    Retrieval.read_hdf5(runname)
+
+    return Atmosphere,Measurement,Spectroscopy,Scatter,Stellar,Surface,CIA,Layer,Variables,Retrieval
+
+
+###############################################################################################
+###############################################################################################
 #                                     NEMESIS FILES
 ###############################################################################################
 ###############################################################################################
