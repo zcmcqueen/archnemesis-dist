@@ -1503,7 +1503,9 @@ def model444(Scatter,idust,iscat,xprof,haze_params):
 
             Scatter :: Python class defining the scattering parameters
             idust :: Index of the aerosol distribution to be modified (from 0 to NDUST-1)
-            the rest
+            iscat :: Flag indicating the particle size distribution
+            xprof :: Contains the size distribution parameters and imaginary refractive index
+            haze_params :: Read from 444 file. Contains relevant constants.
 
         OPTIONAL INPUTS:
 
@@ -1519,11 +1521,17 @@ def model444(Scatter,idust,iscat,xprof,haze_params):
         MODIFICATION HISTORY : Joe Penn (11/9/2024)
 
     """   
-
-    #     if iscat == 1: just 1 for testing
     a = np.exp(xprof[0])
     b = np.exp(xprof[1])
-    pars = (a,b,(1-3*b)/b)
+    if iscat == 1:
+        pars = (a,b,(1-3*b)/b)
+    elif iscat == 2:
+        pars = (a,b,0)
+    elif iscat == 4:
+        pars = (a,0,0)
+    else:
+        print(f'WARNING: ISCAT = {iscat} not implemented for model 444 yet! Defaulting to iscat = 1.')
+        pars = (a,b,(1-3*b)/b)
     
     Scatter.WAVER = haze_params['WAVE',idust]
     Scatter.REFIND_IM = np.exp(xprof[2:])
@@ -1541,7 +1549,6 @@ def model444(Scatter,idust,iscat,xprof,haze_params):
 
     Scatter.KEXT[:,idust] = Scatter.KEXT[:,idust]/xextnorm
     Scatter.KSCA[:,idust] = Scatter.KSCA[:,idust]/xextnorm
-        
     return Scatter
 
 ###############################################################################################

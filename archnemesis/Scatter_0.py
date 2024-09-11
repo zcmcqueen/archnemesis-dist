@@ -22,7 +22,7 @@ JIT-optimised Rayleigh Scattering routines
 
 class Scatter_0:
 
-    def __init__(self, ISPACE=0, ISCAT=1, IRAY=0, IMIE=0, NMU=5, NF=2, NPHI=101, NDUST=1, SOL_ANG=0.0, EMISS_ANG=0.0, AZI_ANG=0.0, NTHETA=91, THETA=np.linspace(0.,180.,91)):
+    def __init__(self, ISPACE=0, ISCAT=1, IRAY=0, IMIE=0, NMU=5, NF=2, NPHI=101, NDUST=1, SOL_ANG=0.0, EMISS_ANG=0.0, AZI_ANG=0.0, NTHETA=None, THETA=None):
 
         """
         Inputs
@@ -133,21 +133,32 @@ class Scatter_0:
         self.NDUST = NDUST
         self.IRAY = IRAY
         self.IMIE = IMIE
-
+        
         # Input the following profiles using the edit_ methods.
         self.NWAVE = None
-        self.NTHETA = NTHETA
         self.WAVE = None #np.zeros(NWAVE)
         self.KEXT = None #np.zeros(NWAVE,NDUST)
         self.KABS = None #np.zeros(NWAVE,NDUST)
         self.KSCA = None #np.zeros(NWAVE,NDUST)
         self.SGLALB = None #np.zeros(NWAVE,NDUST)
-        self.THETA = THETA
         self.PHASE = None #np.zeros(NWAVE,NTHETA,NDUST)
 
         self.MU = None # np.zeros(NMU)
         self.WTMU = None # np.zeros(NMU)
 
+        # Fortran defaults
+        if THETA is None:
+            self.THETA = np.array([
+                0, 1, 2, 3, 4, 5, 7.5, 10, 12.5, 15, 17.5, 20, 25, 30, 35, 40, 50, 60, 70, 80,
+                90, 100, 110, 120, 130, 140, 145, 150, 155, 160, 162.5, 165, 167.5, 170, 172.5,
+                175, 176, 177, 178, 179, 180
+            ])
+            self.NTHETA = 41
+        else:
+            self.THETA = THETA
+            self.NTHETA = NTHETA
+        
+        
         #Henyey-Greenstein phase function parameters
         self.G1 = None  #np.zeros(NWAVE,NDUST)
         self.G2 = None #np.zeros(NWAVE,NDUST)
@@ -165,6 +176,9 @@ class Scatter_0:
 
         self.calc_GAUSS_LOBATTO()
 
+        
+        
+        
 
     def assess(self):
         """
@@ -620,6 +634,7 @@ class Scatter_0:
             f.close()
 
     def calc_hgphase(self,Theta):
+        
         """
         Calculate the phase function at Theta angles given the double Henyey-Greenstein parameters
         @param Theta: 1D array or real scalar
@@ -646,7 +661,7 @@ class Scatter_0:
         phase = phase / (4.0*np.pi)
         
         phase = np.transpose(phase,axes=[1,0,2])
-
+        
         return phase
 
     def interp_phase(self,Theta):
@@ -710,7 +725,9 @@ class Scatter_0:
         ntheta = len(Thetax)
 
         phase2 = np.zeros((nwave,ntheta,self.NDUST))
-
+        
+        print(Thetax)
+        
         if self.IMIE==0:
             
             #Calculating the phase function at the wavelengths defined in the Scatter class

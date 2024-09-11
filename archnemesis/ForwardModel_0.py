@@ -249,7 +249,11 @@ class ForwardModel_0:
                 rho = self.AtmosphereX.calc_rho()
 
                 #Calling gsetpat to split the new reference atmosphere and calculate the path
-                self.calc_path()
+                if self.ScatterX.ISCAT == 0:
+                    self.calc_pathg()
+                else:
+                    self.calc_path()
+                    
                 
                 #Calling CIRSrad to perform the radiative transfer calculations
                 SPEC1X = self.CIRSrad()
@@ -1486,7 +1490,7 @@ class ForwardModel_0:
                 
             elif self.Variables.VARIDENT[ivar,0]==444:
                 idust = int(self.Variables.VARPARAM[ivar,0])
-                iscat = 1
+                iscat = 1 # Should add an option for this
                 xprof = self.Variables.XN[ix:ix+self.Variables.HAZE_PARAMS['NX',idust]]
                 
                 self.ScatterX = model444(self.ScatterX,idust,iscat,xprof,self.Variables.HAZE_PARAMS)
@@ -2927,7 +2931,10 @@ class ForwardModel_0:
         elif self.SpectroscopyX.ILBL==0:    #K-table
             
             #Calculating the k-coefficients for each gas in each layer
-            k_gas = self.SpectroscopyX.calc_k(self.LayerX.NLAY,self.LayerX.PRESS/101325.,self.LayerX.TEMP,WAVECALC=self.MeasurementX.WAVE) # (NWAVE,NG,NLAY,NGAS)
+            if self.Scatter.ISCAT == 0:
+                k_gas, _ = self.SpectroscopyX.calc_kg(self.LayerX.NLAY,self.LayerX.PRESS/101325.,self.LayerX.TEMP,WAVECALC=self.MeasurementX.WAVE)
+            else:
+                k_gas = self.SpectroscopyX.calc_k(self.LayerX.NLAY,self.LayerX.PRESS/101325.,self.LayerX.TEMP,WAVECALC=self.MeasurementX.WAVE) # (NWAVE,NG,NLAY,NGAS)
             f_gas = np.zeros((self.SpectroscopyX.NGAS,self.LayerX.NLAY))
             utotl = np.zeros(self.LayerX.NLAY)
             for i in range(self.SpectroscopyX.NGAS):
@@ -3979,9 +3986,9 @@ class ForwardModel_0:
             #kext = np.exp(f(WAVEC))
             #f = interpolate.interp1d(Scatter.WAVE,np.log(Scatter.KSCA[:,i]))
             #ksca = np.exp(f(WAVEC))
-            f = interpolate.interp1d(Scatter.WAVE,Scatter.KEXT[:,i])
+            f = interpolate.interp1d(Scatter.WAVE,Scatter.KEXT[:,i],kind='cubic')
             kext = f(WAVEC)
-            f = interpolate.interp1d(Scatter.WAVE,Scatter.KSCA[:,i])
+            f = interpolate.interp1d(Scatter.WAVE,Scatter.KSCA[:,i],kind='cubic')
             ksca = f(WAVEC)
 
             #Calculating the opacity at each layer
@@ -4252,8 +4259,6 @@ class ForwardModel_0:
         PHASE_ARRAY = np.zeros((Scatter.NDUST, Measurement.NWAVE, 2, NTHETA))
         PHASE_ARRAY[:, :, 0, :] = np.transpose(Scatter.calc_phase(Scatter.THETA, Measurement.WAVE), (2, 0, 1))
         PHASE_ARRAY[:, :, 1, :] = np.cos(Scatter.THETA * np.pi / 180)
-
-        
         
         # Core function call
         SPEC = scloud11wave_core(
