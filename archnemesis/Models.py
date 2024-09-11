@@ -1489,6 +1489,62 @@ def model230(Measurement,nwindows,liml,limh,par,MakePlot=False):
 
 
 ###############################################################################################
+def model444(Scatter,idust,iscat,xprof,haze_params):
+    """
+        FUNCTION NAME : model444()
+
+        DESCRIPTION :
+
+            Function defining the model parameterisation 444 in NEMESIS.
+
+            Allows for retrieval of the particle size distribution and imaginary refractive index.
+
+        INPUTS :
+
+            Scatter :: Python class defining the scattering parameters
+            idust :: Index of the aerosol distribution to be modified (from 0 to NDUST-1)
+            the rest
+
+        OPTIONAL INPUTS:
+
+
+        OUTPUTS :
+
+            Scatter :: Updated Scatter class
+
+        CALLING SEQUENCE:
+
+            Scatter = model444(Scatter,idust,iscat,xprof,haze_params)
+
+        MODIFICATION HISTORY : Joe Penn (11/9/2024)
+
+    """   
+
+    #     if iscat == 1: just 1 for testing
+    a = np.exp(xprof[0])
+    b = np.exp(xprof[1])
+    pars = (a,b,(1-3*b)/b)
+    
+    Scatter.WAVER = haze_params['WAVE',idust]
+    Scatter.REFIND_IM = np.exp(xprof[2:])
+    
+    reference_nreal = haze_params['NREAL',idust]
+    reference_wave = haze_params['WAVE_REF',idust]
+    normalising_wave = haze_params['WAVE_NORM',idust]
+    
+    Scatter.REFIND_REAL = kk_new_sub(np.array(Scatter.WAVER), np.array(Scatter.REFIND_IM), reference_wave, reference_nreal)
+    
+    
+    Scatter.makephase(idust, iscat, pars)
+
+    xextnorm = np.interp(normalising_wave,Scatter.WAVER,Scatter.KEXT[:,idust])
+
+    Scatter.KEXT[:,idust] = Scatter.KEXT[:,idust]/xextnorm
+    Scatter.KSCA[:,idust] = Scatter.KSCA[:,idust]/xextnorm
+        
+    return Scatter
+
+###############################################################################################
 
 def model446(Scatter,idust,wavenorm,xwave,rsize,lookupfile,MakePlot=False):
     

@@ -118,7 +118,7 @@ class Variables_0:
         self.SX = None # np.zeros((NX, NX))
         self.NUM = None #np.zeros(NX)
         self.DSTEP = None #np.zeros(NX)
-
+        self.HAZE_PARAMS = {}
     ################################################################################################################
 
     def edit_VARIDENT(self, VARIDENT_array):
@@ -1242,7 +1242,62 @@ class Variables_0:
                         inum[ix+2] = 0                  
                         ix = ix + 3
 
+                elif varident[i,2] == 444:
+#               ******** model for retrieving an aerosol particle size distribution and imaginary refractive index spectrum
+                    s = f.readline().split()    
+                    haze_f = open(s[0],'r')
+                    haze_waves = []
+                    for j in range(2):
+                        line = haze_f.readline().split()
+                        xai, xa_erri = line[:2]
+                        
+                        x0[ix] = np.log(float(xai))
+                        sx[ix,ix] = (float(xa_erri)/float(xai))**2.
 
+                        ix = ix + 1
+                        
+                    nwave, clen = haze_f.readline().split('!')[0].split()
+                    vref, nreal_ref = haze_f.readline().split('!')[0].split()
+                    v_od_norm = haze_f.readline().split('!')[0]
+
+                    stopread = False
+                    for j in range(int(nwave)):
+                        line = haze_f.readline().split()
+                        v, xai, xa_erri = line[:3]
+                        if not stopread:
+                            x0[ix] = np.log(float(xai))
+                            sx[ix,ix] = (float(xa_erri)/float(xai))**2.
+
+                            ix = ix + 1
+                        
+                        if float(clen) < 0:
+                            stopread = True
+                        haze_waves.append(float(v))
+                            
+                            
+                    idust = varident[i,1]-1
+                    
+                    self.HAZE_PARAMS['NX',idust] = 2+int(nwave)
+                    self.HAZE_PARAMS['WAVE',idust] = haze_waves
+                    self.HAZE_PARAMS['NREAL',idust] = float(nreal_ref)
+                    self.HAZE_PARAMS['WAVE_REF',idust] = float(vref)
+                    self.HAZE_PARAMS['WAVE_NORM',idust] = float(v_od_norm)
+                    
+                    if float(clen) > 0:
+                        for j in range(int(nwave)):
+                            for k in range(int(nwave)):
+                                
+                                delv = haze_waves[k]-haze_waves[j]
+                                arg = abs(delv/float(clen))
+                                xfac = np.exp(-arg)
+                                if xfac >= sxminfac:
+                                    sx[ix+j,ix+k] = np.sqrt(sx[ix+j,ix+j]*sx[ix+k,ix+k])*xfac
+                                    sx[ix+k,ix+j] = sx[ix+j,ix+k]
+                
+#                 return params, param_errs, dists, dist_mults, haze_waves, calc_waves,\
+#                         float(clen), float(vref), float(nreal_ref), float(v_od_norm)
+                    
+                
                 elif varident[i,2] == 446:
 #               ******** model for retrieving an aerosol particle size distribution from a tabulated look-up table
 

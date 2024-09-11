@@ -934,7 +934,7 @@ class ForwardModel_0:
         print(f'Calculating forward model {ifm+1}/{nfm}')
         original_stdout = sys.stdout  # Store the original stdout
         try:
-            sys.stdout = open(os.devnull, 'w')  # Redirect stdout
+#             sys.stdout = open(os.devnull, 'w')  # Redirect stdout
             self.Variables.XN = xnx[:, ixrun[ifm]]
             if nemesisSO:
                 SPECMOD = self.nemesisSOfm()
@@ -942,7 +942,7 @@ class ForwardModel_0:
                 SPECMOD = self.nemesisfm()
             YNtot[:, ifm] = np.resize(np.transpose(SPECMOD), (self.Measurement.NY,))
         finally:
-            sys.stdout.close()  # Close the devnull
+#             sys.stdout.close()  # Close the devnull
             sys.stdout = original_stdout  # Restore the original stdout
             print(f'Calculated forward model {ifm+1}/{nfm}')
             
@@ -1482,6 +1482,17 @@ class ForwardModel_0:
 
                 ipar = -1
                 ix = ix + self.Variables.NXVAR[ivar]
+                
+                
+            elif self.Variables.VARIDENT[ivar,0]==444:
+                idust = int(self.Variables.VARPARAM[ivar,0])
+                iscat = 1
+                xprof = self.Variables.XN[ix:ix+self.Variables.HAZE_PARAMS['NX',idust]]
+                
+                self.ScatterX = model444(self.ScatterX,idust,iscat,xprof,self.Variables.HAZE_PARAMS)
+                
+                ix = ix + self.Variables.HAZE_PARAMS['NX',idust]
+               
 
             elif self.Variables.VARIDENT[ivar,0]==446:
 #           Model 446. model for retrieving the particle size distribution based on the data in a look-up table
@@ -2939,7 +2950,6 @@ class ForwardModel_0:
 
         else:
             sys.exit('error in CIRSrad :: ILBL must be either 0 or 2')
-
         self.LayerX.TAUGAS = TAUGAS
         #Calculating the continuum absorption by gaseous species
         #################################################################################################################
@@ -4238,6 +4248,7 @@ class ForwardModel_0:
             )
 
         # Phase function
+        
         PHASE_ARRAY = np.zeros((Scatter.NDUST, Measurement.NWAVE, 2, NTHETA))
         PHASE_ARRAY[:, :, 0, :] = np.transpose(Scatter.calc_phase(Scatter.THETA, Measurement.WAVE), (2, 0, 1))
         PHASE_ARRAY[:, :, 1, :] = np.cos(Scatter.THETA * np.pi / 180)

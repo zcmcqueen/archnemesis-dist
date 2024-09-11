@@ -692,8 +692,8 @@ def layer_average(RADIUS, H, P, T, ID, VMR, DUST, BASEH, BASEP,
         Layer scaling factor.
     """
 
-    from scipy.integrate import simpson
-    from archnemesis.Data.gas_data import Calc_mmw
+    from scipy.integrate import simps
+    from NemesisPy.Data.ref_data import Calc_mmw
 
     k_B = 1.38065e-23
 
@@ -807,48 +807,46 @@ def layer_average(RADIUS, H, P, T, ID, VMR, DUST, BASEH, BASEP,
             amount = np.zeros((NINT, NVMR))
             molwt = np.zeros(NINT)
 
-            TOTAM[I] = simpson(duds,x=S)
-            HEIGHT[I]  = simpson(h*duds,x=S)/TOTAM[I]
-            PRESS[I] = simpson(p*duds,x=S)/TOTAM[I]
-            TEMP[I]  = simpson(temp*duds,x=S)/TOTAM[I]
+            TOTAM[I] = simps(duds,S)
+            HEIGHT[I]  = simps(h*duds,S)/TOTAM[I]
+            PRESS[I] = simps(p*duds,S)/TOTAM[I]
+            TEMP[I]  = simps(temp*duds,S)/TOTAM[I]
 
             if VMR.ndim > 1:
                 amount = np.zeros((NINT, NVMR))
                 for J in range(NVMR):
                     amount[:,J] = interp(H, VMR[:,J], h)
-                    AMOUNT[I,J] = simpson(amount[:,J]*duds,x=S)
+                    AMOUNT[I,J] = simps(amount[:,J]*p*duds,S)/PRESS[I]
                 pp = (amount.T * p).T     # gas partial pressures
                 for J in range(NVMR):
-                    PP[I, J] = simpson(pp[:,J]*duds,x=S)/TOTAM[I]
+                    PP[I, J] = simps(pp[:,J]*duds,S)/TOTAM[I]
                 
                 if AMFORM==0:
                     sys.exit('error :: AMFORM=0 needs to be implemented in Layer.py')
                 else:
-                    for K in range(NINT):
-                        molwt[K] = Calc_mmw(amount[K,:], ID)
-                    MOLWT[I] = simpson(molwt*duds,x=S)/TOTAM[I]
+                    for K in range(NPRO):
+                        MOLWT[K] = Calc_mmw(VMR[K], ID)
             else:
                 amount = interp(H, VMR, h)
                 pp = amount * p
-                AMOUNT[I] = simpson(amount*duds,x=S)
-                PP[I] = simpson(pp*duds,x=S)/TOTAM[I]
+                AMOUNT[I] = simps(amount*p*duds,S)/PRESS[I]
+                PP[I] = simps(pp*duds,S)/TOTAM[I]
 
                 if AMFORM==0:
                     sys.exit('error :: AMFORM=0 needs to be implemented in Layer.py')
                 else:
-                    for K in range(NINT):
-                        molwt[K] = Calc_mmw(amount[K], ID)
-                    MOLWT[I] = simpson(molwt*duds,x=S)/TOTAM[I]
-
+                    for K in range(NPRO):
+                        MOLWT[K] = Calc_mmw(VMR[K], ID)
+                        
+            AVOGAD = 6.02214076e23
             if DUST.ndim > 1:
                 dd = np.zeros((NINT,NDUST))
                 for J in range(NDUST):
                     dd[:,J] = interp(H, DUST[:,J], h)
-                    CONT[I,J] = simpson(dd[:,J],x=S)
+                    CONT[I,J] = simps(dd[:,J]*duds,S) * MOLWT[I] / AVOGAD
             else:
                 dd = interp(H, DUST, h) 
-                CONT[I] = simpson(dd,x=S)
-
+                CONT[I] = simps(dd*duds,S) * MOLWT[I] / AVOGAD
     # Scale back to vertical layers
     TOTAM = TOTAM / LAYSF
     if VMR.ndim > 1:

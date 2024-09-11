@@ -1290,7 +1290,8 @@ class Atmosphere_0:
         #Filling the information into the class
         self.NP = npro
         self.NDUST = naero
-        self.edit_H(height*1.0e3)   #m
+        if self.H is None:
+            self.edit_H(height*1.0e3)   #m
         self.edit_DUST((aerodens.T*xscale).T)    #particles m-3
 
     ##################################################################################

@@ -1969,7 +1969,54 @@ def henyey(alpha, f, g1, g2):
     y = f * x1 + (1.0 - f) * x2
     return y
 
+@njit(fastmath=True)
+def kk_new_sub(vi, k, vm, nm):
+    '''
+    Calculates real part of refractive index, given a wavelength grid, 
+    imaginary refractive index on this grid, and the real refractive
+    index at a reference wavelength.
+    '''
+    
+    npoints = len(vi)
+    va = np.zeros(npoints)
+    ka = np.zeros(npoints)
+    na = np.zeros(npoints)
+    # Reverse order logic
+    irev = False
+    if vi[0] > vi[-1]:
+        va = vi[::-1]
+        ka = k[::-1]
+        irev = True
+    else:
+        va = vi
+        ka = k
 
+    # Linear interpolation function (verint) to find km at vm
+    km = np.interp(vm, va, ka)
+
+    # Integration loop
+    for i in range(npoints):
+        v = va[i]
+        y = np.zeros(npoints)
+        for j in range(npoints):
+            alpha = va[j]**2 - v**2
+            beta = va[j]**2 - vm**2
+            if alpha != 0 and beta != 0:
+                d1 = ka[j]*va[j] - ka[i]*va[i]
+                d2 = ka[j]*va[j] - km*vm
+                y[j] = d1/alpha - d2/beta
+
+        # Summation
+        sum_ = 0.0
+        for l in range(npoints - 1):
+            dv = va[l + 1] - va[l]
+            sum_ += 0.5 * (y[l] + y[l + 1]) * dv
+        na[i] = nm - (2. / np.pi) * sum_
+
+    # Prepare output based on reverse logic
+    n = na[::-1] if irev else na
+
+    return n
 ##############################################################################################################
 ##############################################################################################################
 #                                          OTHER USEFUL CALCULATIONS
