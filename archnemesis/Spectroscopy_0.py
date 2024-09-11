@@ -3,7 +3,7 @@ import numpy as np
 import scipy
 import matplotlib.pyplot as plt
 import os,sys
-from numba import jit
+from numba import jit,njit
 
 #!/usr/local/bin/python3
 # -*- coding: utf-8 -*-
@@ -1187,124 +1187,118 @@ class Spectroscopy_0:
             Maximum wavenumber (cm-1) or wavelength (um)
         """
 
+        from NemesisPy.Utils import find_nearest
+        from scipy import interpolate
+
         #Interpolating the k-coefficients to the correct pressure and temperature
         #############################################################################
 
-        #K (NWAVE,NG,NP,NT,NGAS)
-
+        #K (NWAVE,NG,NPOINTS,NGAS)
+        TEMP = self.TEMP
+        PRESS = self.PRESS
+        NP = self.NP
+        NT = self.NT
+        
         kgood = np.zeros([self.NWAVE,self.NG,npoints,self.NGAS])
+        dkgooddT = np.zeros([self.NWAVE,self.NG,npoints,self.NGAS])
         for ipoint in range(npoints):
             press1 = press[ipoint]
             temp1 = temp[ipoint]
 
-            #Getting the levels just above and below the desired points
-            lpress  = np.log(press1)
-            ip = np.argmin(np.abs(self.PRESS-press1))
-            press0 = self.PRESS[ip]
-
-            if self.PRESS[ip]>=press1:
-                iphi = ip
-                if ip==0:
-                    lpress = np.log(self.PRESS[0])
-                    ipl = 0
-                    iphi = 1
+            # Find pressure grid points above and below current layer pressure
+            ip = np.abs(PRESS - press1).argmin()
+            if PRESS[ip] >= press1:
+                ip_high = ip
+                if ip == 0:
+                    press1 = PRESS[0]
+                    ip_low = 0
+                    ip_high = 1
                 else:
-                    ipl = ip - 1
-            elif self.PRESS[ip]<press1:
-                ipl = ip
-                if ip==self.NP-1:
-                    lpress = np.log(self.PRESS[self.NP-1])
-                    iphi = self.NP - 1
-                    ipl = self.NP - 2
+                    ip_low = ip - 1
+            elif PRESS[ip] < press1:
+                ip_low = ip
+                if ip == NP - 1:
+                    press1 = PRESS[NP - 1]
+                    ip_high = NP - 1
+                    ip_low = NP - 2
                 else:
-                    iphi = ip + 1
+                    ip_high = ip + 1
 
-            it = np.argmin(np.abs(self.TEMP-temp1))
-            temp0 = self.TEMP[it]
-
-            if self.TEMP[it]>=temp1:
-                ithi = it
-                if it==0:
-                    temp1 = self.TEMP[0]
-                    itl = 0
-                    ithi = 1
+            # Find temperature grid points above and below current layer temperature
+            it = np.abs(TEMP - temp1).argmin()
+            if TEMP[it] >= temp1:
+                it_high = it
+                if it == 0:
+                    temp1 = TEMP[0]
+                    it_low = 0
+                    it_high = 1
                 else:
-                    itl = it - 1
-            elif self.TEMP[it]<temp1:
-                itl = it
-                if it==self.NT-1:
-                    temp1 = self.TEMP[self.NT-1]
-                    ithi = self.NT - 1
-                    itl = self.NT -2
+                    it_low = it - 1
+            elif TEMP[it] < temp1:
+                it_low = it
+                if it == NT - 1:
+                    temp1 = TEMP[NT - 1]
+                    it_high = NT - 1
+                    it_low = NT - 2
                 else:
-                    ithi = it + 1
+                    it_high = it + 1
 
-            plo = np.log(self.PRESS[ipl])
-            phi = np.log(self.PRESS[iphi])
-            tlo = self.TEMP[itl]
-            thi = self.TEMP[ithi]
+            lpress = np.log(press1)
+            plo = np.log(self.PRESS[ip_low])
+            phi = np.log(self.PRESS[ip_high])
+            tlo = self.TEMP[it_low]
+            thi = self.TEMP[it_high]
             klo1 = np.zeros([self.NWAVE,self.NG,self.NGAS])
             klo2 = np.zeros([self.NWAVE,self.NG,self.NGAS])
             khi1 = np.zeros([self.NWAVE,self.NG,self.NGAS])
             khi2 = np.zeros([self.NWAVE,self.NG,self.NGAS])
-            klo1[:] = self.K[:,:,ipl,itl,:]
-            klo2[:] = self.K[:,:,ipl,ithi,:]
-            khi2[:] = self.K[:,:,iphi,ithi,:]
-            khi1[:] = self.K[:,:,iphi,itl,:]
+            klo1[:] = self.K[:,:,ip_low,it_low,:]
+            klo2[:] = self.K[:,:,ip_low,it_high,:]
+            khi2[:] = self.K[:,:,ip_high,it_high,:]
+            khi1[:] = self.K[:,:,ip_high,it_low,:]
 
             #Interpolating to get the k-coefficients at desired p-T
             v = (lpress-plo)/(phi-plo)
             u = (temp1-tlo)/(thi-tlo)
-            dudt = 1./(thi-tlo)
 
             igood = np.where( (klo1>0.0) & (klo2>0.0) & (khi1>0.0) & (khi2>0.0) )
-            kgood[igood[0],igood[1],ipoint,igood[2]] = (1.0-v)*(1.0-u)*np.log(klo1[igood[0],igood[1],igood[2]]) + v*(1.0-u)*np.log(khi1[igood[0],igood[1],igood[2]]) + v*u*np.log(khi2[igood[0],igood[1],igood[2]]) + (1.0-v)*u*np.log(klo2[igood[0],igood[1],igood[2]])
-            kgood[igood[0],igood[1],ipoint,igood[2]] = np.exp(kgood[igood[0],igood[1],ipoint,igood[2]])
-
+            kgood[igood[0],igood[1],ipoint,igood[2]] = (1.0-v)*(1.0-u)*(klo1[igood[0],igood[1],igood[2]]) + v*(1.0-u)*(khi1[igood[0],igood[1],igood[2]]) + v*u*(khi2[igood[0],igood[1],igood[2]]) + (1.0-v)*u*(klo2[igood[0],igood[1],igood[2]])
+            
+#             kgood[igood[0],igood[1],ipoint,igood[2]] = np.exp(kgood[igood[0],igood[1],ipoint,igood[2]])
+            
             ibad = np.where( (klo1<=0.0) & (klo2<=0.0) & (khi1<=0.0) & (khi2<=0.0) )
             kgood[ibad[0],ibad[1],ipoint,ibad[2]] = (1.0-v)*(1.0-u)*klo1[ibad[0],ibad[1],ibad[2]] + v*(1.0-u)*khi1[ibad[0],ibad[1],ibad[2]] + v*u*khi2[ibad[0],ibad[1],ibad[2]] + (1.0-v)*u*klo2[ibad[0],ibad[1],ibad[2]]
 
+
         #Checking that the calculation wavenumbers coincide with the wavenumbers in the k-tables
         ##########################################################################################
+        
+        NWAVEC = len(WAVECALC)
+        NG = self.NG
+        del_g = self.DELG
+        kret = np.zeros([NWAVEC,self.NG,npoints,self.NGAS])
+        # Precompute indices and weights for WAVECALC
+        precomputed_indices = np.zeros((NWAVEC,2),dtype=int)
+        precomputed_weights = np.zeros(NWAVEC)
 
-        if WAVECALC[0]!=12345678.:
+        for iwave in range(NWAVEC):
+            wave = WAVECALC[iwave]
+            iw_closest = np.searchsorted(self.WAVE, wave)  # Find insertion point
 
-            NWAVEC = len(WAVECALC)
-            kret = np.zeros([NWAVEC,self.NG,npoints,self.NGAS])
+            iw_low = max(iw_closest - 1, 0)
+            iw_high = min(iw_closest, len(self.WAVE) - 1)
+            if iw_high == iw_low:
+                iw_high = min(iw_high + 1, len(self.WAVE) - 1)
 
-            #Checking if k-tables are defined in irregularly spaced wavenumber grid
-            delv = 0.0
-            Irr = 0
-            for iv in range(self.NWAVE-1):
-                delv1 = self.WAVE[iv+1] - self.WAVE[iv]
-                if iv==0:
-                    delv = delv1
-                    pass
+            wave_low = self.WAVE[iw_low]
+            wave_high = self.WAVE[iw_high]
+            w = (wave - wave_low) / (wave_high - wave_low) if wave_high != wave_low else 0
 
-                if abs((delv1-delv)/(delv))>0.001:
-                    Irr = 1
-                    break
-                else:
-                    delv = delv1
-                    continue
+            precomputed_indices[iwave] = ((iw_low, iw_high))
+            precomputed_weights[iwave] = (w)
 
-            #If they are defined in a regular grid, we interpolate to the nearest value
-            if Irr==0:
-                for i in range(npoints):
-                    for j in range(self.NGAS):
-                        for k in range(self.NG):
-                            f = scipy.interpolate.interp1d(self.WAVE,kgood[:,k,i,j])
-                            kret[:,k,i,j] = f(WAVECALC)
-
-            else:
-                for i in range(NWAVEC):
-                    iv = np.argmin(np.abs(self.WAVE-WAVECALC[i]))
-                    kret[i,:,:,:] = kgood[iv,:,:,:]
-
-        else:
-
-            kret = kgood
-
+        kret = interpolate_k_values(npoints, self.NGAS, NWAVEC, precomputed_indices,
+                                             precomputed_weights, kgood, del_g, kret)
         return kret
 
 
@@ -1798,3 +1792,88 @@ def write_lbltable(filename,npress,ntemp,gasID,isoID,presslevels,templevels,nwav
             f.write(bin)
 
     f.close()
+    
+    
+@jit(nopython=True)
+def rank(weight, cont, del_g):
+    """
+    Combine the randomly overlapped k distributions of two gases into a single
+    k distribution.
+
+    Parameters
+    ----------
+    weight(NG) : ndarray
+        Weights of points in the random k-dist
+    cont(NG) : ndarray
+        Random k-coeffs in the k-dist.
+    del_g(NG) : ndarray
+        Required weights of final k-dist.
+
+    Returns
+    -------
+    k_g(NG) : ndarray
+        Combined k-dist.
+        Unit: cm^2 (per particle)
+    """
+    ng = len(del_g)
+    nloop = len(weight.flatten())
+
+    # sum delta gs to get cumulative g ordinate
+    g_ord = np.zeros(ng+1)
+    g_ord[1:] = np.cumsum(del_g)
+    g_ord[ng] = 1
+    
+    # Sort random k-coeffs into ascending order. Integer array ico records
+    # which swaps have been made so that we can also re-order the weights.
+    ico = np.argsort(cont)
+    cont = cont[ico]
+    weight = weight[ico] # sort weights accordingly
+    gdist = np.cumsum(weight)
+    k_g = np.zeros(ng)
+    ig = 0
+    sum1 = 0.0
+    cont_weight = cont * weight
+    for iloop in range(nloop):
+        if gdist[iloop] < g_ord[ig+1] and ig < ng:
+            k_g[ig] = k_g[ig] + cont_weight[iloop]
+            sum1 = sum1 + weight[iloop]
+        else:
+            frac = (g_ord[ig+1] - gdist[iloop-1])/(gdist[iloop]-gdist[iloop-1])
+            k_g[ig] = k_g[ig] + frac*cont_weight[iloop]
+
+            sum1 = sum1 + frac * weight[iloop]
+            k_g[ig] = k_g[ig]/sum1
+
+            ig = ig +1
+            if ig < ng:
+                sum1 = (1.0-frac)*weight[iloop]
+                k_g[ig] = (1.0-frac)*cont_weight[iloop]
+
+    if ig == ng-1:
+        k_g[ig] = k_g[ig]/sum1
+
+    return k_g
+
+@njit
+def interpolate_k_values(npoints, NGAS, NWAVEC, precomputed_indices, precomputed_weights, kgood, del_g, kret):
+    for ipoint in range(npoints):
+        for igas in range(NGAS):
+            for iwave in range(NWAVEC):
+                iw_low, iw_high = precomputed_indices[iwave]
+                w = precomputed_weights[iwave]
+
+                # Interpolate k-values across pressure, temperature, and wavenumber
+                k_interpolated_1 = kgood[iw_low, :, ipoint, igas]
+                k_interpolated_2 = kgood[iw_high, :, ipoint, igas]
+
+                k_interp = np.concatenate((k_interpolated_1, k_interpolated_2))
+                weight = np.concatenate((del_g * (1 - w), del_g * w))
+
+                if 0 < w < 1:
+                    kret[iwave, :, ipoint, igas] = rank(weight, k_interp, del_g)
+                elif w == 0:
+                    kret[iwave, :, ipoint, igas] = k_interpolated_1
+                else:  # w == 1
+                    kret[iwave, :, ipoint, igas] = k_interpolated_2
+
+    return kret
