@@ -692,7 +692,7 @@ def layer_average(RADIUS, H, P, T, ID, VMR, DUST, BASEH, BASEP,
         Layer scaling factor.
     """
 
-    from scipy.integrate import simps
+    from scipy.integrate import simpson
     from archnemesis.Data.gas_data import Calc_mmw
 
     k_B = 1.38065e-23
@@ -807,19 +807,19 @@ def layer_average(RADIUS, H, P, T, ID, VMR, DUST, BASEH, BASEP,
             amount = np.zeros((NINT, NVMR))
             molwt = np.zeros(NINT)
 
-            TOTAM[I] = simps(duds,S)
-            HEIGHT[I]  = simps(h*duds,S)/TOTAM[I]
-            PRESS[I] = simps(p*duds,S)/TOTAM[I]
-            TEMP[I]  = simps(temp*duds,S)/TOTAM[I]
+            TOTAM[I] = simpson(duds,S)
+            HEIGHT[I]  = simpson(h*duds,S)/TOTAM[I]
+            PRESS[I] = simpson(p*duds,S)/TOTAM[I]
+            TEMP[I]  = simpson(temp*duds,S)/TOTAM[I]
 
             if VMR.ndim > 1:
                 amount = np.zeros((NINT, NVMR))
                 for J in range(NVMR):
                     amount[:,J] = interp(H, VMR[:,J], h)
-                    AMOUNT[I,J] = simps(amount[:,J]*p*duds,S)/PRESS[I]
+                    AMOUNT[I,J] = simpson(amount[:,J]*p*duds,S)/PRESS[I]
                 pp = (amount.T * p).T     # gas partial pressures
                 for J in range(NVMR):
-                    PP[I, J] = simps(pp[:,J]*duds,S)/TOTAM[I]
+                    PP[I, J] = simpson(pp[:,J]*duds,S)/TOTAM[I]
                 
                 if AMFORM==0:
                     sys.exit('error :: AMFORM=0 needs to be implemented in Layer.py')
@@ -829,8 +829,8 @@ def layer_average(RADIUS, H, P, T, ID, VMR, DUST, BASEH, BASEP,
             else:
                 amount = interp(H, VMR, h)
                 pp = amount * p
-                AMOUNT[I] = simps(amount*p*duds,S)/PRESS[I]
-                PP[I] = simps(pp*duds,S)/TOTAM[I]
+                AMOUNT[I] = simpson(amount*p*duds,S)/PRESS[I]
+                PP[I] = simpson(pp*duds,S)/TOTAM[I]
 
                 if AMFORM==0:
                     sys.exit('error :: AMFORM=0 needs to be implemented in Layer.py')
@@ -843,10 +843,10 @@ def layer_average(RADIUS, H, P, T, ID, VMR, DUST, BASEH, BASEP,
                 dd = np.zeros((NINT,NDUST))
                 for J in range(NDUST):
                     dd[:,J] = interp(H, DUST[:,J], h)
-                    CONT[I,J] = simps(dd[:,J]*duds,S) * MOLWT[I] / AVOGAD
+                    CONT[I,J] = simpson(dd[:,J]*duds,S) * MOLWT[I] / AVOGAD
             else:
                 dd = interp(H, DUST, h) 
-                CONT[I] = simps(dd*duds,S) * MOLWT[I] / AVOGAD
+                CONT[I] = simpson(dd*duds,S) * MOLWT[I] / AVOGAD
     # Scale back to vertical layers
     TOTAM = TOTAM / LAYSF
     if VMR.ndim > 1:
