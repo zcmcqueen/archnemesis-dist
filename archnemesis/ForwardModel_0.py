@@ -934,7 +934,7 @@ class ForwardModel_0:
         print(f'Calculating forward model {ifm+1}/{nfm}')
         original_stdout = sys.stdout  # Store the original stdout
         try:
-#             sys.stdout = open(os.devnull, 'w')  # Redirect stdout
+            sys.stdout = open(os.devnull, 'w')  # Redirect stdout
             self.Variables.XN = xnx[:, ixrun[ifm]]
             if nemesisSO:
                 SPECMOD = self.nemesisSOfm()
@@ -942,7 +942,7 @@ class ForwardModel_0:
                 SPECMOD = self.nemesisfm()
             YNtot[:, ifm] = np.resize(np.transpose(SPECMOD), (self.Measurement.NY,))
         finally:
-#             sys.stdout.close()  # Close the devnull
+            sys.stdout.close()  # Close the devnull
             sys.stdout = original_stdout  # Restore the original stdout
             print(f'Calculated forward model {ifm+1}/{nfm}')
             
