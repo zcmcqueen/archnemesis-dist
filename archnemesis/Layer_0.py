@@ -693,7 +693,7 @@ def layer_average(RADIUS, H, P, T, ID, VMR, DUST, BASEH, BASEP,
     """
 
     from scipy.integrate import simps
-    from NemesisPy.Data.ref_data import Calc_mmw
+    from archnemesis.Data.gas_data import Calc_mmw
 
     k_B = 1.38065e-23
 
