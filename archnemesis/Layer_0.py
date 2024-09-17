@@ -838,15 +838,15 @@ def layer_average(RADIUS, H, P, T, ID, VMR, DUST, BASEH, BASEP,
                     for K in range(NPRO):
                         MOLWT[K] = Calc_mmw(VMR[K], ID)
                         
-            AVOGAD = 6.02214076e23
             if DUST.ndim > 1:
                 dd = np.zeros((NINT,NDUST))
                 for J in range(NDUST):
                     dd[:,J] = interp(H, DUST[:,J], h)
-                    CONT[I,J] = simpson(dd[:,J]*duds,S) * MOLWT[I] / AVOGAD
+                    CONT[I,J] = simpson(dd[:,J],S)
             else:
                 dd = interp(H, DUST, h) 
-                CONT[I] = simpson(dd*duds,S) * MOLWT[I] / AVOGAD
+                CONT[I] = simpson(dd,S)
+            
     # Scale back to vertical layers
     TOTAM = TOTAM / LAYSF
     if VMR.ndim > 1:
