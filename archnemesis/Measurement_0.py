@@ -1438,7 +1438,7 @@ class Measurement_0:
                 wavemin = self.VCONV[0,IGEOM] - dv
                 wavemax = self.VCONV[self.NCONV[IGEOM]-1,IGEOM] + dv
 
-            elif self.FWHM<=0.0:
+            elif self.FWHM<0.0:
 
                 wavemin = 1.0e10
                 wavemax = 0.0
@@ -1449,6 +1449,11 @@ class Measurement_0:
                         wavemin = vminx
                     if vmaxx>wavemax:
                         wavemax= vmaxx
+
+            elif self.FWHM==0.0:
+            
+                wavemin = self.VCONV[0,IGEOM]
+                wavemax = self.VCONV[self.NCONV[IGEOM]-1,IGEOM]
 
             #Correcting the wavelengths for Doppler shift
             print('nemesis :: Correcting for Doppler shift of ',self.V_DOPPLER,'km/s')        
@@ -1485,7 +1490,7 @@ class Measurement_0:
             
             self.WAVE = Spectroscopy.WAVE[iwave]
             self.NWAVE = len(self.WAVE)
-            
+                        
         else:
             
             self.NWAVE = self.NCONV[IGEOM]
@@ -1627,9 +1632,12 @@ class Measurement_0:
             if IGEOM=='All':
                 if ModSpec.ndim!=2:
                     sys.exit('error in lblconvg :: ModSpec must have 2 dimensions (NWAVE,NGEOM)')
-                SPECONV = ModSpec
+                SPECONV = np.zeros(self.VCONV.shape)
+                for IG in range(self.NGEOM):
+                    SPECONV[:,IG] = np.interp(self.VCONV[:,IG],wavecorr,ModSpec[:,IG])
             else:
-                SPECONV = ModSpec[:,IG]
+                IG = IGEOM
+                SPECONV = np.interp(self.VCONV[:,IG],wavecorr,ModSpec[:,IG])
 
         return SPECONV
 
