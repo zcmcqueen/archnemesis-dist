@@ -726,8 +726,6 @@ class Scatter_0:
 
         phase2 = np.zeros((nwave,ntheta,self.NDUST))
         
-        print(Thetax)
-        
         if self.IMIE==0:
             
             #Calculating the phase function at the wavelengths defined in the Scatter class
