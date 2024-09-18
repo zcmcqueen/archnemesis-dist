@@ -965,7 +965,7 @@ class Surface_0:
         from mpl_toolkits.basemap import Basemap
         from mpl_toolkits.axes_grid1 import make_axes_locatable
 
-        fig,ax1 = plt.subplots(1,1,figsize=(5,5))
+        fig,ax1 = plt.subplots(1,1,figsize=(4,4))
 
         #Plotting the geometry
         if((subobs_lat is not None) & (subobs_lon is not None)):
@@ -999,7 +999,7 @@ class Surface_0:
         from mpl_toolkits.basemap import Basemap
         from mpl_toolkits.axes_grid1 import make_axes_locatable
 
-        fig,ax1 = plt.subplots(1,1,figsize=(5,5))
+        fig,ax1 = plt.subplots(1,1,figsize=(4,4))
 
         #Plotting the geometry
         if((subobs_lat is not None) & (subobs_lon is not None)):
@@ -1026,7 +1026,7 @@ class Surface_0:
         plt.show()
         
         
-        
+    
         
         
 ################################################################################################################################
