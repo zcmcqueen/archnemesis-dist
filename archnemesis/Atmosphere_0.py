@@ -619,6 +619,8 @@ class Atmosphere_0:
         """
         Subroutine to calculate the radius of the planet at the required latitude
         """
+        
+        from archnemesis.Data.planet_data import planet_info
 
         #Getting the information about the planet
         data = planet_info[str(self.IPLANET)]
@@ -1056,16 +1058,33 @@ class Atmosphere_0:
 
         from scipy import integrate
 
-        #We assume that what is in DUST is in particles m-3, and we integrate it over altitude to get dust column in particles m-2
-        dust_col = integrate.simpson(self.DUST[:,idust], x=self.H) 
+        if self.NLOCATIONS==1:
 
-        #Normalising the aerosol profile so that the column is 1 particles m-2
-        self.DUST[:,idust] /= dust_col
-        
-        #Applying a factor of 1.0e4 because the values in Scatter.KEXT are in cm2
-        self.DUST[:,idust] *= 1.0e4
-        
-        #This way we will have that the column optical depth of this aerosol population is given by Scatter.KEXT 
+            #We assume that what is in DUST is in particles m-3, and we integrate it over altitude to get dust column in particles m-2
+            dust_col = integrate.simpson(self.DUST[:,idust], x=self.H) 
+
+            #Normalising the aerosol profile so that the column is 1 particles m-2
+            self.DUST[:,idust] /= dust_col
+            
+            #Applying a factor of 1.0e4 because the values in Scatter.KEXT are in cm2
+            self.DUST[:,idust] *= 1.0e4
+            
+            #This way we will have that the column optical depth of this aerosol population is given by Scatter.KEXT 
+
+        else:
+            
+            for ilocation in range(self.NLOCATIONS):
+            
+                #We assume that what is in DUST is in particles m-3, and we integrate it over altitude to get dust column in particles m-2
+                dust_col = integrate.simpson(self.DUST[:,idust,ilocation], x=self.H[:,ilocation]) 
+
+                #Normalising the aerosol profile so that the column is 1 particles m-2
+                self.DUST[:,idust,ilocation] /= dust_col
+                
+                #Applying a factor of 1.0e4 because the values in Scatter.KEXT are in cm2
+                self.DUST[:,idust,ilocation] *= 1.0e4
+                
+                #This way we will have that the column optical depth of this aerosol population is given by Scatter.KEXT 
 
     ##################################################################################
 
@@ -1458,7 +1477,7 @@ class Atmosphere_0:
         from mpl_toolkits.basemap import Basemap
         from mpl_toolkits.axes_grid1 import make_axes_locatable
 
-        fig,ax1 = plt.subplots(1,1,figsize=(5,5))
+        fig,ax1 = plt.subplots(1,1,figsize=(4,4))
 
         #Plotting the geometry
         if((subobs_lat is not None) & (subobs_lon is not None)):
