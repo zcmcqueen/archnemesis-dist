@@ -246,8 +246,8 @@ class ForwardModel_0:
                 #Changing the different classes taking into account the parameterisations in the state vector
                 xmap = self.subprofretg()
 
-                rho = self.AtmosphereX.calc_rho()
-
+#                 rho = self.AtmosphereX.calc_rho()
+                self.LayerX.DUST_UNITS_FLAG = self.AtmosphereX.DUST_UNITS_FLAG
                 #Calling gsetpat to split the new reference atmosphere and calculate the path
                 if self.ScatterX.ISCAT == 0:
                     self.calc_pathg()
@@ -387,6 +387,8 @@ class ForwardModel_0:
 
                 #Changing the different classes taking into account the parameterisations in the state vector
                 xmap = self.subprofretg()
+                
+                self.LayerX.DUST_UNITS_FLAG = self.AtmosphereX.DUST_UNITS_FLAG
 
                 #Calling gsetpat to split the new reference atmosphere and calculate the path
                 self.calc_pathg()

@@ -126,7 +126,7 @@ class Atmosphere_0:
         self.GRAV = None #np.zeros(NP) or np.zeros((NP,NLOCATIONS))    
         self.VMR = None # np.zeros((NP,NVMR)) or np.zeros((NP,NVMR,NLOCATIONS)) 
         self.DUST = None # np.zeros((NP,NDUST)) or np.zeros((NP,NDUST,NLOCATIONS)) #particles per m3
-
+        self.DUST_UNITS_FLAG = None # np.zeros(NDUST), -1 for legacy units, 0 for standard
     ##################################################################################
 
     def assess(self):
@@ -1309,6 +1309,7 @@ class Atmosphere_0:
         #Filling the information into the class
         self.NP = npro
         self.NDUST = naero
+        self.DUST_UNITS_FLAG = np.zeros(self.NDUST)
         if self.H is None:
             self.edit_H(height*1.0e3)   #m
         self.edit_DUST((aerodens.T*xscale).T)    #particles m-3

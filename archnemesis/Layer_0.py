@@ -2,7 +2,7 @@
 # -*- coding: utf-8 -*-
 import numpy as np
 import matplotlib.pyplot as plt
-
+AVOGAD = 6.02214076e23
 """
 Object to store layering scheme settings and averaged properties of each layer.
 """
@@ -429,11 +429,12 @@ class Layer_0:
             the column j corresponds to the dust population.
         """
         # get averaged layer properties
+
         HEIGHT,PRESS,TEMP,TOTAM,AMOUNT,PP,CONT,DELH,BASET,LAYSF\
             = layer_average(RADIUS=self.RADIUS, H=self.H, P=self.P, T=self.T,
                 ID=ID, VMR=VMR, DUST=DUST, BASEH=self.BASEH, BASEP=self.BASEP,
                 LAYANG=self.LAYANG, LAYINT=self.LAYINT, LAYHT=self.LAYHT,
-                NINT=self.NINT)
+                NINT=self.NINT, DUST_UNITS = self.DUST_UNITS_FLAG)
         self.HEIGHT = HEIGHT
         self.PRESS = PRESS
         self.TEMP = TEMP
@@ -621,7 +622,7 @@ def interpg(X_data, Y_data, X):
 #########################################################################################
 
 def layer_average(RADIUS, H, P, T, ID, VMR, DUST, BASEH, BASEP,
-                  LAYANG=0.0, LAYINT=0, LAYHT=0.0, NINT=101, AMFORM=1):
+                  LAYANG=0.0, LAYINT=0, LAYHT=0.0, NINT=101, AMFORM=1, DUST_UNITS=None):
     """
     Calculates average layer properties.
     Takes an atmosphere profile and a layering shceme specified by
@@ -842,9 +843,19 @@ def layer_average(RADIUS, H, P, T, ID, VMR, DUST, BASEH, BASEP,
                 dd = np.zeros((NINT,NDUST))
                 for J in range(NDUST):
                     dd[:,J] = interp(H, DUST[:,J], h)
+                    if DUST_UNITS is not None:
+                        if DUST_UNITS[J] == -1:
+                            CONT[I,J] = simpson(dd[:,J]*duds,S) * MOLWT[I] / AVOGAD
+                            continue
                     CONT[I,J] = simpson(dd[:,J],S)
+                    
+                            
             else:
                 dd = interp(H, DUST, h) 
+                if DUST_UNITS is not None:
+                    if DUST_UNITS[0] == -1:
+                        CONT[I] = simpson(dd*duds,S) * MOLWT[I] / AVOGAD
+                        continue
                 CONT[I] = simpson(dd,S)
             
     # Scale back to vertical layers
@@ -858,7 +869,6 @@ def layer_average(RADIUS, H, P, T, ID, VMR, DUST, BASEH, BASEP,
         CONT = (CONT.T * LAYSF**-1 ).T
     else:
         CONT = CONT/LAYSF
-
     return HEIGHT,PRESS,TEMP,TOTAM,AMOUNT,PP,CONT,DELH,BASET,LAYSF
 
 #########################################################################################

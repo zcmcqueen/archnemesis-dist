@@ -76,16 +76,16 @@ def modelm1(atm,ipar,xprof,MakePlot=False):
         jtmp = ipar - (atm.NVMR+1)
         x1 = np.exp(xprof)
         if jtmp<atm.NDUST:
-            rho = atm.calc_rho()  #kg/m3
-            #rho = rho / 1.0e3 #g/cm3
-            atm.DUST[:,jtmp] = x1 * 1000. * rho
+#             rho = atm.calc_rho()  #kg/m3
+            atm.DUST_UNITS_FLAG[jtmp] = -1
+            atm.DUST[:,jtmp] = x1 #* 1000. * rho
         elif jtmp==atm.NDUST:
             sys.exit('error :: Model -1 is just compatible with aerosol populations')
         elif jtmp==atm.NDUST+1:
             sys.exit('error :: Model -1 is just compatible with aerosol populations')
     
     for j in range(npro):
-        xmap[0:npro,ipar,j] = x1[:] * 1000. * rho
+        xmap[0:npro,ipar,j] = x1[:] #* 1000. * rho
         
 
     if MakePlot==True:

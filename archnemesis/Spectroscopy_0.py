@@ -210,7 +210,7 @@ class Spectroscopy_0:
             assert K_array.shape == (self.NWAVE, self.NG, self.NP, self.NT, self.NGAS),\
                 'K should be (NWAVE,NG,NP,NT,NGAS) if ILBL=0 (K-tables)'
         elif self.ILBL==2: #LBL-tables
-            assert K_array.shape == (self.NWAVE, self.NP, self.NT, self.NGAS),\
+            assert K_array.shape == (self.NWAVE, self.NP, abs(self.NT), self.NGAS),\
                 'K should be (NWAVE,NP,NT,NGAS) if ILBL=2 (LBL-tables)'
         else:
             sys.exit('ILBL needs to be either 0 (K-tables) or 2 (LBL-tables)')
@@ -650,8 +650,7 @@ class Spectroscopy_0:
 
 
             elif self.ILBL==2: #LBL-tables
-
-                kstore = np.zeros([self.NWAVE,self.NP,self.NT,self.NGAS])
+                kstore = np.zeros([self.NWAVE,self.NP,abs(self.NT),self.NGAS])
                 for igas in range(self.NGAS):
                     npress,ntemp,gasID,isoID,presslevels,templevels,nwave,wave,k = read_lbltable(self.LOCATION[igas],self.WAVE.min(),self.WAVE.max())
                     kstore[:,:,:,igas] = k[:,:,:]
@@ -911,7 +910,7 @@ class Spectroscopy_0:
         ########################################################
 
         #K (NWAVE,NP,NT,NGAS)
-
+        print(press.shape,temp.shape,self.PRESS.shape,self.TEMP.shape)
         kgood = np.zeros((self.NWAVE,npoints,self.NGAS))
         for ipoint in range(npoints):
 
@@ -1339,7 +1338,12 @@ def read_ltahead(filename):
     isoID = int(np.fromfile(f,dtype='int32',count=1))
 
     presslevels = np.fromfile(f,dtype='float32',count=npress)
-    templevels = np.fromfile(f,dtype='float32',count=ntemp)
+    if ntemp > 0:
+        templevels = np.fromfile(f,dtype='float32',count=ntemp)
+    else:
+        templevels = np.zeros((npress,2))
+        for i in range(npress):
+            templevels[i] = np.fromfile(f,dtype='float32',count=-ntemp)
 
     return nwave,vmin,delv,npress,ntemp,gasID,isoID,presslevels,templevels
 
@@ -1537,9 +1541,16 @@ def read_lbltable(filename,wavemin,wavemax):
     isoID = int(np.fromfile(f,dtype='int32',count=1))
 
     presslevels = np.fromfile(f,dtype='float32',count=npress)
-    templevels = np.fromfile(f,dtype='float32',count=ntemp)
+    
+    if ntemp > 0:
+        templevels = np.fromfile(f,dtype='float32',count=ntemp)
+    else:
+        templevels = np.zeros((npress,2))
+        for i in range(npress):
+            templevels[i] = np.fromfile(f,dtype='float32',count=-ntemp)
+#     templevels = np.fromfile(f,dtype='float32',count=ntemp)
 
-    ioff = 8*nbytes_int32+npress*nbytes_float32+ntemp*nbytes_float32
+#     ioff = 8*nbytes_int32+npress*nbytes_float32+ntemp*nbytes_float32
 
     #Calculating the wavenumbers to be read
     vmax = vmin + delv * (nwavelta-1)
@@ -1554,24 +1565,24 @@ def read_lbltable(filename,wavemin,wavemax):
 
     #Reading the absorption coefficients
     #######################################
-
-    k = np.zeros([nwave,npress,ntemp])
+    print(npress,ntemp)
+    k = np.zeros([nwave,npress,abs(ntemp)])
 
     #Jumping until we get to the minimum wavenumber
-    njump = npress*ntemp*(ins[0])
+    njump = npress*abs(ntemp)*(ins[0])
     ioff = njump*nbytes_float32 + (irec0-1)*nbytes_float32
     f.seek(ioff,0)
 
     #Reading the coefficients we require
-    k_out = np.fromfile(f,dtype='float32',count=ntemp*npress*nwave)
+    k_out = np.fromfile(f,dtype='float32',count=abs(ntemp)*npress*nwave)
     il = 0
     for ik in range(nwave):
         for i in range(npress):
-            k[ik,i,:] = k_out[il:il+ntemp]
-            il = il + ntemp
+            k[ik,i,:] = k_out[il:il+abs(ntemp)]
+            il = il + abs(ntemp)
 
     f.close()
-
+    
     return npress,ntemp,gasID,isoID,presslevels,templevels,nwave,wave,k
 
 
