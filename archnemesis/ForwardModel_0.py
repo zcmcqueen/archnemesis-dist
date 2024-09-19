@@ -2925,7 +2925,6 @@ class ForwardModel_0:
 
             #Combining the gaseous opacity in each layer
             TAUGAS = np.sum(TAUGAS,3) #(NWAVE,NG,NLAY)
-
             #Removing necessary data to save memory
             del k
             self.SpectroscopyX.K = None
@@ -2980,7 +2979,6 @@ class ForwardModel_0:
             
             #Removing CIA since it is no longer needed 
             self.CIAX = None
-
         #Calculating the vertical opacity by Rayleigh scattering
         #################################################################################################################
 
@@ -4261,7 +4259,6 @@ class ForwardModel_0:
         PHASE_ARRAY = np.zeros((Scatter.NDUST, Measurement.NWAVE, 2, NTHETA))
         PHASE_ARRAY[:, :, 0, :] = np.transpose(Scatter.calc_phase(Scatter.THETA, Measurement.WAVE), (2, 0, 1))
         PHASE_ARRAY[:, :, 1, :] = np.cos(Scatter.THETA * np.pi / 180)
-        
         # Core function call
         SPEC = scloud11wave_core(
             phasarr=PHASE_ARRAY[:, :, :, ::-1],
