@@ -1539,7 +1539,9 @@ def model444(Scatter,idust,iscat,xprof,haze_params):
     reference_nreal = haze_params['NREAL',idust]
     reference_wave = haze_params['WAVE_REF',idust]
     normalising_wave = haze_params['WAVE_NORM',idust]
-    
+    if len(Scatter.REFIND_IM) == 1:
+        Scatter.REFIND_IM = Scatter.REFIND_IM * np.ones_like(Scatter.WAVER)
+        
     Scatter.REFIND_REAL = kk_new_sub(np.array(Scatter.WAVER), np.array(Scatter.REFIND_IM), reference_wave, reference_nreal)
     
     
