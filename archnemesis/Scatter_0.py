@@ -463,6 +463,8 @@ class Scatter_0:
                         self.NLPOL = np.int32(f.get('Scatter/NLPOL'))
                         self.WLPOL = np.array(f.get('Scatter/WLPOL'))
 
+        self.calc_GAUSS_LOBATTO()
+
         f.close()
 
     def initialise_arrays(self,NDUST,NWAVE,NTHETA,NLPOL=100):
