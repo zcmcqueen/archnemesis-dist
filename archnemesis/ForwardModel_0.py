@@ -501,6 +501,7 @@ class ForwardModel_0:
         xmap = self.subprofretg()
 
         #Calculating the atmospheric paths
+        self.LayerX.DUST_UNITS_FLAG = self.AtmosphereX.DUST_UNITS_FLAG
         self.calc_path_SO()
         BASEH_TANHE = np.zeros(self.PathX.NPATH)
         for i in range(self.PathX.NPATH):
@@ -4218,7 +4219,7 @@ class ForwardModel_0:
         LOWBC = Surface.LOWBC
 
         if Surface.TSURF <= 0.0:  # No surface
-            RADGROUND[:] = planck(Measurement.ISPACE, Measurement.WAVE, Layer.TEMP[0])[:, None]
+            RADGROUND[:,:] = planck(Measurement.ISPACE, Measurement.WAVE, Layer.TEMP[0])[:, None]
         else:
             bbsurf = planck(Measurement.ISPACE, Measurement.WAVE, Surface.TSURF)
             EMISSIVITY[:] = interp1d(Surface.VEM, Surface.EMISSIVITY)(Measurement.WAVE)

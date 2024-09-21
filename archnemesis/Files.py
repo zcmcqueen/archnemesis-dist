@@ -327,6 +327,10 @@ def read_input_files(runname,Fortran=True):
 
     Measurement,Scatter,Spec,WOFF,fmerrname,NITER,PHILIMIT,NSPEC,IOFF,LIN = read_inp(runname,Scatter=Scatter)
 
+    Retrieval = OptimalEstimation_0()
+    Retrieval.NITER=NITER
+    Retrieval.PHILIMIT=PHILIMIT
+
     #Reading surface files if planet has surface
     #############################################################################
 
@@ -428,8 +432,7 @@ def read_input_files(runname,Fortran=True):
     Variables.XN = copy(Variables.XA)
     Variables.SX = copy(Variables.SA)
 
-    return Atm,Measurement,Spec,Scatter,Stellar,Surface,CIA,Layer,Variables
-
+    return Atm,Measurement,Spec,Scatter,Stellar,Surface,CIA,Layer,Variables,Retrieval
 
 ###############################################################################################
 
