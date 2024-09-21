@@ -25,3 +25,12 @@ This sections includes Jupyter notebookes with examples showing how archNEMESIS 
 
    examples/mars_solocc/mars_SO.ipynb
    examples/Jupiter_CIRS_nadir_thermal_emission/Jupiter_CIRS.ipynb
+
+Retrievals
+------------------
+
+This sections includes Jupyter notebookes with examples showing how archNEMESIS can be used to perform retrievals in different scenarios.
+
+.. nbgallery::
+
+   examples/retrieval_Jupiter_Tprofile/Jupiter_CIRS_retrieval.ipynb
