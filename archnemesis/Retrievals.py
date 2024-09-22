@@ -4,7 +4,7 @@ import matplotlib.pyplot as plt
 import time
 
 
-def retrieval_nemesis(runname,legacy_files=False,NCores=1,retrieval_method=0):
+def retrieval_nemesis(runname,legacy_files=False,NCores=1,retrieval_method=0,nemesisSO=False):
     
     """
         FUNCTION NAME : retrieval_nemesis()
@@ -24,6 +24,7 @@ def retrieval_nemesis(runname,legacy_files=False,NCores=1,retrieval_method=0):
             NCores :: Number of parallel processes for the numerical calculation of the Jacobian
             retrieval_method :: (0) Optimal Estimation formalism
                                 (1) Nested sampling
+            nemesisSO :: If True, it indicates that the retrieval is a solar occultation observation
         
         OUTPUTS :
         
@@ -58,7 +59,7 @@ def retrieval_nemesis(runname,legacy_files=False,NCores=1,retrieval_method=0):
 
     if retrieval_method==0:
         OptimalEstimation = ans.coreretOE(runname,Variables,Measurement,Atmosphere,Spectroscopy,Scatter,Stellar,Surface,CIA,Layer,\
-                                          NITER=Retrieval.NITER,PHILIMIT=Retrieval.PHILIMIT,NCores=NCores)
+                                          NITER=Retrieval.NITER,PHILIMIT=Retrieval.PHILIMIT,NCores=NCores,nemesisSO=nemesisSO)
         Retrieval = OptimalEstimation
     else:
         sys.exit('error in retrieval_nemesis :: Retrieval scheme has not been implemented yet')

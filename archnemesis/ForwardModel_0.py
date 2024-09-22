@@ -3982,15 +3982,16 @@ class ForwardModel_0:
         dTAUCLSCATdq = np.zeros((NWAVEC,Layer.NLAY,Scatter.NDUST))
         for i in range(Scatter.NDUST):
 
-            #Interpolating the cross sections to the correct grid
-            #f = interpolate.interp1d(Scatter.WAVE,np.log(Scatter.KEXT[:,i]))
-            #kext = np.exp(f(WAVEC))
-            #f = interpolate.interp1d(Scatter.WAVE,np.log(Scatter.KSCA[:,i]))
-            #ksca = np.exp(f(WAVEC))
-            f = interpolate.interp1d(Scatter.WAVE,Scatter.KEXT[:,i],kind='cubic')
-            kext = f(WAVEC)
-            f = interpolate.interp1d(Scatter.WAVE,Scatter.KSCA[:,i],kind='cubic')
-            ksca = f(WAVEC)
+            if Scatter.NWAVE>2:
+                f = interpolate.interp1d(Scatter.WAVE,Scatter.KEXT[:,i],kind='cubic')
+                kext = f(WAVEC)
+                f = interpolate.interp1d(Scatter.WAVE,Scatter.KSCA[:,i],kind='cubic')
+                ksca = f(WAVEC)
+            else:
+                f = interpolate.interp1d(Scatter.WAVE,Scatter.KEXT[:,i])
+                kext = f(WAVEC)
+                f = interpolate.interp1d(Scatter.WAVE,Scatter.KSCA[:,i])
+                ksca = f(WAVEC)
 
             #Calculating the opacity at each layer
             for j in range(Layer.NLAY):
