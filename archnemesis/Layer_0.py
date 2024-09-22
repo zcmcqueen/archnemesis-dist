@@ -150,6 +150,9 @@ class Layer_0:
         self.TAUGAS = None  #(NWAVE,NG,NLAY) Gas optical depth
         self.TAUTOT = None  #(NWAVE,NG,NLAY) Total optical depth
 
+        #Units of the dust
+        self.DUST_UNITS_FLAG = None   #If None, dust units are expected to be particles m-3. If -1 they are expected to be particles per gram of atmosphere
+
 
     ####################################################################################################
 
