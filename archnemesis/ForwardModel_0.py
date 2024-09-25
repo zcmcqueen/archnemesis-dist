@@ -6269,7 +6269,7 @@ def k_overlapg(del_g,k_w_g_l_gas,dkdT_w_g_l_gas,amount_layer):
                         
                         
                     # if opacity due to second gas is negligible
-                    elif k_g_gas[igas+1,:][-1] * amount[igas+1] <= cutoff:
+                    elif k_g_gas[:,igas+1][-1] * amount[igas+1] <= cutoff:
                         tau_g = k_g_gas[:,igas] * amount[igas]
                         dk_g_param[:,igas] = k_g_gas[:,igas]
                         dk_g_param[:,igas+2] = dkdT_g_param[:,igas] * amount[igas]                       
@@ -6444,7 +6444,7 @@ def k_overlap(del_g,k_w_g_l_gas,amount_layer):
                         tau_g = k_g_gas[:,igas+1] * amount[igas+1]
                         
                     # if opacity due to second gas is negligible
-                    elif k_g_gas[igas+1,:][-1] * amount[igas+1] <= cutoff:
+                    elif k_g_gas[:,igas+1][-1] * amount[igas+1] <= cutoff:
                         tau_g = k_g_gas[:,igas] * amount[igas]
                         
                     # else resort-rebin with random overlap approximation
