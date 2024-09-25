@@ -184,8 +184,8 @@ class Layer_0:
             'LAYINT must be <=1 and <=1'
         
         if self.LAYTYP==4:
-            assert self.P_base is not None == True , \
-                'P_base must be defined if LAYTYP=4'
+            assert len(self.P_base) == self.NLAY , \
+                'P_base must have size (NLAY) if LAYTYP=4'
         
         if self.LAYTYP==5:
             assert len(self.H_base) == self.NLAY , \
