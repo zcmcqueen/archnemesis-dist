@@ -11,6 +11,7 @@ This section includes Jupyter notebooks with examples showing how to use the dif
    examples/measurement/measurement_class.ipynb
    examples/stellar/StellarExample.ipynb
    examples/layer_example/layer_example.ipynb
+   examples/telluric_example/example_telluric.ipynb
    examples/create_UV_lta/create_UV_lta.ipynb
    examples/lookup_tables/lookup_tables.ipynb
    examples/cia_archnemesis/convert_cia_nemesis.ipynb

@@ -219,7 +219,7 @@ class Spectroscopy_0:
 
 
     ######################################################################################################
-    def write_hdf5(self,runname):
+    def write_hdf5(self,runname,inside_telluric=False):
         """
         Write the information about the k-tables or lbl-tables into the HDF5 file
 
@@ -233,11 +233,19 @@ class Spectroscopy_0:
         self.assess()
 
         f = h5py.File(runname+'.h5','a')
-        #Checking if Spectroscopy already exists
-        if ('/Spectroscopy' in f)==True:
-            del f['Spectroscopy']   #Deleting the Spectroscopy information that was previously written in the file
+        
+        if inside_telluric is False:
+            #Checking if Spectroscopy already exists
+            if ('/Spectroscopy' in f)==True:
+                del f['Spectroscopy']   #Deleting the Spectroscopy information that was previously written in the file
 
-        grp = f.create_group("Spectroscopy")
+            grp = f.create_group("Spectroscopy")
+        else:
+            #The Spectroscopy class must be inserted inside the Telluric class
+            if ('/Telluric/Spectroscopy' in f)==True:
+                del f['Telluric/Spectroscopy']   #Deleting the Spectroscopy information that was previously written in the file
+
+            grp = f.create_group("Telluric/Spectroscopy")
 
         #Writing the main dimensions
         dset = grp.create_dataset('NGAS',data=self.NGAS)
@@ -266,7 +274,7 @@ class Spectroscopy_0:
 
 
     ######################################################################################################
-    def read_hdf5(self,runname):
+    def read_hdf5(self,runname,inside_telluric=False):
         """
         Read the information about the Spectroscopy class from the HDF5 file
 
@@ -277,21 +285,26 @@ class Spectroscopy_0:
         import h5py
 
         f = h5py.File(runname+'.h5','r')
+        
+        if inside_telluric is True:
+            name = '/Telluric/Spectroscopy'
+        else:
+            name = '/Spectroscopy'
 
         #Checking if Spectroscopy exists
-        e = "/Spectroscopy" in f
+        e = name in f
         if e==False:
             f.close()
             sys.exit('error :: Spectroscopy is not defined in HDF5 file')
         else:
 
-            self.NGAS = np.int32(f.get('Spectroscopy/NGAS'))
-            self.ILBL = np.int32(f.get('Spectroscopy/ILBL'))
+            self.NGAS = np.int32(f.get(name+'/NGAS'))
+            self.ILBL = np.int32(f.get(name+'/ILBL'))
 
             if self.NGAS>0:
 
                 #self.LOCATION = np.int32(f.get('Spectroscopy/LOCATION'))
-                LOCATION1 = f.get('Spectroscopy/LOCATION')
+                LOCATION1 = f.get(name+'/LOCATION')
                 LOCATION = ['']*self.NGAS
                 for igas in range(self.NGAS):
                     LOCATION[igas] = LOCATION1[igas].decode('ascii')

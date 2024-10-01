@@ -267,7 +267,7 @@ class Atmosphere_0:
 
     ##################################################################################
 
-    def write_hdf5(self,runname):
+    def write_hdf5(self,runname,inside_telluric=False):
         """
         Write the Atmosphere properties into an HDF5 file
         """
@@ -280,11 +280,22 @@ class Atmosphere_0:
         self.assess()
 
         f = h5py.File(runname+'.h5','a')
-        #Checking if Atmosphere already exists
-        if ('/Atmosphere' in f)==True:
-            del f['Atmosphere']   #Deleting the Atmosphere information that was previously written in the file
+        
+        if inside_telluric is False:
+            
+            #Checking if Atmosphere already exists
+            if ('/Atmosphere' in f)==True:
+                del f['Atmosphere']   #Deleting the Atmosphere information that was previously written in the file
 
-        grp = f.create_group("Atmosphere")
+            grp = f.create_group("Atmosphere")
+            
+        else:
+            
+            #The Atmosphere class must be inserted inside the Telluric class
+            if ('/Telluric/Atmosphere' in f)==True:
+                del f['Telluric/Atmosphere']   #Deleting the Atmosphere information that was previously written in the file
+
+            grp = f.create_group("Telluric/Atmosphere")
 
         #Writing the main dimensions
         dset = grp.create_dataset('NP',data=self.NP)
@@ -354,7 +365,7 @@ class Atmosphere_0:
 
     ##################################################################################
 
-    def read_hdf5(self,runname):
+    def read_hdf5(self,runname,inside_telluric=False):
         """
         Read the Atmosphere properties from an HDF5 file
         """
@@ -362,41 +373,46 @@ class Atmosphere_0:
         import h5py
 
         f = h5py.File(runname+'.h5','r')
+        
+        if inside_telluric is True:
+            name = '/Telluric/Atmosphere'
+        else:
+            name = '/Atmosphere'
 
         #Checking if Surface exists
-        e = "/Atmosphere" in f
+        e = name in f
         if e==False:
             sys.exit('error :: Atmosphere is not defined in HDF5 file')
         else:
 
-            self.NP = np.int32(f.get('Atmosphere/NP'))
-            self.NLOCATIONS = np.int32(f.get('Atmosphere/NLOCATIONS'))
-            self.NVMR = np.int32(f.get('Atmosphere/NVMR'))
-            self.NDUST = np.int32(f.get('Atmosphere/NDUST'))
-            self.AMFORM = np.int32(f.get('Atmosphere/AMFORM'))
-            self.IPLANET = np.int32(f.get('Atmosphere/IPLANET'))
+            self.NP = np.int32(f.get(name+'/NP'))
+            self.NLOCATIONS = np.int32(f.get(name+'/NLOCATIONS'))
+            self.NVMR = np.int32(f.get(name+'/NVMR'))
+            self.NDUST = np.int32(f.get(name+'/NDUST'))
+            self.AMFORM = np.int32(f.get(name+'/AMFORM'))
+            self.IPLANET = np.int32(f.get(name+'/IPLANET'))
 
             if self.NLOCATIONS==1:
-                self.LATITUDE = np.float64(f.get('Atmosphere/LATITUDE'))
-                self.LONGITUDE = np.float64(f.get('Atmosphere/LONGITUDE'))
+                self.LATITUDE = np.float64(f.get(name+'/LATITUDE'))
+                self.LONGITUDE = np.float64(f.get(name+'/LONGITUDE'))
             else:
-                self.LATITUDE = np.array(f.get('Atmosphere/LATITUDE'))
-                self.LONGITUDE = np.array(f.get('Atmosphere/LONGITUDE'))
+                self.LATITUDE = np.array(f.get(name+'/LATITUDE'))
+                self.LONGITUDE = np.array(f.get(name+'/LONGITUDE'))
 
-            self.ID = np.array(f.get('Atmosphere/ID'))
-            self.ISO = np.array(f.get('Atmosphere/ISO'))
+            self.ID = np.array(f.get(name+'/ID'))
+            self.ISO = np.array(f.get(name+'/ISO'))
 
-            self.H = np.array(f.get('Atmosphere/H'))
-            self.P = np.array(f.get('Atmosphere/P'))
-            self.T = np.array(f.get('Atmosphere/T'))
-            self.VMR = np.array(f.get('Atmosphere/VMR'))
+            self.H = np.array(f.get(name+'/H'))
+            self.P = np.array(f.get(name+'/P'))
+            self.T = np.array(f.get(name+'/T'))
+            self.VMR = np.array(f.get(name+'/VMR'))
 
             if self.NDUST>0:
-                self.DUST = np.array(f.get('Atmosphere/DUST'))
+                self.DUST = np.array(f.get(name+'/DUST'))
 
 
             if self.AMFORM==0:
-                self.MOLWT = np.array(f.get('Atmosphere/MOLWT'))
+                self.MOLWT = np.array(f.get(name+'/MOLWT'))
             if ( (self.AMFORM==1) or (self.AMFORM==2) ):
                 self.calc_molwt()
 
@@ -1186,6 +1202,7 @@ class Atmosphere_0:
         self.ISO = isoID
         self.IPLANET = nplanet
         self.LATITUDE = xlat
+        self.LONGITUDE = 0.0
         self.AMFORM = amform
         self.NLOCATIONS = 1
         self.edit_H(height*1.0e3)
