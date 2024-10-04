@@ -1456,7 +1456,8 @@ class Measurement_0:
                 wavemax = self.VCONV[self.NCONV[IGEOM]-1,IGEOM]
 
             #Correcting the wavelengths for Doppler shift
-            print('nemesis :: Correcting for Doppler shift of ',self.V_DOPPLER,'km/s')        
+            if self.V_DOPPLER!=0.0:
+                print('nemesis :: Correcting for Doppler shift of ',self.V_DOPPLER,'km/s')        
             wavemin = self.invert_doppler_shift(wavemin)
             wavemax = self.invert_doppler_shift(wavemax)
             

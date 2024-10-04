@@ -95,7 +95,7 @@ def read_input_files_hdf5(runname):
         MODIFICATION HISTORY : Juan Alday (25/03/2023)
     """
 
-    from archnemesis import OptimalEstimation_0,Layer_0,Surface_0,Scatter_0,CIA_0,Measurement_0,Spectroscopy_0,Stellar_0
+    from archnemesis import OptimalEstimation_0,Layer_0,Surface_0,Scatter_0,CIA_0,Measurement_0,Spectroscopy_0,Stellar_0, Telluric_0
     import h5py
 
     #Initialise Atmosphere class and read file
@@ -152,6 +152,13 @@ def read_input_files_hdf5(runname):
     #else:
     #    CIA = None
 
+    #Initialise Measurement class and read file
+    ###############################################################
+
+    Measurement = Measurement_0()
+    Measurement.read_hdf5(runname)
+    Measurement.calc_MeasurementVector()
+    
     #Initialise Spectroscopy class and read file
     ###############################################################
 
@@ -166,13 +173,42 @@ def read_input_files_hdf5(runname):
     else:
         Spectroscopy = None
 
-    #Initialise Measurement class and read file
+    #Initialise Telluric class and read file
     ###############################################################
-
-    Measurement = Measurement_0()
-    Measurement.read_hdf5(runname)
-    Measurement.calc_MeasurementVector()
     
+    f = h5py.File(runname+'.h5','r')
+    #Checking if Telluric exists
+    e = "/Telluric" in f
+    f.close()
+    
+    if e is True:
+        Telluric = Telluric_0()
+        Telluric.read_hdf5(runname)
+    else:
+        Telluric = None
+
+
+    #Reading spectroscopic look-up tables
+    ################################################################
+
+    if Telluric is not None:
+        
+        v_doppler = Measurement.V_DOPPLER  #Saving the Doppler velocity since it is not applied to the Telluric spectrum
+        Measurement.V_DOPPLER = 0.0
+        
+        #Calculating the 'calculation wavelengths'
+        if Telluric.Spectroscopy.ILBL==0:
+            Measurement.wavesetb(Telluric.Spectroscopy,IGEOM=0)
+        elif Telluric.Spectroscopy.ILBL==2:
+            Measurement.wavesetc(Telluric.Spectroscopy,IGEOM=0)
+        else:
+            sys.exit('error :: ILBL has to be either 0 or 2')
+
+        #Now, reading k-tables or lbl-tables for the spectral range of interest
+        Telluric.Spectroscopy.read_tables(wavemin=Measurement.WAVE.min(),wavemax=Measurement.WAVE.max())
+        
+        Measurement.V_DOPPLER = v_doppler
+
     if Spectroscopy is not None:
 
         #Calculating the 'calculation wavelengths'
@@ -207,6 +243,7 @@ def read_input_files_hdf5(runname):
         Spectroscopy.K = np.zeros([Spectroscopy.NWAVE,Spectroscopy.NG,Spectroscopy.NP,Spectroscopy.NT,Spectroscopy.NGAS])
         Spectroscopy.DELG = np.array([1])
     
+
     #Reading Stellar class
     ################################################################
 
@@ -227,7 +264,7 @@ def read_input_files_hdf5(runname):
     Retrieval = OptimalEstimation_0()
     Retrieval.read_hdf5(runname)
 
-    return Atmosphere,Measurement,Spectroscopy,Scatter,Stellar,Surface,CIA,Layer,Variables,Retrieval
+    return Atmosphere,Measurement,Spectroscopy,Scatter,Stellar,Surface,CIA,Layer,Variables,Retrieval,Telluric
 
 
 ###############################################################################################

@@ -22,7 +22,7 @@ class ForwardModel_0:
 
     def __init__(self, runname='wasp121', Atmosphere=None, Surface=None,
         Measurement=None, Spectroscopy=None, Stellar=None, Scatter=None,
-        CIA=None, Layer=None, Variables=None, adjust_hydrostat=True):
+        CIA=None, Layer=None, Variables=None, Telluric=None, adjust_hydrostat=True):
 
         """Forward Model class
 
@@ -51,6 +51,8 @@ class ForwardModel_0:
             Class defining the Layer
         @class Variables:,
             Class defining the Variables
+        @class Telluric:,
+            Class defining the Telluric
         @log adjust_hydrostat:,
             Flag indicating whether the re-adjustment of the pressure or altitude levels
             based on the hydrostatic equilibrium equation must be performed or not.
@@ -82,6 +84,8 @@ class ForwardModel_0:
             Class defining the Layer for a particular forward model
         @attribute PathX:
             Class defining the Path for a particular forward model
+        @attribute TelluricX:
+            Class defining the Telluric for a particular forward model
 
         Methods
         -------
@@ -146,6 +150,7 @@ class ForwardModel_0:
         self.Stellar = Stellar
         self.Variables = Variables
         self.Layer = Layer
+        self.Telluric = Telluric
         self.adjust_hydrostat=adjust_hydrostat
 
         #Creating extra class to hold the variables class in each permutation of the Jacobian Matrix
@@ -160,6 +165,7 @@ class ForwardModel_0:
         self.CIAX = deepcopy(CIA)
         self.StellarX = deepcopy(Stellar)
         self.LayerX = deepcopy(Layer)
+        self.TelluricX = deepcopy(Telluric)
         self.PathX = None
 
 
@@ -278,6 +284,21 @@ class ForwardModel_0:
 
             #Applying any changes to the spectra required by the state vector
             SPEC,dSPEC = self.subspecret(SPEC,dSPEC)
+            
+            
+            #Applying the Telluric transmission if it exists
+            if self.TelluricX is not None:
+                
+                #Calculating the telluric transmission
+                WAVE_TELLURIC,TRANSMISSION_TELLURIC = self.TelluricX.calc_transmission()
+            
+                #Interpolating the telluric transmission to the wavelengths of the planetary spectrum
+                wavecorr = self.MeasurementX.correct_doppler_shift(self.MeasurementX.WAVE)
+                TRANSMISSION_TELLURICx = np.interp(wavecorr,WAVE_TELLURIC,TRANSMISSION_TELLURIC)
+                
+                #Applying the telluric transmission to the planetary spectrum
+                SPEC *= TRANSMISSION_TELLURICx
+                
             
             #Convolving the spectra with the Instrument line shape
             if self.SpectroscopyX.ILBL==0: #k-tables
@@ -434,6 +455,20 @@ class ForwardModel_0:
 
             #Applying any changes to the spectra required by the state vector
             SPEC,dSPEC = self.subspecret(SPEC,dSPEC)
+
+            #Applying the Telluric transmission if it exists
+            if self.TelluricX is not None:
+                
+                #Calculating the telluric transmission
+                WAVE_TELLURIC,TRANSMISSION_TELLURIC = self.TelluricX.calc_transmission()
+            
+                #Interpolating the telluric transmission to the wavelengths of the planetary spectrum
+                wavecorr = self.MeasurementX.correct_doppler_shift(self.MeasurementX.WAVE)
+                TRANSMISSION_TELLURICx = np.interp(wavecorr,WAVE_TELLURIC,TRANSMISSION_TELLURIC)
+                
+                #Applying the telluric transmission to the planetary spectrum
+                SPEC *= TRANSMISSION_TELLURICx
+                dSPEC[:,:] = (dSPEC[:,:].T * TRANSMISSION_TELLURICx).T 
 
             #Convolving the spectra with the Instrument line shape
             if self.Spectroscopy.ILBL==0: #k-tables
