@@ -26,6 +26,7 @@ This sections includes Jupyter notebookes with examples showing how archNEMESIS 
 
    examples/mars_solocc/mars_SO.ipynb
    examples/Jupiter_CIRS_nadir_thermal_emission/Jupiter_CIRS.ipynb
+   examples/mars_groundbased/mars_groundbased.ipynb
 
 Retrievals
 ------------------
