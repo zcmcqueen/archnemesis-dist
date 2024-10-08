@@ -94,6 +94,15 @@ def phasint2(nphi, ic, nmu, mu, iscat, cons, ncons, icont, ncont, pfunc, xmu, id
 
 @njit(fastmath=True, error_model='numpy')
 def hansen(ic, ppl, pmi, wtmu, nmu, fc):
+    '''
+    Subroutine to normalise the phase function using the method described in Hansen (1971,J.ATM.SCI., V28, 1400)
+
+    PPL,PMI are the forward and backward parts of the azimuthally-integrated
+    phase function. The normalization of the true phase fcn is:
+    integral over sphere [ P(mu,mu',phi) * dO] = 1
+    where dO os the element of solid angle and phi is the azimuthal angle.
+    '''
+    
     pi = np.pi
     x1 = 2.0 * pi
     if ic == 0:
@@ -112,7 +121,7 @@ def hansen(ic, ppl, pmi, wtmu, nmu, fc):
                 break
             for j in range(nmu):
                 xj = (1.0 - rsum[j]) / tsum[j]
-                for i in range(j + 1):
+                for i in range(j+1):
                     xi = (1.0 - rsum[i]) / tsum[i]
                     fc[i, j] = 0.5 * (fc[i, j] * xj + fc[j, i] * xi)
                     fc[j, i] = fc[i, j]
@@ -127,19 +136,30 @@ def calc_pmat6(ic, mu, wtmu, nmu, iscat, cons8, ncons, norm, icont, ncont, nphi,
         pplpl, fc = hansen(ic, pplpl, pplmi, wtmu, nmu, fc)
 
     return (pplpl, pplmi, fc)
+            
+@njit(fastmath=True)
+def matmul(A, B):
+    '''
+    Matrix multiplication
+    '''
+    # Get the dimensions of the matrices
+    rows_A, cols_A = A.shape
+    rows_B, cols_B = B.shape
 
-@njit(fastmath=True)
-def elemult(mat1, mat2, result, n):
-    for j in range(n):
-        for l in range(n):
-            for k in range(n):
-                result[j, l] += mat1[j, k] * mat2[k, l]
-                
-@njit(fastmath=True)
-def elemultvec(matrix, vector, result, n):
-    for i in range(n):
-        for j in range(n):
-            result[i, 0] += matrix[i, j] * vector[j,0]
+    # Ensure the matrices are compatible for multiplication
+    if cols_A != rows_B:
+        raise ValueError("Number of columns in A must be equal to number of rows in B")
+
+    # Initialize the result matrix with zeros
+    result = np.zeros((rows_A, cols_B))
+
+    # Perform matrix multiplication using nested loops
+    for i in range(rows_A):
+        for j in range(cols_B):
+            for k in range(cols_A):
+                result[i, j] += A[i, k] * B[k, j]
+
+    return result
 
 @njit
 def frob(r):
@@ -147,30 +167,24 @@ def frob(r):
 
 @njit(fastmath=True)
 def add(r1, t1, j1, e, nmu,ic):
-    rsq = np.zeros_like(r1)
-    bcom = np.zeros_like(r1)
-    ccom = np.zeros_like(r1)
-    rans = np.zeros_like(r1)
-    tans = np.zeros_like(r1)
-    jcom = np.zeros_like(j1)
-    jans = np.zeros_like(j1)
-    
-    elemult(r1,r1,rsq,nmu)
-    if frob(r1)>0.1: # Frobenius norm < 0.1 for approximation to keep error under 1e-4
-        acom = np.linalg.solve(e - rsq, e)
-    else: 
-        acom = e + rsq
-    elemult(t1, acom, ccom,nmu)
-    elemult(ccom, r1, bcom,nmu)
-    elemult(bcom, t1, rans,nmu)
-    rans += r1
-    elemult(ccom, t1,tans,nmu)
-    
+
+    bcom = matmul(r1,r1)
+    acom = np.linalg.inv(e-bcom)
+    #if frob(r1)>0.1: # Frobenius norm < 0.1 for approximation to keep error under 1e-4
+    #    acom = np.linalg.solve(e - rsq, e)
+    #else: 
+    #    acom = e + rsq
+    ccom = matmul(t1,acom)
+    rans = matmul(ccom,r1)
+    acom = matmul(rans,t1)
+    rans = r1 + acom
+    tans = matmul(ccom,t1)
+
     if ic==0:
-        elemultvec(r1, j1, jcom,nmu)
-        jcom += j1
-        elemultvec(ccom, jcom, jans,nmu)
-        jans += j1
+        jcom = matmul(r1,j1)
+        jcom = jcom + j1
+        jans = matmul(ccom,jcom)
+        jans = jans + j1
     else:
         jans = j1
 
@@ -199,7 +213,7 @@ def numba_sum_diagonal(arr):
     return sum_
 
 @njit(fastmath = True, error_model='numpy')
-def double1(ic,l,nmu,cc,pplpl,pplmi,omega, mu,taut,bc,xfac,mminv,e,raman = False): 
+def double1(ic,nmu,cc,pplpl,pplmi,omega,taut,bc,mminv,e,raman = False): 
     
     ipow0 = 12
 
@@ -209,8 +223,17 @@ def double1(ic,l,nmu,cc,pplpl,pplmi,omega, mu,taut,bc,xfac,mminv,e,raman = False
         del01 = 1.0
     
     con *= (1.0 + del01)
-    gplpl = mminv*(e-con*pplpl*cc)
-    gplmi = mminv*(con*cc)*pplmi
+    
+    #Computation of Gamma++ (Plass et al. 1973)
+    #GPLPL = MMINV*(E - CON*PPLPL*CC)
+    acom = matmul(pplpl,cc)*con
+    bcom = e - acom
+    gplpl = matmul(mminv,bcom)
+    
+    #Computation of Gamma+- (Plass et al. 1973)
+    #GPLMI = MMINV*CON*PPLMI*CC
+    acom = matmul(pplmi,cc)*con
+    gplmi = matmul(mminv,acom)
     
     nn = int(np.log2(taut) + ipow0)
     xfac = 1.0 / (2.0 ** nn) if nn >= 1 else 1.0
@@ -219,14 +242,12 @@ def double1(ic,l,nmu,cc,pplpl,pplmi,omega, mu,taut,bc,xfac,mminv,e,raman = False
     # Computation of R, T and J for initial layer
     t1 = e - tau0 * gplpl.transpose()
     r1 = tau0 * gplmi.transpose()
-
+    
+    j1 = np.zeros((nmu,1))
     if ic == 0:
-        j1 = (1.0 - omega) * bc * tau0 * mminv
-    
-    else:
-        j1 = np.zeros((nmu, 1))
-        
-    
+        for i in range(nmu):
+            j1[i] = (1.0 - omega) * bc * tau0 * mminv[i,i]
+
     if nn < 1:
         return r1, t1, j1
     
@@ -249,20 +270,22 @@ def addp(r1, t1, j1, iscat1,e, rsub, tsub, jsub, nmu):
         
         
         # Second layer is scattering
-        elemult(rsub,r1,rsq,nmu)
-        if frob(rsq)>0.01:
-            acom = np.linalg.solve(e - rsq, e)
-            elemult(t1,acom,ccom,nmu)
-        else:
-            acom = e+rsq
-            elemult(t1,acom,ccom,nmu)
-        elemult(ccom,rsub,rans,nmu)
-        elemult(rans,t1,bcom,nmu)
+        rsq = matmul(rsub,r1)
+        acom = np.linalg.inv(e-rsq)
+        ccom = matmul(t1,acom)
+#        if frob(rsq)>0.01:
+#            acom = np.linalg.solve(e - rsq, e)
+#            ccom = matmul(t1,acom)
+#        else:
+#            acom = e+rsq
+#            ccom = matmul(t1,acom)
+        rans = matmul(ccom,rsub)
+        bcom = matmul(rans,t1)
         rans = r1 + bcom
-        elemult(ccom,tsub,tans,nmu)
-        elemultvec(rsub,j1,jcom,nmu)
+        tans = matmul(ccom,tsub)
+        jcom = matmul(rsub,j1)
         jcom += jsub
-        elemultvec(ccom,jcom,jans,nmu)
+        jans = matmul(ccom,jcom)
         jans += j1
     else:
         # Second layer is non-scattering
@@ -271,21 +294,22 @@ def addp(r1, t1, j1, iscat1,e, rsub, tsub, jsub, nmu):
         rans = np.zeros((nmu,nmu))
         jans = np.zeros((nmu,1))
         
-        elemultvec(rsub,j1,jcom,nmu)
+        jcom = matmul(rsub,j1)
         jcom += jsub
-        
         
         for i in range(nmu):
             ta = t1[i, i]
             for j in range(nmu):
-                tb = t1[j, j]
+                tb = t1[j, j]   
                 tans[i, j] = tsub[i, j] * ta
                 rans[i, j] = rsub[i, j] * ta * tb
             jans[i, 0] = j1[i, 0] + ta * jcom[i, 0]
+            
     return rans, tans, jans
 
 @njit(fastmath = True)
 def angle_quadrature(solar,sol_ang,emiss_ang,mu,nmu):
+
     if sol_ang > 90.0:
         zmu0 = np.cos(np.radians(180 - sol_ang))
         solar1 = solar*0.0
@@ -295,24 +319,109 @@ def angle_quadrature(solar,sol_ang,emiss_ang,mu,nmu):
 
     zmu = np.cos(np.radians(emiss_ang))
 
-    isol = 1
+    isol = 0
     for j in range(nmu-1):
         if zmu0 <= mu[j] and zmu0 > mu[j+1]:
-            isol = j+1
+            isol = j
     if zmu0 <= mu[nmu-1]:
-        isol = nmu - 1
+        isol = nmu - 2
 
-    iemm = 1
+    iemm = 0
     for j in range(nmu-1):
         if zmu <= mu[j] and zmu > mu[j+1]:
-            iemm = j+1
+            iemm = j
     if zmu <= mu[nmu-1]:
-        iemm = nmu - 1
+        iemm = nmu - 2
 
-    u = (mu[isol-1] - zmu0) / (mu[isol-1] - mu[isol])
-    t = (mu[iemm-1] - zmu) / (mu[iemm-1] - mu[iemm])
+    u = (mu[isol] - zmu0) / (mu[isol] - mu[isol+1])
+    t = (mu[iemm] - zmu) / (mu[iemm] - mu[iemm+1])
     
     return solar1, isol, iemm, t, u 
+
+@njit(fastmath = True, error_model='numpy')
+def calc_rtj_matrix(ic,mu,wtmu,bb,tautot,tauscat,tauray,frac,ppln,pmin,pplr,pmir,cc=None,mminv=None,e=None):
+    '''
+    Calculate the Reflection, Transmission and Source matrices for a given atmospheric layer
+    
+    Inputs
+    ______
+    
+    mu(nmu) :: Quadrature angles
+    wtmu(nmu) :: Weights of the quadrature angles
+    bb :: Black-body radiation for the layer 
+    tautot :: Total optical depth of the layer (absorption + scattering)
+    omega :: Aerosol scattering optical depth of the layer
+    tauray :: Rayleigh scattering optical depth of the layer
+    frac(ndust) :: Fraction of aerosol scattering by each aerosol population
+    ppln(ndust,nmu,nmu) :: Phase matrix in + direction of each aerosol population
+    pmin(ndust,nmu,nmu) :: Phase matrix in - direction of each aerosol population
+    pplr(nmu,nmu) :: Phase matrix in + direction for Rayleigh scattering
+    pmir(nmu,nmu) :: Phase matrix in - direction for Rayleigh scattering
+    
+    Outputs
+    _______
+    
+    rl(nmu,nmu) :: Reflection matrix
+    tl(nmu,nmu) :: Transmission matrix
+    jl(nmu,1) :: Source matrix
+    iscl :: Flag indicating whether layer is scattering (1) or non-scattering (0)
+    '''
+
+    nmu = len(mu)       #Number of quadrature angles
+    ncont = len(frac)   #Number of aerosol populations
+    omega = (tauscat+tauray)/tautot  #Single scattering albedo of the layer
+    
+    #Initialising arrays
+    rl = np.zeros((nmu,nmu))
+    tl = np.zeros((nmu,nmu))
+    jl = np.zeros((nmu,1))
+    
+    #Calculating matrices
+    if cc is None:
+        cc = np.zeros((nmu,nmu))
+        numba_fill_diagonal(cc, wtmu)
+    if e is None:
+        e = np.identity(nmu)
+    if mminv is None:
+        mminv = np.zeros((nmu,nmu))
+        numba_fill_diagonal(mminv,1./mu)
+    
+    #Calculating matrices
+    if tautot == 0:     #If there is no atmospheric opacity
+        iscl = 0
+        rl[:,:] *= 0.0
+        tl[:,:] *= 0.0
+        jl[:,:] *= 0.0
+        for i in range(nmu):
+            tl[i,i] = 1.0
+
+    elif omega == 0:  #If layer is not scattering
+        iscl = 0
+        rl[:,:] *= 0.0
+        tl[:,:] *= 0.0
+        for i1 in range(nmu):
+            tex = -mminv[i1,i1]*tautot
+            if tex > -200.0:
+                tl[i1,i1] = np.exp(tex)
+            else:
+                tl[i1,i1] = 0.0
+
+            jl[i1,0] = bb*(1.0 - tl[i1,i1])
+
+    else:  #If layer is scattering
+        pplpl = (tauray/(tauscat+tauray))*pplr[:,:]
+        pplmi = (tauray/(tauscat+tauray))*pmir[:,:]
+
+        for j1 in range(ncont):
+            pplpl += tauscat/(tauscat+tauray)*ppln[j1,:,:]*frac[j1] 
+            pplmi += tauscat/(tauscat+tauray)*pmin[j1,:,:]*frac[j1] 
+
+        iscl = 1
+        rl[:,:], tl[:,:], jl[:,:] = double1(ic,nmu,cc,pplpl,pplmi,omega,tautot,bb,mminv,e,raman = False)
+    
+    return rl,tl,jl,iscl
+
+
 
 @njit(fastmath = True,parallel=False, cache = True, error_model='numpy')
 def scloud11wave_core(phasarr, radg, sol_angs, emiss_angs, solar, aphis, lowbc, galb, mu1, wt1, nf,
@@ -327,16 +436,16 @@ def scloud11wave_core(phasarr, radg, sol_angs, emiss_angs, solar, aphis, lowbc, 
         Contains phase functions (phasarr[:,:,0,:]) and corresponding angle grids (phasarr[:,:,1,:])
     radg(NWAVE,NMU): 
         Incident intensity at the bottom of the atm
-    sol_ang:
+    sol_ang(NPATH):
         Solar zenith angle (degrees)
-    emiss_ang:
+    emiss_angs(NPATH):
         Emission zenith angle (degrees)
     solar(NWAVE):        
         Incident solar flux at the top of the atm
-    aphi:
+    aphi(NPATH):
         Azimuth angle between Sun and observer
     lowbc:
-        Lower boundary condition: 0 = thermal, 1 = Lambert reflection
+        Lower boundary condition: 0 = thermal (no surface), 1 = Lambert reflection (surface)
     galb(NWAVE):
         Ground albedo at the bottom
     mu1(NMU):  
@@ -349,20 +458,18 @@ def scloud11wave_core(phasarr, radg, sol_angs, emiss_angs, solar, aphis, lowbc, 
         Input wavelengths.
     bnu(NWAVE,NLAY):
         Mean Planck function in each layer
-    tau(NWAVE,NLAY):
+    tau(NWAVE,NG,NLAY):
         Total optical thickness of each layer
     tauray(NWAVE,NLAY):
         Rayleigh optical thickness of each layer
-    omegas(NWAVE,NLAY):
-        Single scattering albedo of each layer
+    omegas(NWAVE,NG,NLAY):
+        Single scattering albedo of each layer (aerosol + Rayleigh scattering)
     nphi:
         Number of azimuth integration ordinates
     iray:
         Flag for using rayleigh scattering
-    lfrac(NCONT,NLAY):
+    lfrac(NWAVE,NCONT,NLAY):
         Fraction of scattering contributed by each type in each layer
-    imie:
-        Flag for phasarr behaviour
     
     Returns
     -------
@@ -379,8 +486,8 @@ def scloud11wave_core(phasarr, radg, sol_angs, emiss_angs, solar, aphis, lowbc, 
     pi = np.pi
 
     ltot = nlay
-    lt1 = ltot
-    nf = nf + 1
+    if lowbc > 0:
+        ltot += 1
 
     xfac = 0.
     xfac = np.sum(mu1*wt1)
@@ -402,8 +509,8 @@ def scloud11wave_core(phasarr, radg, sol_angs, emiss_angs, solar, aphis, lowbc, 
 
     ppln = np.zeros((ncont, nmu, nmu))
     pmin = np.zeros((ncont, nmu, nmu))
-    pplr = np.zeros((1, nmu, nmu))
-    pmir = np.zeros((1, nmu, nmu))
+    pplr = np.zeros((nmu, nmu))
+    pmir = np.zeros((nmu, nmu))
     
     rl = np.zeros((nmu,nmu))
     tl = np.zeros((nmu,nmu))
@@ -413,23 +520,20 @@ def scloud11wave_core(phasarr, radg, sol_angs, emiss_angs, solar, aphis, lowbc, 
     tbase = np.zeros((nmu,nmu))
     jbase = np.zeros((nmu,1))
 
-    iscl = np.zeros((nwave))
-
     # Setting up matrices of constants 
     e = np.identity(nmu)
     mm = np.zeros((nmu, nmu))
     numba_fill_diagonal(mm, mu[:nmu])
-    mminv = 1/mu
-    mminv = mminv[:,None]
-    cc = wtmu
-    cc = cc[None,:]
+    mminv = np.zeros((nmu, nmu))
+    numba_fill_diagonal(mminv, 1./mu[:nmu])
+    cc = np.zeros((nmu, nmu))
+    numba_fill_diagonal(cc, wtmu)
     ccinv = np.zeros((nmu, nmu))
     numba_fill_diagonal(ccinv, 1/wtmu[:nmu])
     
     radg = radg[:,::-1]
 
     fc = np.ones((ncont+1,nmu,nmu))
-
     
     for ipath in range(ngeom):
         # Setting up path variables
@@ -437,23 +541,31 @@ def scloud11wave_core(phasarr, radg, sol_angs, emiss_angs, solar, aphis, lowbc, 
         sol_ang = sol_angs[ipath]
         emiss_ang = emiss_angs[ipath]
         aphi = aphis[ipath]
-        nf = int(emiss_ang//3 + 1)
-        solar1, isol, iemm, t, u = angle_quadrature(solar,sol_ang,emiss_ang,mu,nmu)
+        #nf = int(emiss_ang//3 + 1)
+        
+        if emiss_ang < 90.:
+            lookdown = True    #Nadir-viewing geometry
+            new_emi = emiss_ang
+        elif emiss_ang > 90.:
+            lookdown = False   #Upward-looking geometry
+            new_emi = 180. - emiss_ang
+            
+        solar1, isol, iemm, t, u = angle_quadrature(solar,sol_ang,new_emi,mu,nmu)
         
         for ig in range(ng):
             # Getting correct layer properties for this g-ordinate
             
-            tau = taus[:,ig]
-            omegas = omegas_s[:,ig]
+            tau = taus[:,ig,:]
+            omegas = omegas_s[:,ig,:]
             
             for widx in range(nwave):
                 converged = False
                 conv1 = False
-                defconv = 1e-3
+                defconv = 1e-5
                 
                 # Expand into successive fourier components until convergence or ic = nf
                 
-                for ic in range(nf):
+                for ic in range(nf+1):
                     ppln*=0
                     pmin*=0 
                     pplr*=0
@@ -469,8 +581,8 @@ def scloud11wave_core(phasarr, radg, sol_angs, emiss_angs, solar, aphis, lowbc, 
                         pplpl, pplmi, fc[j1] = calc_pmat6(ic, mu, wtmu, nmu, iscat, cons8, ncons, 
                                                   norm, j1, ncont, nphi, fc[j1], pfunc, xmu)
                         # Transfer matrices to those for each scattering particle
-                        ppln[j1] = pplpl
-                        pmin[j1] = pplmi
+                        ppln[j1,:,:] = pplpl
+                        pmin[j1,:,:] = pplmi
 
                     if iray > 0:
                         iscat = 0
@@ -479,14 +591,37 @@ def scloud11wave_core(phasarr, radg, sol_angs, emiss_angs, solar, aphis, lowbc, 
                                                     1, ncont, ncont, nphi, fc[ncont], pfunc, xmu)
 
                         # Transfer matrices to storage
-                        pplr[0] = pplpl
-                        pmir[0] = pplmi
+                        pplr[:,:] = pplpl
+                        pmir[:,:] = pplmi
+
+                    #Computing RTJ matrices for the surface
+                    surface_defined = False
+                    if( (lowbc == 1) & (lookdown==True) ):
+                        
+                        surface_defined = True
+                        
+                        jl[:,0] = (1-galb[widx])*radg[widx]
+                        if ic == 0:
+                            tl *= 0.0
+                            for j in range(nmu):
+                                rl[j,:] = 2*galb[widx]*mu[j]*wtmu[j] 
+                                rl[:,:]*= xfac
+                        else:
+                            tl *= 0.0
+                            rl *= 0.0
+                        jbase = jl
+                        rbase = rl
+                        tbase = tl 
 
                     # Main loop: computing R,T,J for each layer
-                    for l in range(0,ltot):
-                        k = ltot - l - 1 
-                        iscl[widx] = 0
-
+                    for l in range(0,nlay):
+                        
+                        if lookdown is True:
+                            k = l
+                        else:
+                            k = nlay - 1 - l
+                         
+                        #Defining the properties of the layer
                         taut = tau[widx,k]
                         bc = bnu[widx,k]
                         omega = omegas[widx,k]
@@ -494,7 +629,6 @@ def scloud11wave_core(phasarr, radg, sol_angs, emiss_angs, solar, aphis, lowbc, 
                             omega = 0.0
                         if omega > 1:
                             omega = 1.0
-
 
                         tauscat = taut*omega
                         taur = tauray[widx,k]
@@ -504,63 +638,25 @@ def scloud11wave_core(phasarr, radg, sol_angs, emiss_angs, solar, aphis, lowbc, 
                             tauscat = 0.0  
                             
                         omega = (tauscat+taur)/taut
+                        frac = lfrac[widx,:,k]
 
-                        if l == 0 and lowbc == 1:
-                            jl[:,0] = (1-galb[widx])*radg[widx]
-                            if ic == 0:
-                                tl *= 0.0
-                                for j in range(nmu):
-                                    rl[j,:] = 2*galb[widx]*mu[j]*wtmu[j] 
-                                    rl[:,:]*= xfac
-                            else:
-                                tl *= 0.0
-                                rl *= 0.0
-                            jbase = jl
-                            rbase = rl
-                            tbase = tl
-
-                        if taut == 0:
-                            rl *= 0.0
-                            tl *= 0.0
-                            jl *= 0.0
-                            for i in range(nmu):
-                                tl[i,i] = 1.0
-
-                        elif omega == 0:
-
-                            rl *= 0.0
-                            tl *= 0.0
-                            for i1 in range(nmu):
-                                tex = -mminv[i1,0]*taut
-                                if tex > -200.0:
-                                    tl[i1,i1] = np.exp(tex)
-                                else:
-                                    tl[i1,i1] = 0.0
-
-                                jl[i1,0] = bc*(1.0 - tl[i1,i1])
-
-                        else:
-                            pplpl = (taur/(tauscat+taur))*pplr[0]
-                            pplmi = (taur/(tauscat+taur))*pmir[0]
-
-                            for j1 in range(ncont):
-                                pplpl += tauscat/(tauscat+taur)*ppln[j1]*lfrac[widx,j1,k] 
-                                pplmi += tauscat/(tauscat+taur)*pmin[j1]*lfrac[widx,j1,k] 
-
-                            iscl[widx] = 1
-                            rl, tl, jl = double1(ic,l,nmu,cc,pplpl,pplmi,omega,mu1,taut,bc,xfac,mminv,e)
-
-                        if l == 0 and lowbc == 0:
+                        #Calculating the matrices
+                        rl, tl, jl, iscl = calc_rtj_matrix(ic,mu,wtmu,bc,taut,tauscat,taur,frac,ppln,pmin,pplr,pmir,cc=cc,mminv=mminv,e=e)
+                        
+                        #Combining layers along the path
+                        if l == 0 and surface_defined == False:
                             jbase = jl
                             rbase = rl
                             tbase = tl
                         else:
-                            rbase, tbase, jbase = addp(rl, tl, jl, iscl[widx],
+                            rbase, tbase, jbase = addp(rl, tl, jl, iscl,
                                                        e, rbase, tbase, jbase, nmu)
 
                     if ic != 0:
                         jbase *= 0.0
 
+
+                    #Calculating the spectrum
                     for j in range(nmu):
                         u0pl[j] = 0.0
                         if ic == 0:
@@ -570,16 +666,28 @@ def scloud11wave_core(phasarr, radg, sol_angs, emiss_angs, solar, aphis, lowbc, 
 
                     ico = 0
 
-                    for imu0 in range(isol-1, isol+1): 
-                        u0pl[imu0] = solar1[widx] / (2.0 * np.pi * wtmu[imu0])
-                        acom = np.ascontiguousarray(rbase.transpose()) @ u0pl
-                        bcom = np.ascontiguousarray(tbase) @ utmi
-                        acom += bcom
-                        umi = acom + jbase
-                        for imu in range(iemm-1, iemm+1): 
-                            yx[ico] = umi[imu,0]
-                            ico += 1
-                            u0pl[imu0] = 0.0 
+                    if lookdown is True:
+                        for imu0 in range(isol, isol+2): 
+                            u0pl[imu0] = solar1[widx] / (2.0 * np.pi * wtmu[imu0])
+                            acom = np.ascontiguousarray(rbase.transpose()) @ u0pl
+                            bcom = np.ascontiguousarray(tbase.transpose()) @ utmi
+                            acom += bcom
+                            umi = acom + jbase
+                            for imu in range(iemm, iemm+2): 
+                                yx[ico] = umi[imu,0]
+                                ico += 1
+                                u0pl[imu0] = 0.0 
+                    else:
+                        for imu0 in range(isol, isol+2): 
+                            u0pl[imu0] = solar1[widx] / (2.0 * np.pi * wtmu[imu0])
+                            acom = np.ascontiguousarray(tbase.transpose()) @ u0pl
+                            bcom = np.ascontiguousarray(rbase.transpose()) @ utmi
+                            acom += bcom
+                            umi = acom + jbase
+                            for imu in range(iemm, iemm+2): 
+                                yx[ico] = umi[imu,0]
+                                ico += 1
+                                u0pl[imu0] = 0.0 
 
                     drad = ((1-t)*(1-u)*yx[0] + t*(1-u)*yx[1] + t*u*yx[3] + (1-t)*u*yx[2]) * np.cos(ic*aphi * np.pi / 180.0)
 

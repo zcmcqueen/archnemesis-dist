@@ -211,6 +211,9 @@ class ForwardModel_0:
         #Estimating the number of calculations that will need to be computed to model the spectra
         #included in the Measurement class (taking into account al geometries and averaging points)
         NCALC = np.sum(self.Measurement.NAV)
+        
+        
+        
         SPECONV = np.zeros(self.Measurement.MEAS.shape) #Initalise the array where the spectra will be stored (NWAVE,NGEOM)
         for IGEOM in range(self.Measurement.NGEOM):
 
@@ -776,18 +779,18 @@ class ForwardModel_0:
         """
 
         from scipy import interpolate
-        from copy import copy
+        from copy import deepcopy
 
         #First we change the reference atmosphere taking into account the parameterisations in the state vector
-        self.Variables1 = copy(self.Variables)
-        self.MeasurementX = copy(self.Measurement)
-        self.AtmosphereX = copy(self.Atmosphere)
-        self.ScatterX = copy(self.Scatter)
-        self.StellarX = copy(self.Stellar)
-        self.SurfaceX = copy(self.Surface)
-        self.LayerX = copy(self.Layer)
-        self.SpectroscopyX = copy(self.Spectroscopy)
-        self.CIAX = copy(self.CIA)
+        self.Variables1 = deepcopy(self.Variables)
+        self.MeasurementX = deepcopy(self.Measurement)
+        self.AtmosphereX = deepcopy(self.Atmosphere)
+        self.ScatterX = deepcopy(self.Scatter)
+        self.StellarX = deepcopy(self.Stellar)
+        self.SurfaceX = deepcopy(self.Surface)
+        self.LayerX = deepcopy(self.Layer)
+        self.SpectroscopyX = deepcopy(self.Spectroscopy)
+        self.CIAX = deepcopy(self.CIA)
         flagh2p = False
 
         #Setting up flag not to re-compute levels based on hydrostatic equilibrium (unless pressure or tangent altitude are retrieved)
@@ -3161,6 +3164,7 @@ class ForwardModel_0:
         
                 #Changing the units of the spectra
                 SPECOUT[:,:,ipath] = (SPECOUT[:,:,ipath].T * xfac).T
+            
 
         elif IMODM==15: #Multiple scattering calculation
 
@@ -4280,7 +4284,7 @@ class ForwardModel_0:
                 Layer.TAUCLSCAT[iiscat[0], iiscat[1], :].T /
                 Layer.TAUSCAT[iiscat[0], iiscat[1]]
             ).T
-        FRAC = np.transpose(FRAC, (0, 2, 1))
+        FRAC = np.transpose(FRAC, (0, 2, 1))  #(NWAVE,NCONT,NLAY)
 
         # Single scattering albedo
         OMEGA = np.zeros((Measurement.NWAVE, NG, Layer.NLAY))
@@ -4296,6 +4300,7 @@ class ForwardModel_0:
         PHASE_ARRAY = np.zeros((Scatter.NDUST, Measurement.NWAVE, 2, NTHETA))
         PHASE_ARRAY[:, :, 0, :] = np.transpose(Scatter.calc_phase(Scatter.THETA, Measurement.WAVE), (2, 0, 1))
         PHASE_ARRAY[:, :, 1, :] = np.cos(Scatter.THETA * np.pi / 180)
+        
         # Core function call
         SPEC = scloud11wave_core(
             phasarr=PHASE_ARRAY[:, :, :, ::-1],
@@ -4310,10 +4315,10 @@ class ForwardModel_0:
             wt1=WTMU,
             nf=NF,
             vwaves=VWAVES,
-            bnu=BB[:, ::-1],
-            taus=TAU[:, :, ::-1],
-            tauray=TAURAY[:, ::-1],
-            omegas_s=OMEGA[:, :, ::-1],
+            bnu=BB[:,:],
+            taus=TAU[:,:,:],
+            tauray=TAURAY[:,:],
+            omegas_s=OMEGA[:,:,:],
             nphi=NPHI,
             iray=IRAY,
             lfrac=FRAC
