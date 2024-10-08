@@ -732,7 +732,7 @@ def model32(atm,ipar,pref,fsh,tau,MakePlot=False):
 
 ###############################################################################################
 
-def model47(atm,ipar,xprof,MakePlot=False):
+def model47(atm, ipar, tau, pref, fwhm, MakePlot=False):
     
     """
         FUNCTION NAME : model47()
@@ -769,10 +769,109 @@ def model47(atm,ipar,xprof,MakePlot=False):
         
             atm,xmap = model50(atm,ipar,xprof)
         
-        MODIFICATION HISTORY : Juan Alday (08/06/2022)
+        MODIFICATION HISTORY : Joe Penn (08/10/2024)
         
     """
+    from archnemesis.Data.gas_data import const
 
+    # First, check that the profile is for aerosols
+    if ipar <= atm.NVMR:
+        sys.exit('Error in model47: This model is defined for aerosol profiles only')
+
+    if ipar > atm.NVMR + atm.NDUST:
+        sys.exit('Error in model47: This model is defined for aerosol profiles only')
+    
+    icont = ipar - (atm.NVMR + 1)   # Index of the aerosol population we are modifying
+
+    # Calculate atmospheric properties
+    R = const["R"]
+    scale = R * atm.T / (atm.MOLWT * atm.GRAV)   #scale height (m)
+    rho = atm.calc_rho()*1e-3    #density (kg/m3)
+
+    # Convert pressures to atm
+    P = atm.P / 101325.0  # Pressure in atm
+
+    # Compute Y0 = np.log(pref)
+    Y0 = np.log(pref)
+
+    # Compute XWID, the standard deviation of the Gaussian
+    XWID = fwhm
+
+    # Initialize arrays
+    Q = np.zeros(atm.NP)
+    ND = np.zeros(atm.NP)
+    OD = np.zeros(atm.NP)
+    X1 = np.zeros(atm.NP)
+
+    XOD = 0.0
+
+    for j in range(atm.NP):
+        Y = np.log(P[j])
+
+        # Compute Q[j]
+        Q[j] = 1.0 / (XWID * np.sqrt(np.pi)) * np.exp(-((Y - Y0) / XWID) ** 2)
+
+        # Compute ND[j]
+        ND[j] = Q[j] * rho[j]
+
+        # Compute OD[j]
+        OD[j] = ND[j] * scale[j] * 1e5  # The factor 1e5 converts m to cm
+
+        # Check for NaN or small values
+        if np.isnan(OD[j]) or OD[j] < 1e-36:
+            OD[j] = 1e-36
+        if np.isnan(Q[j]) or Q[j] < 1e-36:
+            Q[j] = 1e-36
+
+        XOD += OD[j]
+
+        X1[j] = Q[j]
+
+    # Empirical correction to XOD
+    XOD = XOD * 0.25
+
+    # Rescale Q[j]
+    for j in range(atm.NP):
+        X1[j] = Q[j] * tau / XOD  # XDEEP is tau
+
+        # Check for NaN or small values
+        if np.isnan(X1[j]) or X1[j] < 1e-36:
+            X1[j] = 1e-36
+
+    # Now compute the Jacobian matrix xmap
+    npar = atm.NVMR + 2 + atm.NDUST  # Assuming this is the total number of parameters
+    xmap = np.zeros((3, npar, atm.NP))
+
+    for j in range(atm.NP):
+        Y = np.log(P[j])
+
+        # First parameter derivative: xmap[0, ipar, j] = X1[j] / tau
+        xmap[0, ipar, j] = X1[j] / tau  # XDEEP is tau
+
+        # Derivative of X1[j] with respect to Y0 (pref)
+        xmap[1, ipar, j] = 2.0 * (Y - Y0) / XWID ** 2 * X1[j]
+
+        # Derivative of X1[j] with respect to XWID (fwhm)
+        xmap[2, ipar, j] = (2.0 * ((Y - Y0) ** 2) / XWID ** 3 - 1.0 / XWID) * X1[j]
+
+    # Update the atmosphere class with the new profile
+    atm.DUST[:, icont] = X1[:]
+
+    if MakePlot:
+        fig, ax1 = plt.subplots(1, 1, figsize=(3, 4))
+        ax1.plot(atm.DUST[:, icont], atm.P / 101325.0)
+        ax1.set_xscale('log')
+        ax1.set_yscale('log')
+        ax1.set_ylim(atm.P.max() / 101325.0, atm.P.min() / 101325.0)
+        ax1.set_xlabel('Cloud density (particles/kg)')
+        ax1.set_ylabel('Pressure (atm)')
+        ax1.grid()
+        plt.tight_layout()
+        plt.show()
+
+    atm.DUST_RENORMALISATION[icont] = tau
+
+    return atm, xmap
 
 ###############################################################################################
 
@@ -1546,7 +1645,6 @@ def model444(Scatter,idust,iscat,xprof,haze_params):
     Scatter.makephase(idust, iscat, pars)
 
     xextnorm = np.interp(normalising_wave,Scatter.WAVER,Scatter.KEXT[:,idust])
-
     Scatter.KEXT[:,idust] = Scatter.KEXT[:,idust]/xextnorm
     Scatter.KSCA[:,idust] = Scatter.KSCA[:,idust]/xextnorm
     return Scatter

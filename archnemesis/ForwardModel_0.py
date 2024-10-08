@@ -1382,7 +1382,20 @@ class ForwardModel_0:
                 xmap[ix:ix+self.Variables.NXVAR[ivar],:,0:self.AtmosphereX.NP] = xmap1[:,:,:]
 
                 ix = ix + self.Variables.NXVAR[ivar]
-
+                
+            elif self.Variables.VARIDENT[ivar,2]==47:
+#           Model 47. Profile is represented by a Gaussian with a specified optical thickness centred
+#                     at a variable pressure level plus a variable FWHM (log press) in height.
+#           ***************************************************************
+                tau = np.exp(self.Variables.XN[ix])   #Integrated dust column-density (m-2) or opacity
+                pref = np.exp(self.Variables.XN[ix+1])  #Base pressure (atm)
+                fwhm = np.exp(self.Variables.XN[ix+2])  #FWHM
+                self.AtmosphereX,xmap1 = model47(self.AtmosphereX, ipar, tau, pref, fwhm)
+                xmap[ix:ix+self.Variables.NXVAR[ivar],:,0:self.AtmosphereX.NP] = xmap1[:,:,:]
+                
+                ix = ix + self.Variables.NXVAR[ivar]
+                
+                
             elif self.Variables.VARIDENT[ivar,2]==49:
 #           Model 50. Continuous profile in linear scale
 #           ***************************************************************
@@ -4021,7 +4034,6 @@ class ForwardModel_0:
         for i in range(Scatter.NDUST):
             if i in self.AtmosphereX.DUST_RENORMALISATION.keys():
                 Layer.CONT[:,i] = Layer.CONT[:,i]/Layer.CONT[:,i].sum() * 1e4 * self.AtmosphereX.DUST_RENORMALISATION[i]
-            
             if Scatter.NWAVE>2:
                 f = interpolate.interp1d(Scatter.WAVE,Scatter.KEXT[:,i],kind='cubic')
                 kext = f(WAVEC)

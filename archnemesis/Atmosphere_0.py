@@ -882,7 +882,7 @@ class Atmosphere_0:
                 self.H = h[:]
 
                 #Re-Calculate the gravity at each altitude level
-#                 self.calc_grav()
+                self.calc_grav()
                 
         else:
             
