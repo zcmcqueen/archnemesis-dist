@@ -1206,12 +1206,12 @@ class ForwardModel_0:
             self.adjust_hydrostat = True
         if self.Variables.JTAN!=-1:
             self.adjust_hydrostat = True
-
         #Modify profile via hydrostatic equation to make sure the atm is in hydrostatic equilibrium
         if self.adjust_hydrostat==True:
             if self.Variables.JPRE==-1:
                 jhydro = 0
                 #Then we modify the altitude levels and keep the pressures fixed
+                
                 self.AtmosphereX.adjust_hydrostatH()
                 self.AtmosphereX.calc_grav()   #Updating the gravity values at the new heights
             else:
@@ -1223,12 +1223,13 @@ class ForwardModel_0:
                 ptan = np.exp(self.Variables.XN[self.Variables.JPRE]) * 101325.
                 self.AtmosphereX.adjust_hydrostatP(htan,ptan)
 
+                
         #Adjust VMRs to add up to 1 if AMFORM=1 and re-calculate molecular weight in atmosphere
-        if self.AtmosphereX.AMFORM==1:
-            self.AtmosphereX.adjust_VMR()
-            self.AtmosphereX.calc_molwt()
-        elif self.AtmosphereX.AMFORM==2:
-            self.AtmosphereX.calc_molwt()
+#         if self.AtmosphereX.AMFORM==1:
+#             self.AtmosphereX.adjust_VMR()
+#             self.AtmosphereX.calc_molwt()
+#         elif self.AtmosphereX.AMFORM==2:
+#             self.AtmosphereX.calc_molwt()
 
         #Calculate atmospheric density
         rho = self.AtmosphereX.calc_rho() #kg/m3
@@ -1374,11 +1375,9 @@ class ForwardModel_0:
 #                     pressure level and fractional scale height.
 #                     Below the knee pressure the profile is set to drop exponentially.
 #           ***************************************************************
-
                 tau = np.exp(self.Variables.XN[ix])   #Base pressure (atm)
                 fsh = np.exp(self.Variables.XN[ix+1])  #Integrated dust column-density (m-2) or opacity
                 pref = np.exp(self.Variables.XN[ix+2])  #Fractional scale height
-
                 self.AtmosphereX,xmap1 = model32(self.AtmosphereX,ipar,pref,fsh,tau)
                 xmap[ix:ix+self.Variables.NXVAR[ivar],:,0:self.AtmosphereX.NP] = xmap1[:,:,:]
 
@@ -4006,8 +4005,8 @@ class ForwardModel_0:
             Scatter = self.ScatterX
         if Layer is None:
             Layer = self.LayerX
-
-
+            
+        
         from scipy import interpolate
 
         if((WAVEC.min()<Scatter.WAVE.min()) & (WAVEC.max()>Scatter.WAVE.min())):
@@ -4020,7 +4019,9 @@ class ForwardModel_0:
         dTAUDUSTdq = np.zeros((NWAVEC,Layer.NLAY,Scatter.NDUST))
         dTAUCLSCATdq = np.zeros((NWAVEC,Layer.NLAY,Scatter.NDUST))
         for i in range(Scatter.NDUST):
-
+            if i in self.AtmosphereX.DUST_RENORMALISATION.keys():
+                Layer.CONT[:,i] = Layer.CONT[:,i]/Layer.CONT[:,i].sum() * 1e4 * self.AtmosphereX.DUST_RENORMALISATION[i]
+            
             if Scatter.NWAVE>2:
                 f = interpolate.interp1d(Scatter.WAVE,Scatter.KEXT[:,i],kind='cubic')
                 kext = f(WAVEC)
@@ -4039,7 +4040,7 @@ class ForwardModel_0:
                 TAUCLSCAT[:,j,i] = ksca * 1.0e-4 * DUSTCOLDENS
                 dTAUDUSTdq[:,j,i] = kext * 1.0e-4 #dtau/dAMOUNT (m2)
                 dTAUCLSCATdq[:,j,i] = ksca * 1.0e-4 #dtau/dAMOUNT (m2)
-
+#         print(TAUDUST[0])
         return TAUDUST,TAUCLSCAT,dTAUDUSTdq,dTAUCLSCATdq
 
 

@@ -595,8 +595,9 @@ def model32(atm,ipar,pref,fsh,tau,MakePlot=False):
     #Calculating the actual atmospheric scale height in each level
     R = const["R"]
     scale = R * atm.T / (atm.MOLWT * atm.GRAV)   #scale height (m)
-    rho = atm.calc_rho()    #density (kg/m3)
-
+    rho = atm.calc_rho()*1e-3    #density (kg/m3)
+#     print(scale)
+#     print(rho)
     #This gradient is calcualted numerically (in this function) as it is too hard otherwise
     xprof = np.zeros(atm.NP)
     npar = atm.NVMR+2+atm.NDUST
@@ -606,7 +607,6 @@ def model32(atm,ipar,pref,fsh,tau,MakePlot=False):
         xdeep = tau
         xfsh = fsh
         pknee = pref
-
         if itest==0:
             dummy = 1
         elif itest==1: #For calculating the gradient wrt tau
@@ -666,7 +666,6 @@ def model32(atm,ipar,pref,fsh,tau,MakePlot=False):
             delh = atm.H[jknee] - atm.H[j]
             xf = 1000.    #The cloud below is set to decrease with a scale height of 1 km
             ND[j] = np.exp(-delh/xf)
-
         #Now that we have the initial cloud number density (m-3) we can just divide by the mass density to get specific density
         Q[:] = ND[:] / rho[:] #particles per kg of atm
         
@@ -707,15 +706,13 @@ def model32(atm,ipar,pref,fsh,tau,MakePlot=False):
             #if ND[j]<1.0e-36:
             #    ND[j] = 1.0e-36
                 
-
         if itest==0:  #First iteration, using the values in the state vector
-            xprof[:] = ND[:]
+            xprof[:] = Q[:]
         else:  #Next iterations used to calculate the derivatives
-            xmap[itest-1,ipar,:] = (ND[:] - xprof[:])/dx
+            xmap[itest-1,ipar,:] = (Q[:] - xprof[:])/dx
 
     #Now updating the atmosphere class with the new profile
     atm.DUST[:,icont] = xprof[:]
-    
     if MakePlot==True:
         
         fig,ax1 = plt.subplots(1,1,figsize=(3,4))
@@ -728,6 +725,7 @@ def model32(atm,ipar,pref,fsh,tau,MakePlot=False):
         ax1.grid()
         plt.tight_layout()
 
+    atm.DUST_RENORMALISATION[icont] = tau
     
     return atm,xmap
 

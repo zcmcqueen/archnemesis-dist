@@ -841,7 +841,6 @@ def layer_average(RADIUS, H, P, T, ID, VMR, DUST, BASEH, BASEP,
                 else:
                     for K in range(NPRO):
                         MOLWT[K] = Calc_mmw(VMR[K], ID)
-                        
             if DUST.ndim > 1:
                 dd = np.zeros((NINT,NDUST))
                 for J in range(NDUST):
