@@ -176,9 +176,6 @@ class Scatter_0:
 
         self.calc_GAUSS_LOBATTO()
 
-        
-        
-        
 
     def assess(self):
         """

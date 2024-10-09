@@ -516,9 +516,9 @@ def scloud11wave_core(phasarr, radg, sol_angs, emiss_angs, solar, aphis, lowbc, 
     tl = np.zeros((nmu,nmu))
     jl = np.zeros((nmu,1))
 
-    rbase = np.zeros((nmu,nmu))
-    tbase = np.zeros((nmu,nmu))
-    jbase = np.zeros((nmu,1))
+    rbase = np.zeros((nmu,nmu,nf+1))
+    tbase = np.zeros((nmu,nmu,nf+1))
+    jbase = np.zeros((nmu,1,nf+1))
 
     # Setting up matrices of constants 
     e = np.identity(nmu)
@@ -535,127 +535,138 @@ def scloud11wave_core(phasarr, radg, sol_angs, emiss_angs, solar, aphis, lowbc, 
 
     fc = np.ones((ncont+1,nmu,nmu))
     
-    for ipath in range(ngeom):
-        # Setting up path variables
+
+    #Performing initial checks on whether all spectra are for looking up or looking down
+    if np.all(emiss_angs < 90):
+        lookdown = True
+    elif np.all(emiss_angs > 90):
+        lookdown = False
+    else:
+        raise ValueError("Emission angles are a mix of values above and below 90 degrees.")
+
         
-        sol_ang = sol_angs[ipath]
-        emiss_ang = emiss_angs[ipath]
-        aphi = aphis[ipath]
-        #nf = int(emiss_ang//3 + 1)
+    #Main loop: Iterating through each wavelength
+    for ig in range(ng):
+        # Getting correct layer properties for this g-ordinate
         
-        if emiss_ang < 90.:
-            lookdown = True    #Nadir-viewing geometry
-            new_emi = emiss_ang
-        elif emiss_ang > 90.:
-            lookdown = False   #Upward-looking geometry
-            new_emi = 180. - emiss_ang
-            
-        solar1, isol, iemm, t, u = angle_quadrature(solar,sol_ang,new_emi,mu,nmu)
+        tau = taus[:,ig,:]
+        omegas = omegas_s[:,ig,:]
         
-        for ig in range(ng):
-            # Getting correct layer properties for this g-ordinate
+        for widx in range(nwave):
             
-            tau = taus[:,ig,:]
-            omegas = omegas_s[:,ig,:]
+            # Expand into successive fourier components until convergence or ic = nf
             
-            for widx in range(nwave):
+            for ic in range(nf+1):
+                ppln*=0
+                pmin*=0 
+                pplr*=0
+                pmir*=0
+
+                for j1 in range(ncont):                    
+                    pfunc = phasarr[j1, widx, 0, :]
+                    xmu   = phasarr[j1, widx, 1, :]
+                    iscat = 4
+                    ncons = 0
+                    cons8 = pfunc
+                    norm = 1
+                    pplpl, pplmi, fc[j1] = calc_pmat6(ic, mu, wtmu, nmu, iscat, cons8, ncons, 
+                                                norm, j1, ncont, nphi, fc[j1], pfunc, xmu)
+                    # Transfer matrices to those for each scattering particle
+                    ppln[j1,:,:] = pplpl
+                    pmin[j1,:,:] = pplmi
+
+                if iray > 0:
+                    iscat = 0
+                    ncons = 0
+                    pplpl, pplmi, fc[ncont] = calc_pmat6(ic, mu, wtmu, nmu, iscat, cons8, ncons, 
+                                                1, ncont, ncont, nphi, fc[ncont], pfunc, xmu)
+
+                    # Transfer matrices to storage
+                    pplr[:,:] = pplpl
+                    pmir[:,:] = pplmi
+
+                #Computing RTJ matrices for the surface
+                surface_defined = False
+                if( (lowbc == 1) & (lookdown==True) ):
+                    
+                    surface_defined = True
+                    
+                    jl[:,0] = (1-galb[widx])*radg[widx]
+                    if ic == 0:
+                        tl *= 0.0
+                        for j in range(nmu):
+                            rl[j,:] = 2*galb[widx]*mu[j]*wtmu[j] 
+                            rl[:,:]*= xfac
+                    else:
+                        tl *= 0.0
+                        rl *= 0.0
+                    jbase[:,:,ic] = jl
+                    rbase[:,:,ic] = rl
+                    tbase[:,:,ic] = tl 
+
+                # Main loop: computing R,T,J for each layer
+                for l in range(0,nlay):
+                    
+                    if lookdown is True:
+                        k = l
+                    else:
+                        k = nlay - 1 - l
+                        
+                    #Defining the properties of the layer
+                    taut = tau[widx,k]
+                    bc = bnu[widx,k]
+                    omega = omegas[widx,k]
+                    if omega < 0:
+                        omega = 0.0
+                    if omega > 1:
+                        omega = 1.0
+
+                    tauscat = taut*omega
+                    taur = tauray[widx,k]
+                    tauscat = tauscat-taur
+
+                    if tauscat < 0:
+                        tauscat = 0.0  
+                        
+                    omega = (tauscat+taur)/taut
+                    frac = lfrac[widx,:,k]
+
+                    #Calculating the matrices
+                    rl, tl, jl, iscl = calc_rtj_matrix(ic,mu,wtmu,bc,taut,tauscat,taur,frac,ppln,pmin,pplr,pmir,cc=cc,mminv=mminv,e=e)
+                    
+                    #Combining layers along the path
+                    if l == 0 and surface_defined == False:
+                        jbase[:,:,ic] = jl
+                        rbase[:,:,ic] = rl
+                        tbase[:,:,ic] = tl
+                    else:
+                        rbase[:,:,ic], tbase[:,:,ic], jbase[:,:,ic] = addp(rl, tl, jl, iscl,
+                                                    e, rbase[:,:,ic], tbase[:,:,ic], jbase[:,:,ic], nmu)
+
+                if ic != 0:
+                    jbase[:,:,ic] *= 0.0
+
+            #calculating the spectra
+            for ipath in range(ngeom):
+            
                 converged = False
                 conv1 = False
                 defconv = 1e-5
                 
-                # Expand into successive fourier components until convergence or ic = nf
+                sol_ang = sol_angs[ipath]
+                emiss_ang = emiss_angs[ipath]
+                aphi = aphis[ipath]
+                #nf = int(emiss_ang//3 + 1)
                 
+                if emiss_ang < 90.: #Nadir-viewing geometry
+                    new_emi = emiss_ang
+                elif emiss_ang > 90.: #Upward-looking geometry
+                    new_emi = 180. - emiss_ang
+                    
+                solar1, isol, iemm, t, u = angle_quadrature(solar,sol_ang,new_emi,mu,nmu)
+            
                 for ic in range(nf+1):
-                    ppln*=0
-                    pmin*=0 
-                    pplr*=0
-                    pmir*=0
-
-                    for j1 in range(ncont):                    
-                        pfunc = phasarr[j1, widx, 0, :]
-                        xmu   = phasarr[j1, widx, 1, :]
-                        iscat = 4
-                        ncons = 0
-                        cons8 = pfunc
-                        norm = 1
-                        pplpl, pplmi, fc[j1] = calc_pmat6(ic, mu, wtmu, nmu, iscat, cons8, ncons, 
-                                                  norm, j1, ncont, nphi, fc[j1], pfunc, xmu)
-                        # Transfer matrices to those for each scattering particle
-                        ppln[j1,:,:] = pplpl
-                        pmin[j1,:,:] = pplmi
-
-                    if iray > 0:
-                        iscat = 0
-                        ncons = 0
-                        pplpl, pplmi, fc[ncont] = calc_pmat6(ic, mu, wtmu, nmu, iscat, cons8, ncons, 
-                                                    1, ncont, ncont, nphi, fc[ncont], pfunc, xmu)
-
-                        # Transfer matrices to storage
-                        pplr[:,:] = pplpl
-                        pmir[:,:] = pplmi
-
-                    #Computing RTJ matrices for the surface
-                    surface_defined = False
-                    if( (lowbc == 1) & (lookdown==True) ):
-                        
-                        surface_defined = True
-                        
-                        jl[:,0] = (1-galb[widx])*radg[widx]
-                        if ic == 0:
-                            tl *= 0.0
-                            for j in range(nmu):
-                                rl[j,:] = 2*galb[widx]*mu[j]*wtmu[j] 
-                                rl[:,:]*= xfac
-                        else:
-                            tl *= 0.0
-                            rl *= 0.0
-                        jbase = jl
-                        rbase = rl
-                        tbase = tl 
-
-                    # Main loop: computing R,T,J for each layer
-                    for l in range(0,nlay):
-                        
-                        if lookdown is True:
-                            k = l
-                        else:
-                            k = nlay - 1 - l
-                         
-                        #Defining the properties of the layer
-                        taut = tau[widx,k]
-                        bc = bnu[widx,k]
-                        omega = omegas[widx,k]
-                        if omega < 0:
-                            omega = 0.0
-                        if omega > 1:
-                            omega = 1.0
-
-                        tauscat = taut*omega
-                        taur = tauray[widx,k]
-                        tauscat = tauscat-taur
-
-                        if tauscat < 0:
-                            tauscat = 0.0  
-                            
-                        omega = (tauscat+taur)/taut
-                        frac = lfrac[widx,:,k]
-
-                        #Calculating the matrices
-                        rl, tl, jl, iscl = calc_rtj_matrix(ic,mu,wtmu,bc,taut,tauscat,taur,frac,ppln,pmin,pplr,pmir,cc=cc,mminv=mminv,e=e)
-                        
-                        #Combining layers along the path
-                        if l == 0 and surface_defined == False:
-                            jbase = jl
-                            rbase = rl
-                            tbase = tl
-                        else:
-                            rbase, tbase, jbase = addp(rl, tl, jl, iscl,
-                                                       e, rbase, tbase, jbase, nmu)
-
-                    if ic != 0:
-                        jbase *= 0.0
-
-
+                    
                     #Calculating the spectrum
                     for j in range(nmu):
                         u0pl[j] = 0.0
@@ -669,10 +680,10 @@ def scloud11wave_core(phasarr, radg, sol_angs, emiss_angs, solar, aphis, lowbc, 
                     if lookdown is True:
                         for imu0 in range(isol, isol+2): 
                             u0pl[imu0] = solar1[widx] / (2.0 * np.pi * wtmu[imu0])
-                            acom = np.ascontiguousarray(rbase.transpose()) @ u0pl
-                            bcom = np.ascontiguousarray(tbase.transpose()) @ utmi
+                            acom = np.ascontiguousarray(rbase[:,:,ic].transpose()) @ u0pl
+                            bcom = np.ascontiguousarray(tbase[:,:,ic].transpose()) @ utmi
                             acom += bcom
-                            umi = acom + jbase
+                            umi = acom + jbase[:,:,ic]
                             for imu in range(iemm, iemm+2): 
                                 yx[ico] = umi[imu,0]
                                 ico += 1
@@ -680,10 +691,10 @@ def scloud11wave_core(phasarr, radg, sol_angs, emiss_angs, solar, aphis, lowbc, 
                     else:
                         for imu0 in range(isol, isol+2): 
                             u0pl[imu0] = solar1[widx] / (2.0 * np.pi * wtmu[imu0])
-                            acom = np.ascontiguousarray(tbase.transpose()) @ u0pl
-                            bcom = np.ascontiguousarray(rbase.transpose()) @ utmi
+                            acom = np.ascontiguousarray(tbase[:,:,ic].transpose()) @ u0pl
+                            bcom = np.ascontiguousarray(rbase[:,:,ic].transpose()) @ utmi
                             acom += bcom
-                            umi = acom + jbase
+                            umi = acom + jbase[:,:,ic]
                             for imu in range(iemm, iemm+2): 
                                 yx[ico] = umi[imu,0]
                                 ico += 1
