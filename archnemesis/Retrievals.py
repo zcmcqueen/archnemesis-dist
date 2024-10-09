@@ -61,6 +61,9 @@ def retrieval_nemesis(runname,legacy_files=False,NCores=1,retrieval_method=0,nem
         OptimalEstimation = ans.coreretOE(runname,Variables,Measurement,Atmosphere,Spectroscopy,Scatter,Stellar,Surface,CIA,Layer,\
                                           NITER=Retrieval.NITER,PHILIMIT=Retrieval.PHILIMIT,NCores=NCores,nemesisSO=nemesisSO)
         Retrieval = OptimalEstimation
+    elif retrieval_method==1:
+        NestedSampling = ans.coreretNS(runname,Variables,Measurement,Atmosphere,Spectroscopy,Scatter,Stellar,Surface,CIA,Layer)
+        Retrieval = NestedSampling
     else:
         sys.exit('error in retrieval_nemesis :: Retrieval scheme has not been implemented yet')
 
@@ -78,6 +81,9 @@ def retrieval_nemesis(runname,legacy_files=False,NCores=1,retrieval_method=0,nem
         else:
             Retrieval.write_cov(runname,Variables,pickle=False)
             Retrieval.write_mre(runname,Variables,Measurement)
+            
+    if retrieval_method==1:
+        Retrieval.make_plots()
 
     #Finishing pogram
     end = time.time()

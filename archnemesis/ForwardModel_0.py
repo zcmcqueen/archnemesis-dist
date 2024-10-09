@@ -1382,6 +1382,18 @@ class ForwardModel_0:
                 xmap[ix:ix+self.Variables.NXVAR[ivar],:,0:self.AtmosphereX.NP] = xmap1[:,:,:]
 
                 ix = ix + self.Variables.NXVAR[ivar]
+
+            elif self.Variables.VARIDENT[ivar,2]==45:
+#           Model 45. Irwin CH4 model. Variable deep tropospheric and stratospheric abundances,
+#                    along with tropospheric humidity.
+#           ***************************************************************
+                tropo = np.exp(self.Variables.XN[ix])   # Deep tropospheric abundance
+                humid = np.exp(self.Variables.XN[ix+1])  # Humidity
+                strato = np.exp(self.Variables.XN[ix+2])  # Stratospheric abundance
+                self.AtmosphereX,xmap1 = model45(self.AtmosphereX, ipar, tropo, humid, strato)
+                xmap[ix] = xmap1
+                
+                ix = ix + self.Variables.NXVAR[ivar]
                 
             elif self.Variables.VARIDENT[ivar,2]==47:
 #           Model 47. Profile is represented by a Gaussian with a specified optical thickness centred

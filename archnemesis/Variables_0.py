@@ -315,6 +315,8 @@ class Variables_0:
                 nxvar[i] = 1
             elif imod == 32:
                 nxvar[i] = 3
+            elif imod == 45:
+                nxvar[i] = 3
             elif imod == 47:
                 nxvar[i] = 3
             elif imod == 49:
@@ -826,7 +828,41 @@ class Variables_0:
                     
                     ix = ix + 1
 
-
+                elif varident[i,2] == 45:
+#               ******** Irwin CH4 model. Represented by tropospheric and stratospheric methane 
+#               ******** abundances, along with methane humidity. 
+                    tmp = np.fromfile(f,sep=' ',count=2,dtype='float')
+                    tropo = tmp[0]
+                    etropo = tmp[1]
+                    tmp = np.fromfile(f,sep=' ',count=2,dtype='float')
+                    strato = tmp[0]
+                    estrato = tmp[1]
+                    tmp = np.fromfile(f,sep=' ',count=2,dtype='float')
+                    humid = tmp[0]
+                    ehumid = tmp[1]
+                    
+                    
+                    x0[ix] = np.log(tropo)
+                    lx[ix] = 1
+                    err = etropo/tropo
+                    sx[ix,ix] = err**2.
+                    
+                    ix = ix + 1
+                    
+                    x0[ix] = np.log(humid)
+                    lx[ix] = 1
+                    err = ehumid/humid
+                    sx[ix,ix] = err**2.
+                    
+                    ix = ix + 1
+                    
+                    x0[ix] = np.log(strato)
+                    lx[ix] = 1
+                    err = estrato/strato
+                    sx[ix,ix] = err**2.
+                    
+                    ix = ix + 1                   
+                    
                 elif varident[i,2] == 47:
 #               ******** cloud profile is represented by a peak optical depth at a 
 #               ******** variable pressure level and a Gaussian profile with FWHM (in log pressure)

@@ -731,6 +731,85 @@ def model32(atm,ipar,pref,fsh,tau,MakePlot=False):
 
 
 ###############################################################################################
+def model45(atm, ipar, tropo, humid, strato, MakePlot=False):
+
+    """
+        FUNCTION NAME : model45()
+        
+        DESCRIPTION :
+        
+            Irwin CH4 model. Variable deep tropospheric and stratospheric abundances,
+            along with tropospheric humidity.
+        
+        INPUTS :
+        
+            atm :: Python class defining the atmosphere
+
+            ipar :: Atmospheric parameter to be changed
+                    (0 to NVMR-1) :: Gas VMR
+                    (NVMR) :: Temperature
+                    (NVMR+1 to NVMR+NDUST-1) :: Aerosol density
+                    (NVMR+NDUST) :: Para-H2
+                    (NVMR+NDUST+1) :: Fractional cloud coverage
+
+            tropo :: Deep methane VMR
+            
+            humid :: Relative methane humidity in the troposphere
+            
+            strato :: Stratospheric methane VMR
+        
+        OPTIONAL INPUTS:
+
+            MakePlot :: If True, a summary plot is generated
+        
+        OUTPUTS :
+        
+            atm :: Updated atmospheric class
+            xmap(npro,ngas+2+ncont,npro) :: Matrix of relating funtional derivatives to 
+                                             elements in state vector
+        
+        CALLING SEQUENCE:
+        
+            atm,xmap = model45(atm, ipar, tropo, humid, strato)
+        
+        MODIFICATION HISTORY : Joe Penn (09/10/2024)
+        
+    """
+    SCH40 = 10.6815
+    SCH41 = -1163.83
+    # psvp is in bar
+    NP = atm.NP
+
+    xnew = np.zeros(NP)
+    xnewgrad = np.zeros(NP)
+    pch4 = np.zeros(NP)
+    pbar = np.zeros(NP)
+    psvp = np.zeros(NP)
+
+    for i in range(NP):
+        pbar[i] = atm.P[i] /100000#* 1.013
+        tmp = SCH40 + SCH41 / atm.T[i]
+        psvp[i] = 1e-30 if tmp < -69.0 else np.exp(tmp)
+
+        pch4[i] = tropo * pbar[i]
+        if pch4[i] / psvp[i] > 1.0:
+            pch4[i] = psvp[i] * humid
+
+        if pbar[i] < 0.1 and pch4[i] / pbar[i] > strato:
+            pch4[i] = pbar[i] * strato
+
+        if pbar[i] > 0.5 and pch4[i] / pbar[i] > tropo:
+            pch4[i] = pbar[i] * tropo
+            xnewgrad[i] = 1.0
+
+        xnew[i] = pch4[i] / pbar[i]
+    atm.VMR[:, ipar] = xnew
+        
+        
+    return atm, xnewgrad
+
+
+###############################################################################################
 
 def model47(atm, ipar, tau, pref, fwhm, MakePlot=False):
     
@@ -753,7 +832,11 @@ def model47(atm, ipar, tau, pref, fwhm, MakePlot=False):
                     (NVMR+NDUST) :: Para-H2
                     (NVMR+NDUST+1) :: Fractional cloud coverage
 
-            xdeep :: 
+            tau :: Integrated optical thickness.
+            
+            pref :: Mean pressure (atm) of the cloud.
+            
+            fwhm :: FWHM of the log-Gaussian.
         
         OPTIONAL INPUTS:
 
@@ -767,7 +850,7 @@ def model47(atm, ipar, tau, pref, fwhm, MakePlot=False):
         
         CALLING SEQUENCE:
         
-            atm,xmap = model50(atm,ipar,xprof)
+            atm,xmap = model47(atm, ipar, tau, pref, fwhm)
         
         MODIFICATION HISTORY : Joe Penn (08/10/2024)
         
