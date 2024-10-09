@@ -97,7 +97,7 @@ class ForwardModel_0:
             ForwardModel_0.nemesisfmg()
             ForwardModel_0.nemesisSOfm()
             ForwardModel_0.nemesisSOfmg()
-            ForwardModel_0.nemesisULfm()
+            ForwardModel_0.nemesisCfm()
             ForwardModel_0.nemesisMAPfm()
             ForwardModel_0.jacobian_nemesis(nemesisSO=False)
 
@@ -752,15 +752,15 @@ class ForwardModel_0:
         return SPECONV,dSPECONV
 
 
-    ###############################################################################################
+###############################################################################################
 
-    def nemesisULfm(self):
+    def nemesisCfm(self):
 
         """
-            FUNCTION NAME : nemesisULfm()
+            FUNCTION NAME : nemesisCfm()
 
-            DESCRIPTION : This function computes a forward model for an upward-looking instrument on
-                           the surface looking at different viewing angles
+            DESCRIPTION : This function computes a forward model for an upward-looking or downward-looking 
+                          instrument observing the atmosphere at different viewing angles
 
             INPUTS : none
 
@@ -772,7 +772,7 @@ class ForwardModel_0:
 
             CALLING SEQUENCE:
 
-                ForwardModel.nemesisULfm()
+                ForwardModel.nemesisCfm()
 
             MODIFICATION HISTORY : Juan Alday (25/07/2021)
 
@@ -805,7 +805,7 @@ class ForwardModel_0:
         self.ScatterX.AZI_ANG = self.MeasurementX.AZI_ANG[0,0]
 
         #Calculating the atmospheric paths
-        self.calc_path_UL()
+        self.calc_path_C()
         
         #Calling CIRSrad to calculate the spectra
         SPECOUT = self.CIRSrad()
@@ -2742,16 +2742,19 @@ class ForwardModel_0:
 
     ###############################################################################################
 
-    def calc_path_UL(self,Atmosphere=None,Scatter=None,Measurement=None,Layer=None):
+    def calc_path_C(self,Atmosphere=None,Scatter=None,Measurement=None,Layer=None):
 
         """
-        FUNCTION NAME : calc_path_UL()
+        FUNCTION NAME : calc_path_C()
 
         DESCRIPTION : Based on the flags read in the different NEMESIS files (e.g., .fla, .set files),
                     different parameters in the Path class are changed to perform correctly
                     the radiative transfer calculations
                     
-                    Version defined for an upward-looking instrument on the surface looking at different paths
+                    Version defined for an observer looking either up or down at different angles
+                    For example:
+                        - Observer on the surface looking up at different geometries (sky brightness)
+                        - Observer on space looking down at different parts of the planet (assumed to be the same atm and surface across the whole planet)
 
         INPUTS : None
 
@@ -2768,7 +2771,7 @@ class ForwardModel_0:
 
         CALLING SEQUENCE:
 
-            Layer,Path = calc_path_UL(Atmosphere,Scatter,Layer)
+            Layer,Path = calc_path_C(Atmosphere,Scatter,Layer)
 
         MODIFICATION HISTORY : Juan Alday (15/03/2021)
         """
@@ -2785,27 +2788,28 @@ class ForwardModel_0:
         if Layer is None:
             Layer = self.LayerX
             
-            
         #Checking that all emission angles in Measurement are set for an upward-looking instrument
         emi = Measurement.EMISS_ANG[:,0]
         if all(value > 90 for value in emi):
-            print('calc_path_UL :: All geometries are upward-looking.')
+            print('calc_path_C :: All geometries are upward-looking.')
+        elif all(value < 90 for value in emi):
+            print('calc_path_C :: All geometries are downward-looking.')
         else:
-            sys.exit('error in calc_path_UL :: All geometries must be upward-looking in this version (i.e. EMISS_ANG>90)')  
+            sys.exit('error in calc_path_C :: All geometries must be either upward-looking or downward-loong in this version (i.e. EMISS_ANG>90 or EMISS_ANG<90)')  
         
         #Checking that multiple scattering is turned on
         if Scatter.ISCAT!=1:
-            sys.exit('error in calc_path_UL :: This version of the code is meant to use multiple scattering (ISCAT=1)')
+            sys.exit('error in calc_path_C :: This version of the code is meant to use multiple scattering (ISCAT=1)')
 
         #Checking that there is only 1 NAV per geometry
         for iGEOM in range(Measurement.NGEOM):
             if Measurement.NAV[iGEOM]>1:
-                sys.exit('error in calc_path_UL :: In this version we only allow 1 NAV per geometry')
+                sys.exit('error in calc_path_C :: In this version we only allow 1 NAV per geometry')
 
         #Checking that the solar zenith angle is the same in all geometries
-        sza = np.unique(Measurement.SOL_ANG[:,0])
-        if len(sza)>1:
-            sys.exit('error in calc_path_UL :: The solar zenith angle is expected to be the same for all geometries')
+        #sza = np.unique(Measurement.SOL_ANG[:,0])
+        #if len(sza)>1:
+        #    sys.exit('error in calc_path_COMBINED :: The solar zenith angle is expected to be the same for all geometries')
         
 
         Scatter.EMISS_ANG = Measurement.EMISS_ANG[0,0]
@@ -2876,6 +2880,7 @@ class ForwardModel_0:
             
         #We initialise the total Path class, indicating that the calculations can be combined
         self.PathX = Path_0(AtmCalc_List,COMBINE=True)
+
 
 
     ###############################################################################################
