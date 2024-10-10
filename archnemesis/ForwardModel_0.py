@@ -3020,11 +3020,12 @@ class ForwardModel_0:
         else:
             raise ValueError('error in CIRSrad :: ILBL must be either 0 or 2')
         self.LayerX.TAUGAS = TAUGAS
+        
         #Calculating the continuum absorption by gaseous species
         #################################################################################################################
 
         #Computes a polynomial approximation to any known continuum spectra for a particular gas over a defined wavenumber region.
-        raise ValueError
+        #raise ValueError
         #To be done
 
         #Calculating the vertical opacity by CIA
