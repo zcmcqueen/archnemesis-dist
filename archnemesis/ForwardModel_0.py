@@ -203,10 +203,10 @@ class ForwardModel_0:
         from copy import copy, deepcopy
         
         if self.Atmosphere.NLOCATIONS!=1:
-            sys.exit('error in nemesisfm :: archNEMESIS has not been setup for dealing with multiple locations yet')
+            raise ValueError('error in nemesisfm :: archNEMESIS has not been setup for dealing with multiple locations yet')
             
         if self.Surface.NLOCATIONS!=1:
-            sys.exit('error in nemesisfm :: archNEMESIS has not been setup for dealing with multiple locations yet')
+            raise ValueError('error in nemesisfm :: archNEMESIS has not been setup for dealing with multiple locations yet')
 
         #Estimating the number of calculations that will need to be computed to model the spectra
         #included in the Measurement class (taking into account al geometries and averaging points)
@@ -258,11 +258,7 @@ class ForwardModel_0:
 #                 rho = self.AtmosphereX.calc_rho()
                 self.LayerX.DUST_UNITS_FLAG = self.AtmosphereX.DUST_UNITS_FLAG
                 #Calling gsetpat to split the new reference atmosphere and calculate the path
-                if self.ScatterX.ISCAT == 0:
-                    self.calc_pathg()
-                else:
-                    self.calc_path()
-                    
+                self.calc_path()
                 
                 #Calling CIRSrad to perform the radiative transfer calculations
                 SPEC1X = self.CIRSrad()
@@ -362,10 +358,10 @@ class ForwardModel_0:
         from copy import deepcopy
         
         if self.Atmosphere.NLOCATIONS!=1:
-            sys.exit('error in nemesisfm :: archNEMESIS has not been setup for dealing with multiple locations yet')
+            raise ValueError('error in nemesisfm :: archNEMESIS has not been setup for dealing with multiple locations yet')
             
         if self.Surface.NLOCATIONS!=1:
-            sys.exit('error in nemesisfm :: archNEMESIS has not been setup for dealing with multiple locations yet')
+            raise ValueError('error in nemesisfm :: archNEMESIS has not been setup for dealing with multiple locations yet')
 
         #Estimating the number of calculations that will need to be computed to model the spectra
         #included in the Measurement class (taking into account al geometries and averaging points)
@@ -880,7 +876,7 @@ class ForwardModel_0:
                                 (self.Surface.LATITUDE==self.Measurement.FLAT[iGEOM,iAV]) & (self.Surface.LONGITUDE==self.Measurement.FLON[iGEOM,iAV]))[0]
                 
                     if len(iex)==0:
-                        sys.exit('error in nemesisMAPfm :: All FLAT/FLON points for the forward model must coincide with the locations in Atmosphere and Surface')
+                        raise ValueError('error in nemesisMAPfm :: All FLAT/FLON points for the forward model must coincide with the locations in Atmosphere and Surface')
                     
                 
                     
@@ -1238,7 +1234,7 @@ class ForwardModel_0:
         if self.AtmosphereX.NLOCATIONS==1:
             xmap = np.zeros((self.Variables.NX,self.AtmosphereX.NVMR+2+self.AtmosphereX.NDUST,self.AtmosphereX.NP))
         else:
-            #sys.exit('error in subprofretg :: subprofretg has not been upgraded yet to deal with multiple locations')
+            #raise ValueError('error in subprofretg :: subprofretg has not been upgraded yet to deal with multiple locations')
             xmap = np.zeros((self.Variables.NX,self.AtmosphereX.NVMR+2+self.AtmosphereX.NDUST,self.AtmosphereX.NP,self.AtmosphereX.NLOCATIONS))
 
         #Going through the different variables an updating the atmosphere accordingly
@@ -1262,12 +1258,12 @@ class ForwardModel_0:
                 elif self.Variables.VARIDENT[ivar,0]<0:
                     jcont = -int(self.Variables.VARIDENT[ivar,0])
                     if jcont>self.AtmosphereX.NDUST+2:
-                        sys.exit('error :: Variable outside limits',self.Variables.VARIDENT[ivar,0],self.Variables.VARIDENT[ivar,1],self.Variables.VARIDENT[ivar,2])
+                        raise ValueError('error :: Variable outside limits',self.Variables.VARIDENT[ivar,0],self.Variables.VARIDENT[ivar,1],self.Variables.VARIDENT[ivar,2])
                     elif jcont==self.AtmosphereX.NDUST+1:   #Para-H2
                         if flagh2p==True:
                             xref[:] = self.AtmosphereX.PARAH2
                         else:
-                            sys.exit('error :: Para-H2 is declared as variable but atmosphere is not from Giant Planet')
+                            raise ValueError('error :: Para-H2 is declared as variable but atmosphere is not from Giant Planet')
                     elif abs(jcont)==self.AtmosphereX.NDUST+2: #Fractional cloud cover
                         xref[:] = self.AtmosphereX.FRAC
                     else:
@@ -1281,7 +1277,7 @@ class ForwardModel_0:
             elif ((self.Variables.VARIDENT[ivar,2]>=1000) & (self.Variables.VARIDENT[ivar,2]<=1100)):
 
                 if self.AtmosphereX.NLOCATIONS<=1:
-                    sys.exit('error in subprofretg :: Models 1000-1100 are meant to be used for models of atmospheric properties in multiple locations')
+                    raise ValueError('error in subprofretg :: Models 1000-1100 are meant to be used for models of atmospheric properties in multiple locations')
 
                 #Reading the atmospheric profile which is going to be changed by the current variable
                 xref = np.zeros((self.AtmosphereX.NP,self.AtmosphereX.NLOCATIONS))
@@ -1297,12 +1293,12 @@ class ForwardModel_0:
                 elif self.Variables.VARIDENT[ivar,0]<0:
                     jcont = -int(self.Variables.VARIDENT[ivar,0])
                     if jcont>self.AtmosphereX.NDUST+2:
-                        sys.exit('error :: Variable outside limits',self.Variables.VARIDENT[ivar,0],self.Variables.VARIDENT[ivar,1],self.Variables.VARIDENT[ivar,2])
+                        raise ValueError('error :: Variable outside limits',self.Variables.VARIDENT[ivar,0],self.Variables.VARIDENT[ivar,1],self.Variables.VARIDENT[ivar,2])
                     elif jcont==self.AtmosphereX.NDUST+1:   #Para-H2
                         if flagh2p==True:
                             xref[:,:] = self.AtmosphereX.PARAH2[:,:]
                         else:
-                            sys.exit('error :: Para-H2 is declared as variable but atmosphere is not from Giant Planet')
+                            raise ValueError('error :: Para-H2 is declared as variable but atmosphere is not from Giant Planet')
                     elif abs(jcont)==self.AtmosphereX.NDUST+2: #Fractional cloud cover
                         xref[:,:] = self.AtmosphereX.FRAC[:,:]
                     else:
@@ -1499,7 +1495,7 @@ class ForwardModel_0:
 
                 #The effect of this model takes place after the computation of the spectra in CIRSrad!
                 if int(self.Variables.VARPARAM[ivar,0])!=self.MeasurementX.NGEOM:
-                    sys.exit('error using Model 231 :: The number of levels for the addition of continuum must be the same as NGEOM')
+                    raise ValueError('error using Model 231 :: The number of levels for the addition of continuum must be the same as NGEOM')
 
                 ipar = -1
                 ix = ix + self.Variables.NXVAR[ivar]
@@ -1514,7 +1510,7 @@ class ForwardModel_0:
 
                 #The effect of this model takes place after the computation of the spectra in CIRSrad!
                 if int(self.Variables.VARPARAM[ivar,0])!=self.MeasurementX.NGEOM:
-                    sys.exit('error using Model 2310 :: The number of levels for the addition of continuum must be the same as NGEOM')
+                    raise ValueError('error using Model 2310 :: The number of levels for the addition of continuum must be the same as NGEOM')
 
                 ipar = -1
                 ix = ix + self.Variables.NXVAR[ivar]
@@ -1528,7 +1524,7 @@ class ForwardModel_0:
 
                 #The effect of this model takes place after the computation of the spectra in CIRSrad!
                 if int(self.Variables.NXVAR[ivar]/2)!=self.MeasurementX.NGEOM:
-                    sys.exit('error using Model 232 :: The number of levels for the addition of continuum must be the same as NGEOM')
+                    raise ValueError('error using Model 232 :: The number of levels for the addition of continuum must be the same as NGEOM')
 
                 ipar = -1
                 ix = ix + self.Variables.NXVAR[ivar]
@@ -1547,7 +1543,7 @@ class ForwardModel_0:
 
                 #The effect of this model takes place after the computation of the spectra in CIRSrad!
                 if int(self.Variables.NXVAR[ivar]/3)!=self.MeasurementX.NGEOM:
-                    sys.exit('error using Model 233 :: The number of levels for the addition of continuum must be the same as NGEOM')
+                    raise ValueError('error using Model 233 :: The number of levels for the addition of continuum must be the same as NGEOM')
 
                 ipar = -1
                 ix = ix + self.Variables.NXVAR[ivar]
@@ -1627,7 +1623,7 @@ class ForwardModel_0:
 
             else:
                 print('error in Variable ',self.Variables.VARIDENT[ivar,0],self.Variables.VARIDENT[ivar,1],self.Variables.VARIDENT[ivar,2])
-                sys.exit('error :: Model parameterisation has not yet been included')
+                raise ValueError('error :: Model parameterisation has not yet been included')
 
 
         #Now check if any gas in the retrieval saturates
@@ -1643,7 +1639,7 @@ class ForwardModel_0:
                     if len(igas)==1:
                         ISCALE[igas] = 0
                     elif len(igas)>1:
-                        sys.exit('error :: There are several parameterisations affecting the same gas')
+                        raise ValueError('error :: There are several parameterisations affecting the same gas')
                         
             self.AtmosphereX.adjust_VMR(ISCALE=ISCALE)
             self.AtmosphereX.calc_molwt()
@@ -1683,12 +1679,12 @@ class ForwardModel_0:
                 elif self.Variables.VARIDENT[ivar,0]<0:
                     jcont = -int(self.Variables.VARIDENT[ivar,0])
                     if jcont>self.AtmosphereX.NDUST+2:
-                        sys.exit('error :: Variable outside limits',self.Variables.VARIDENT[ivar,0],self.Variables.VARIDENT[ivar,1],self.Variables.VARIDENT[ivar,2])
+                        raise ValueError('error :: Variable outside limits',self.Variables.VARIDENT[ivar,0],self.Variables.VARIDENT[ivar,1],self.Variables.VARIDENT[ivar,2])
                     elif jcont==self.AtmosphereX.NDUST+1:   #Para-H2
                         if flagh2p==True:
                             xref[:] = self.AtmosphereX.PARAH2
                         else:
-                            sys.exit('error :: Para-H2 is declared as variable but atmosphere is not from Giant Planet')
+                            raise ValueError('error :: Para-H2 is declared as variable but atmosphere is not from Giant Planet')
                     elif abs(jcont)==self.AtmosphereX.NDUST+2: #Fractional cloud cover
                         xref[:] = self.AtmosphereX.FRAC
                     else:
@@ -1862,7 +1858,7 @@ class ForwardModel_0:
 
                 #The effect of this model takes place after the computation of the spectra in CIRSrad!
                 if int(self.Variables.NXVAR[ivar]/2)!=self.MeasurementX.NGEOM:
-                    sys.exit('error using Model 232 :: The number of levels for the addition of continuum must be the same as NGEOM')
+                    raise ValueError('error using Model 232 :: The number of levels for the addition of continuum must be the same as NGEOM')
 
                 if self.MeasurementX.NGEOM>1:
 
@@ -1922,7 +1918,7 @@ class ForwardModel_0:
 
                 #The effect of this model takes place after the computation of the spectra in CIRSrad!
                 if int(self.Variables.NXVAR[ivar]/3)!=self.MeasurementX.NGEOM:
-                    sys.exit('error using Model 233 :: The number of levels for the addition of continuum must be the same as NGEOM')
+                    raise ValueError('error using Model 233 :: The number of levels for the addition of continuum must be the same as NGEOM')
 
                 if self.MeasurementX.NGEOM>1:
 
@@ -2420,11 +2416,11 @@ class ForwardModel_0:
             scatter=True
             botflux=True
         else:
-            sys.exit('error in calc_path :: selected ISCAT has not been implemented yet')
+            raise ValueError('error in calc_path :: selected ISCAT has not been implemented yet')
 
 
         #print(PRESS/101235.)
-        #sys.exit()
+        #raise ValueError()
 
 
         #Performing the calculation of the atmospheric path
@@ -2807,21 +2803,21 @@ class ForwardModel_0:
         elif all(value < 90 for value in emi):
             print('calc_path_C :: All geometries are downward-looking.')
         else:
-            sys.exit('error in calc_path_C :: All geometries must be either upward-looking or downward-loong in this version (i.e. EMISS_ANG>90 or EMISS_ANG<90)')  
+            raise ValueError('error in calc_path_C :: All geometries must be either upward-looking or downward-loong in this version (i.e. EMISS_ANG>90 or EMISS_ANG<90)')  
         
         #Checking that multiple scattering is turned on
         if Scatter.ISCAT!=1:
-            sys.exit('error in calc_path_C :: This version of the code is meant to use multiple scattering (ISCAT=1)')
+            raise ValueError('error in calc_path_C :: This version of the code is meant to use multiple scattering (ISCAT=1)')
 
         #Checking that there is only 1 NAV per geometry
         for iGEOM in range(Measurement.NGEOM):
             if Measurement.NAV[iGEOM]>1:
-                sys.exit('error in calc_path_C :: In this version we only allow 1 NAV per geometry')
+                raise ValueError('error in calc_path_C :: In this version we only allow 1 NAV per geometry')
 
         #Checking that the solar zenith angle is the same in all geometries
         #sza = np.unique(Measurement.SOL_ANG[:,0])
         #if len(sza)>1:
-        #    sys.exit('error in calc_path_COMBINED :: The solar zenith angle is expected to be the same for all geometries')
+        #    raise ValueError('error in calc_path_COMBINED :: The solar zenith angle is expected to be the same for all geometries')
         
 
         Scatter.EMISS_ANG = Measurement.EMISS_ANG[0,0]
@@ -3000,10 +2996,7 @@ class ForwardModel_0:
         elif self.SpectroscopyX.ILBL==0:    #K-table
             
             #Calculating the k-coefficients for each gas in each layer
-            if self.Scatter.ISCAT == 0:
-                k_gas, _ = self.SpectroscopyX.calc_kg(self.LayerX.NLAY,self.LayerX.PRESS/101325.,self.LayerX.TEMP,WAVECALC=self.MeasurementX.WAVE)
-            else:
-                k_gas = self.SpectroscopyX.calc_k(self.LayerX.NLAY,self.LayerX.PRESS/101325.,self.LayerX.TEMP,WAVECALC=self.MeasurementX.WAVE) # (NWAVE,NG,NLAY,NGAS)
+            k_gas = self.SpectroscopyX.calc_k(self.LayerX.NLAY,self.LayerX.PRESS/101325.,self.LayerX.TEMP,WAVECALC=self.MeasurementX.WAVE) # (NWAVE,NG,NLAY,NGAS)
             f_gas = np.zeros((self.SpectroscopyX.NGAS,self.LayerX.NLAY))
             utotl = np.zeros(self.LayerX.NLAY)
             for i in range(self.SpectroscopyX.NGAS):
@@ -3025,13 +3018,13 @@ class ForwardModel_0:
             self.SpectroscopyX.K = None
 
         else:
-            sys.exit('error in CIRSrad :: ILBL must be either 0 or 2')
+            raise ValueError('error in CIRSrad :: ILBL must be either 0 or 2')
         self.LayerX.TAUGAS = TAUGAS
         #Calculating the continuum absorption by gaseous species
         #################################################################################################################
 
         #Computes a polynomial approximation to any known continuum spectra for a particular gas over a defined wavenumber region.
-
+        raise ValueError
         #To be done
 
         #Calculating the vertical opacity by CIA
@@ -3183,13 +3176,34 @@ class ForwardModel_0:
             else:
                 EMISSIVITY = np.zeros(self.MeasurementX.NWAVE)
             
+            #Calculating the contribution from surface reflectance
+            if( (self.StellarX.SOLEXIST is True) & (self.SurfaceX.GASGIANT is False) & (self.SurfaceX.LOWBC>0) ):
+                
+                #Calculating solar flux at top of the atmosphere
+                self.StellarX.calc_solar_flux()
+                f = interpolate.interp1d(self.StellarX.WAVE,self.StellarX.SOLFLUX)
+                SOLFLUX = f(self.MeasurementX.WAVE)
+                
+                #Calculating the surface reflectance
+                if self.SurfaceX.LOWBC == 1: #Lambertian reflection
+                    
+                    ALBEDO = np.zeros(self.MeasurementX.NWAVE)
+                    ALBEDO[:] = 1.0 - EMISSIVITY[:] if self.SurfaceX.GALB < 0.0 else self.SurfaceX.GALB
+                    
+                    REFLECTANCE = np.zeros(self.MeasurementX.NWAVE)
+                    REFLECTANCE[:] = self.SurfaceX.calc_Lambert_BRDF(ALBEDO,self.ScatterX.SOL_ANG)[:,0]
+                
+            else:
+                SOLFLUX = np.zeros(self.MeasurementX.NWAVE)
+                REFLECTANCE = np.zeros(self.MeasurementX.NWAVE)
+            
             #Calculating the spectra
             SPECOUT = np.zeros((self.MeasurementX.NWAVE,self.SpectroscopyX.NG,self.PathX.NPATH))
             for ipath in range(self.PathX.NPATH):
                 NLAYIN = self.PathX.NLAYIN[ipath]
                 EMTEMP = self.PathX.EMTEMP[0:NLAYIN,ipath]
                 EMPRESS = self.LayerX.PRESS[self.PathX.LAYINC[0:NLAYIN,ipath]]
-                SPECOUT[:,:,ipath] = calc_thermal_emission_spectrum(self.MeasurementX.ISPACE,self.MeasurementX.WAVE,TAUTOT_LAYINC[:,:,0:NLAYIN,ipath],EMTEMP,EMPRESS,self.SurfaceX.TSURF,EMISSIVITY)
+                SPECOUT[:,:,ipath] = calc_thermal_emission_spectrum(self.MeasurementX.ISPACE,self.MeasurementX.WAVE,TAUTOT_LAYINC[:,:,0:NLAYIN,ipath],EMTEMP,EMPRESS,self.SurfaceX.TSURF,EMISSIVITY,SOLFLUX,REFLECTANCE,self.PathX.SOL_ANG[ipath],self.PathX.EMISS_ANG[ipath])
         
                 #Changing the units of the spectra
                 SPECOUT[:,:,ipath] = (SPECOUT[:,:,ipath].T * xfac).T
@@ -3265,7 +3279,7 @@ class ForwardModel_0:
                 SPECOUT[:,:,ipath] = fdown[:,:,0]*xfac
 
         else:
-            sys.exit('error in CIRSrad :: Calculation type not included in CIRSrad')
+            raise ValueError('error in CIRSrad :: Calculation type not included in CIRSrad')
 
         #Now integrate over g-ordinates
         SPECOUT = np.tensordot(SPECOUT, self.SpectroscopyX.DELG, axes=([1],[0])) #NWAVE,NPATH
@@ -3475,7 +3489,7 @@ class ForwardModel_0:
 
 
         else:
-            sys.exit('error in CIRSrad :: ILBL must be either 0 or 2')
+            raise ValueError('error in CIRSrad :: ILBL must be either 0 or 2')
 
         #Combining the different kinds of opacity in each layer
         ########################################################################################################
@@ -3764,11 +3778,11 @@ class ForwardModel_0:
                     igas2 = np.where( Atmosphere.ID==CIA.IPAIRG2[ipair] )[0]
                     
                     if len(igas1)>1:
-                        #sys.exit('error in calc_tau_cia :: CIA does not currently allow the calculation of the CIA contribution from different isotopes.')
+                        #raise ValueError('error in calc_tau_cia :: CIA does not currently allow the calculation of the CIA contribution from different isotopes.')
                         igas1 = np.where( (Atmosphere.ID==CIA.IPAIRG1[ipair]) & (Atmosphere.ISO==1) )[0] #Selecting the most abundant isotope only
                 
                     if len(igas2)>1:
-                        #sys.exit('error in calc_tau_cia :: CIA does not currently allow the calculation of the CIA contribution from different isotopes.')
+                        #raise ValueError('error in calc_tau_cia :: CIA does not currently allow the calculation of the CIA contribution from different isotopes.')
                         igas2 = np.where( (Atmosphere.ID==CIA.IPAIRG2[ipair]) & (Atmosphere.ISO==1) )[0] #Selecting the most abundant isotope only
                 
                     
@@ -4040,7 +4054,7 @@ class ForwardModel_0:
         from scipy import interpolate
 
         if((WAVEC.min()<Scatter.WAVE.min()) & (WAVEC.max()>Scatter.WAVE.min())):
-            sys.exit('error in Scatter_0() :: Spectral range for calculation is outside of range in which the Aerosol properties are defined')
+            raise ValueError('error in Scatter_0() :: Spectral range for calculation is outside of range in which the Aerosol properties are defined')
 
         #Calculating the opacity at each vertical layer for each dust population
         NWAVEC = len(WAVEC)
@@ -4126,7 +4140,7 @@ class ForwardModel_0:
         elif IRAY>3: #Jovian air
             TAURAY,dTAURAY = calc_tau_rayleighls(ISPACE,WAVEC,ID,ISO,(Layer.PP.T/Layer.PRESS).T,Layer.TOTAM)
         else:
-            sys.exit('error in CIRSrad :: IRAY = '+str(IRAY)+' type has not been implemented yet')
+            raise ValueError('error in CIRSrad :: IRAY = '+str(IRAY)+' type has not been implemented yet')
             
         #Making summary plot if required
         if MakePlot==True:
@@ -4217,7 +4231,7 @@ class ForwardModel_0:
             del k_layer
 
         else:
-            sys.exit('error in CIRSrad :: ILBL must be either 0 or 2')
+            raise ValueError('error in CIRSrad :: ILBL must be either 0 or 2')
         return TAUGAS
 
     ###############################################################################################
@@ -5011,7 +5025,7 @@ class ForwardModel_0:
                                 FC[:,j,i] = FC[:,i,j]
 
                     if niter>10000:
-                        sys.exit('error in calc_phase_matrix :: Normalisation of phase matrix did not converge')
+                        raise ValueError('error in calc_phase_matrix :: Normalisation of phase matrix did not converge')
 
                     niter = niter + 1
 
@@ -6720,7 +6734,7 @@ def planckg(ispace,wave,temp):
 
 ###############################################################################################
 @jit(nopython=True)
-def calc_thermal_emission_spectrum(ISPACE,WAVE,TAUTOT_PATH,TEMP,PRESS,TSURF,EMISSIVITY):
+def calc_thermal_emission_spectrum(ISPACE,WAVE,TAUTOT_PATH,TEMP,PRESS,TSURF,EMISSIVITY,SOLFLUX,REFLECTANCE,SOL_ANG,EMISS_ANG):
 
 
     """
@@ -6738,6 +6752,10 @@ def calc_thermal_emission_spectrum(ISPACE,WAVE,TAUTOT_PATH,TEMP,PRESS,TSURF,EMIS
         PRESS(NLAYIN) :: Pressure of each layer along the path (Pa)
         TSURF :: Surface temperature (K) - If TSURF<0, then the planet is considered not to have surface
         EMISSIVITY(NWAVE) :: Emissivity of the surface
+        SOLFLUX(NWAVE) :: Solar flux at the top of the atmosphere (W cm-2 um-1 or W cm-2 (cm-1)-1)
+        REFLECTANCE(NWAVE) :: Surface reflectance
+        SOL_ANG :: Solar zenith angle
+        EMISS_ANG :: Emission angle
 
     OPTIONAL INPUTS:  none
 
@@ -6791,6 +6809,14 @@ def calc_thermal_emission_spectrum(ISPACE,WAVE,TAUTOT_PATH,TEMP,PRESS,TSURF,EMIS
                     radground = bbsurf * EMISSIVITY[iwave]
 
                 specg += trold * radground
+                
+            #Adding the surface reflection in case of downward-looking spectra (assumes plane-parallel atmosphere)
+            if EMISS_ANG < 90. and SOL_ANG < 90.:
+                refl = REFLECTANCE[iwave]
+                solar = SOLFLUX[iwave]
+                mu = np.cos(EMISS_ANG/180.*np.pi)
+                mu0 = np.cos(SOL_ANG/180.*np.pi)
+                specg += trold*np.exp(-taud*mu/mu0)*solar*refl
 
             SPECOUT[iwave,ig] = specg
             
