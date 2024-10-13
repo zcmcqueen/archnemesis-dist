@@ -38,12 +38,12 @@ extensions = [
 #Defining each image shown in the gallery
 curr = os.getcwd()
 nbsphinx_thumbnails = {
-    'examples/makephase/run_makephase': curr+'/images/mars_sunset2.jpg',
-    'examples/surface_modes/surface': curr+'/images/mars_duststorm.jpg',
-    'examples/atmosphere_tutorial/atmosphere_tutorial': curr+'/images/planetary_atmospheres.png',
-    'examples/stellar/StellarExample': curr+'/images/solar_spec.jpg',
-    'examples/measurement/measurement_class': curr+'/images/observation_sketch.png'
-    'examples/mars_solocc/mars_SO': curr+'/images/exomars_SO.jpg',
+    'examples/makephase/run_makephase': '_static/mars_sunset2.jpg',
+    'examples/surface_modes/surface': '_static/mars_duststorm.jpg',
+    'examples/atmosphere_tutorial/atmosphere_tutorial': '_static/planetary_atmospheres.png',
+    'examples/stellar/StellarExample': '_static/solar_spec.jpg',
+    'examples/measurement/measurement_class': '_static/observation_sketch.png'
+    'examples/mars_solocc/mars_SO': '_static/exomars_SO.jpg',
     #'examples/Jupiter_CIRS_nadir_thermal_emission/Jupiter_CIRS': '_static/jupiter_cassini.jpg',
     #'examples/Measurement/Measurement': '_static/observation_sketch.png',
 }

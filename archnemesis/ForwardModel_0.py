@@ -2879,7 +2879,7 @@ class ForwardModel_0:
         NCALC = Measurement.NGEOM    #Number of calculations (geometries) to be performed
         AtmCalc_List = []
         for iGEOM in range(Measurement.NGEOM):
-            iAtmCalc = AtmCalc_0(Layer,LIMB=limb,NADIR=True,BOTLAY=0,ANGLE=180.,IPZEN=0,\
+            iAtmCalc = AtmCalc_0(Layer,LIMB=limb,NADIR=True,BOTLAY=0,ANGLE=0.,IPZEN=0,\
                             EMISS_ANG=Measurement.EMISS_ANG[iGEOM,0],SOL_ANG=Measurement.SOL_ANG[iGEOM,0],AZI_ANG=Measurement.AZI_ANG[iGEOM,0],\
                             THERM=therm,WF=wf,NETFLUX=netflux,OUTFLUX=outflux,BOTFLUX=botflux,UPFLUX=upflux,\
                             CG=cg,HEMISPHERE=hemisphere,NEARLIMB=nearlimb,SINGLE=single,SPHSINGLE=sphsingle,\
