@@ -1184,8 +1184,6 @@ def model228(Measurement,Spectroscopy,V0,C0,C1,C2,P0,P1,P2,P3,MakePlot=False):
         
     """
 
-    from NemesisPy import ngauss
-
     #1.: Defining the new wavelength array
     ##################################################
 
@@ -1332,8 +1330,6 @@ def model229(Measurement,par1,par2,par3,par4,par5,par6,par7,MakePlot=False):
         MODIFICATION HISTORY : Juan Alday (29/03/2021)
         
     """
-
-    from NemesisPy import ngauss
 
     #Calculating the parameters for each spectral point
     nconv = Measurement.NCONV[0]
@@ -1502,8 +1498,6 @@ def model230(Measurement,nwindows,liml,limh,par,MakePlot=False):
         MODIFICATION HISTORY : Juan Alday (29/03/2021)
         
     """
-
-    from NemesisPy import ngauss
 
     #Calculating the parameters for each spectral point
     nconv = Measurement.NCONV[0]
