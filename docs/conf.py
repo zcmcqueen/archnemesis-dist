@@ -36,7 +36,6 @@ extensions = [
 
 
 #Defining each image shown in the gallery
-curr = os.getcwd()
 nbsphinx_thumbnails = {
     'examples/makephase/run_makephase': '_static/mars_sunset2.jpg',
     'examples/surface_modes/surface': '_static/mars_duststorm.jpg',
