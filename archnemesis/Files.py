@@ -266,6 +266,70 @@ def read_input_files_hdf5(runname):
 
     return Atmosphere,Measurement,Spectroscopy,Scatter,Stellar,Surface,CIA,Layer,Variables,Retrieval,Telluric
 
+###############################################################################################
+
+def read_retparam_hdf5(runname):
+    """
+
+        DESCRIPTION : 
+
+            Read the retrieved parameters from the HDF5 file
+
+        INPUTS :
+      
+            runname :: Name of the NEMESIS run
+
+        OPTIONAL INPUTS: none
+        
+        OUTPUTS : 
+
+            nvar :: Number of retrieved model parameterisations
+            nxvar(nvar) :: Number of parameters associated with each model parameterisation
+            varident(nvar,3) :: Variable parameterisation ID
+            varparam(nvar,nparam) :: Extra parameters required to model the parameterisations (not retrieved)
+            aprparam(nxvar,nvar) :: A priori parameters required to model the parameterisations
+            aprerrparam(nxvar,nvar) :: Uncertainty in the a priori parameters required to model the parameterisations 
+            retparam(nxvar,nvar) :: Retrieved parameters required to model the parameterisations
+            reterrparam(nxvar,nvar) :: Uncertainty in the retrieved parameters required to model the parameterisations
+
+
+        CALLING SEQUENCE:
+        
+            nvar,nxvar,varident,varparam,aprparam,aprerrparam,retparam,reterrparam = read_retparam_hdf5(runname)
+ 
+        MODIFICATION HISTORY : Juan Alday (25/03/2023)
+    """
+
+    import h5py
+
+    f = h5py.File(runname+'.h5','r')
+
+    #Checking if Surface exists
+    e = "/Retrieval" in f
+    if e==False:
+        f.close()
+        sys.exit('error :: Retrieval is not defined in HDF5 file')
+    else:
+
+        #Checking if Retrieval already exists
+        if ('/Retrieval/Output/Parameters' in f)==True:
+
+            NVAR = np.int32(f.get('Retrieval/Output/Parameters/NVAR'))
+            NXVAR = np.array(f.get('Retrieval/Output/Parameters/NXVAR'))
+            VARIDENT = np.array(f.get('Retrieval/Output/Parameters/VARIDENT'))
+            VARPARAM = np.array(f.get('Retrieval/Output/Parameters/VARPARAM'))
+            RETPARAM = np.array(f.get('Retrieval/Output/Parameters/RETPARAM'))
+            RETERRPARAM = np.array(f.get('Retrieval/Output/Parameters/RETERRPARAM'))
+            APRPARAM = np.array(f.get('Retrieval/Output/Parameters/APRPARAM'))
+            APRERRPARAM = np.array(f.get('Retrieval/Output/Parameters/APRERRPARAM'))
+
+        else:
+            
+            f.close()
+            sys.exit('error :: Retrieval/Output/Parameters is not defined in HDF5 file')
+    
+
+    return NVAR,NXVAR,VARIDENT,VARPARAM,APRPARAM,APRERRPARAM,RETPARAM,RETERRPARAM
 
 ###############################################################################################
 ###############################################################################################
