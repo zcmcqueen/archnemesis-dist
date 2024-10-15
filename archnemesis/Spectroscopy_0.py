@@ -999,8 +999,26 @@ class Spectroscopy_0:
                 khi1[:, :] = self.K[:, ip + 1, it2, :]
                 khi2[:, :] = self.K[:, ip + 1, it2 + 1, :]
             else:
-                # Look-up tables need to be read online
-                pass  # For simplicity, we'll assume K is not None
+                
+                #In this case the look-up tables are not stored in memory and need to be read online    
+                #It is assumed that in this case they are HDF5 tables            
+                import h5py
+                
+                for igas in range(self.NGAS):
+                    
+                    f = h5py.File(self.LOCATION[igas],'r')
+                    kfile = f['K']
+                    wave = f['WAVE']
+                    
+                    #Calculating the wavelengths to read
+                    iin = np.where( (wave>=self.WAVE.min()) & (wave<=self.WAVE.max()) )[0]
+                    
+                    klo1[:,igas] = kfile[iin,ip,it1,0]
+                    klo2[:,igas] = kfile[iin,ip,it1+1,0]
+                    khi1[:,igas] = kfile[iin,ip+1,it2,0]
+                    khi2[:,igas] = kfile[iin,ip+1,it2+1,0]
+                    
+                    f.close()
             
             
             # Interpolating to get the k-coefficients at desired p-T
