@@ -385,7 +385,7 @@ class Stellar_0:
 
     def calc_solar_flux(self):
         """
-        Calculate the stellar flux at the planet's distance
+        Calculate the stellar flux at the planet's distance (W cm-2 (cm-1)-1 or W cm-2 um-1)
         """
 
         AU = 1.49598e11
