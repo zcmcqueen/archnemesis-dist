@@ -174,7 +174,8 @@ class Measurement_0:
         self.V_DOPPLER = V_DOPPLER
         self.NAV = NAV       #np.zeros(NGEOM)
         self.NCONV = NCONV   #np.zeros(NGEOM)
-
+        self.WOFF = 0
+        
         # Input the following profiles using the edit_ methods.
         self.VCONV = None # np.zeros(NCONV,NGEOM)
         self.MEAS =  None # np.zeros(NCONV,NGEOM)
@@ -563,7 +564,7 @@ class Measurement_0:
 
 
             self.NCONV = np.array(f.get('Measurement/NCONV'))
-            self.VCONV = np.array(f.get('Measurement/VCONV'))
+            self.VCONV = np.array(f.get('Measurement/VCONV')) + self.WOFF
             self.MEAS = np.array(f.get('Measurement/MEAS'))
             self.ERRMEAS = np.array(f.get('Measurement/ERRMEAS'))
 
@@ -643,7 +644,7 @@ class Measurement_0:
         azi_ang = np.zeros([ngeom,navmax2])
         wgeom = np.zeros([ngeom,navmax2])
         for i in range(ngeom):
-            wave[0:nconv[i],i] = wavetmp[0:nconv[i],i]
+            wave[0:nconv[i],i] = wavetmp[0:nconv[i],i] + self.WOFF
             meas[0:nconv[i],i] = meastmp[0:nconv[i],i]
             errmeas[0:nconv[i],i] = errmeastmp[0:nconv[i],i]  
             flat[i,0:nav[i]] = flattmp[i,0:nav[i]]
@@ -652,7 +653,6 @@ class Measurement_0:
             emiss_ang[i,0:nav[i]] = emiss_angtmp[i,0:nav[i]]
             azi_ang[i,0:nav[i]] = azi_angtmp[i,0:nav[i]]
             wgeom[i,0:nav[i]] = wgeomtmp[i,0:nav[i]]
-
         self.FWHM = inst_fwhm
         self.LATITUDE = xlat
         self.LONGITUDE = xlon
@@ -725,7 +725,7 @@ class Measurement_0:
         meas = np.zeros([nconvmax2,ngeom])
         errmeas = np.zeros([nconvmax2,ngeom])
         for i in range(ngeom):
-            wave[0:nconv[i],:] = wavetmp[0:nconv[i],:]
+            wave[0:nconv[i],:] = wavetmp[0:nconv[i],:] + self.WOFF
             meas[0:nconv[i],:] = meastmp[0:nconv[i],:]
             errmeas[0:nconv[i],:] = errmeastmp[0:nconv[i],:]
 
@@ -1466,7 +1466,7 @@ class Measurement_0:
                 sys.exit('error in wavesetc :: the spectral points defining the instrument lineshape must be increasing')
 
             #Checking that the lbl-tables encompass this wavelength range
-            err = 0.001
+            err = 0.01
             if (wavemin<(1-err)*Spectroscopy.WAVE.min() or wavemax>(1+err)*Spectroscopy.WAVE.max()):
                 print('Required wavelength range :: ',wavemin,wavemax)
                 print('Wavelength range in lbl-tables :: ',Spectroscopy.WAVE.min(),Spectroscopy.WAVE.max())

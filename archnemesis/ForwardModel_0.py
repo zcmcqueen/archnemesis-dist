@@ -1550,14 +1550,12 @@ class ForwardModel_0:
                 
                 
             elif self.Variables.VARIDENT[ivar,0]==444:
-                idust = int(self.Variables.VARPARAM[ivar,0])
+                idust = int(self.Variables.VARIDENT[ivar,1]) - 1
                 iscat = 1 # Should add an option for this
-                xprof = self.Variables.XN[ix:ix+self.Variables.HAZE_PARAMS['NX',idust]]
-                
+                xprof = self.Variables.XN[ix:ix+self.Variables.NXVAR[ivar]]
                 self.ScatterX = model444(self.ScatterX,idust,iscat,xprof,self.Variables.HAZE_PARAMS)
-                
-                ix = ix + self.Variables.HAZE_PARAMS['NX',idust]
-               
+                ipar = -1
+                ix = ix + self.Variables.NXVAR[ivar]
 
             elif self.Variables.VARIDENT[ivar,0]==446:
 #           Model 446. model for retrieving the particle size distribution based on the data in a look-up table
@@ -2351,7 +2349,7 @@ class ForwardModel_0:
             Layer.LAYHT = Scatter.SOL_ANG * 1.0e3
             Layer.LAYANG = 90.0
 
-        Layer.calc_layering(H=Atmosphere.H,P=Atmosphere.P,T=Atmosphere.T, ID=Atmosphere.ID,VMR=Atmosphere.VMR, DUST=Atmosphere.DUST)
+        Layer.calc_layering(H=Atmosphere.H,P=Atmosphere.P,T=Atmosphere.T, ID=Atmosphere.ID,VMR=Atmosphere.VMR, DUST=Atmosphere.DUST, PARAH2=Atmosphere.PARAH2)
         
         #Setting the flags for the Path and calculation types
         ##############################################################################
@@ -2495,7 +2493,7 @@ class ForwardModel_0:
             Layer.LAYHT = Scatter.SOL_ANG * 1.0e3
             Layer.LAYANG = 90.0
 
-        Layer.calc_layeringg(H=Atmosphere.H,P=Atmosphere.P,T=Atmosphere.T, ID=Atmosphere.ID,VMR=Atmosphere.VMR, DUST=Atmosphere.DUST)
+        Layer.calc_layeringg(H=Atmosphere.H,P=Atmosphere.P,T=Atmosphere.T, ID=Atmosphere.ID,VMR=Atmosphere.VMR, DUST=Atmosphere.DUST, PARAH2=Atmosphere.PARAH2)
 
         #Setting the flags for the Path and calculation types
         ##############################################################################
@@ -2621,7 +2619,7 @@ class ForwardModel_0:
         Layer.LAYANG = 90.0
         
         #Calculating the atmospheric layering
-        Layer.calc_layering(H=Atmosphere.H,P=Atmosphere.P,T=Atmosphere.T, ID=Atmosphere.ID,VMR=Atmosphere.VMR, DUST=Atmosphere.DUST)
+        Layer.calc_layering(H=Atmosphere.H,P=Atmosphere.P,T=Atmosphere.T, ID=Atmosphere.ID,VMR=Atmosphere.VMR, DUST=Atmosphere.DUST, PARAH2=Atmosphere.PARAH2)
 
         #Based on the atmospheric layerinc, we calculate each required atmospheric path to model the measurements
         #############################################################################################################
@@ -2713,7 +2711,7 @@ class ForwardModel_0:
         Layer.LAYANG = 90.0
 
         #Calculating the atmospheric layering
-        Layer.calc_layeringg(H=Atmosphere.H,P=Atmosphere.P,T=Atmosphere.T, ID=Atmosphere.ID,VMR=Atmosphere.VMR, DUST=Atmosphere.DUST)
+        Layer.calc_layeringg(H=Atmosphere.H,P=Atmosphere.P,T=Atmosphere.T, ID=Atmosphere.ID,VMR=Atmosphere.VMR, DUST=Atmosphere.DUST, PARAH2=Atmosphere.PARAH2)
 
         #Based on the atmospheric layerinc, we calculate each required atmospheric path to model the measurements
         #############################################################################################################
@@ -2836,7 +2834,7 @@ class ForwardModel_0:
             Layer.LAYANG = 90.0
 
         #Calculating the atmospheric layering
-        Layer.calc_layering(H=Atmosphere.H,P=Atmosphere.P,T=Atmosphere.T, ID=Atmosphere.ID,VMR=Atmosphere.VMR, DUST=Atmosphere.DUST)
+        Layer.calc_layering(H=Atmosphere.H,P=Atmosphere.P,T=Atmosphere.T, ID=Atmosphere.ID,VMR=Atmosphere.VMR, DUST=Atmosphere.DUST,PARAH2=Atmosphere.PARAH2)
 
         #Setting the flags for the Path and calculation types
         ##############################################################################
@@ -3749,18 +3747,68 @@ class ForwardModel_0:
                     itl = CIA.NT - 2
                 else:
                     ithi = it + 1
+            
+            frac1 = Layer.FRAC[ilay]
+            ip = np.argmin(np.abs(CIA.FRAC-frac1))
+            frac0 = CIA.FRAC[ip]
+            
+            if CIA.FRAC[ip]>=frac1:
+                iphi = ip
+                if ip==0:
+                    frac1 = CIA.FRAC[ip]
+                    ipl = 0
+                    iphi = 1
+                else:
+                    ipl = ip - 1
 
-            ktlo = CIA.K_CIA[:,itl,:]
-            kthi = CIA.K_CIA[:,ithi,:]
+            elif CIA.FRAC[ip]<frac1:
+                ipl = ip
+                if ip==CIA.NPARA-1:
+                    temp1 = CIA.FRAC[ip]
+                    iphi = CIA.NPARA - 1
+                    ipl = CIA.NPARA - 2
+                else:
+                    iphi = ip + 1
+            
+            if CIA.NPARA == 0:
+                ipl = 0
+                iphi = 0
+                
+            # Extracting the CIA coefficients for the 4 surrounding points
+            ktloplo = CIA.K_CIA[:, ipl, itl, :]
+            kthiplo = CIA.K_CIA[:, ipl, ithi, :]
+            ktlophi = CIA.K_CIA[:, iphi, itl, :]
+            kthiphi = CIA.K_CIA[:, iphi, ithi, :]
 
-            fhl = (temp1 - CIA.TEMP[itl])/(CIA.TEMP[ithi] - CIA.TEMP[itl])
-            fhh = (CIA.TEMP[ithi] - temp1)/(CIA.TEMP[ithi] - CIA.TEMP[itl])
-            dfhldT = 1./(CIA.TEMP[ithi] - CIA.TEMP[itl])
-            dfhhdT = -1./(CIA.TEMP[ithi] - CIA.TEMP[itl])
+            # Interpolation factors for temperature
+            fhl_temp = (temp1 - CIA.TEMP[itl]) / (CIA.TEMP[ithi] - CIA.TEMP[itl])
+            fhh_temp = (CIA.TEMP[ithi] - temp1) / (CIA.TEMP[ithi] - CIA.TEMP[itl])
+            dfhldT = 1.0 / (CIA.TEMP[ithi] - CIA.TEMP[itl])
+            dfhhdT = -1.0 / (CIA.TEMP[ithi] - CIA.TEMP[itl])
 
-            kt = ktlo*(1.-fhl) + kthi * (1.-fhh)
-            dktdT = -ktlo * dfhldT - kthi * dfhhdT
-        
+            # Interpolation factors for para fraction
+            if len(CIA.FRAC) > 1:
+                fhl_frac = (frac1 - CIA.FRAC[ipl]) / (CIA.FRAC[iphi] - CIA.FRAC[ipl])
+                fhh_frac = (CIA.FRAC[iphi] - frac1) / (CIA.FRAC[iphi] - CIA.FRAC[ipl])
+                dfhldF = 1.0 / (CIA.FRAC[iphi] - CIA.FRAC[ipl])
+                dfhhdF = -1.0 / (CIA.FRAC[iphi] - CIA.FRAC[ipl])
+            else:
+                fhl_frac = 0.5
+                fhh_frac = 0.5
+                dfhldF = 0.0
+                dfhhdF = 0.0
+
+            # Final interpolation for kt and dktdT considering both temperature and para fraction
+            ktlo = ktloplo * fhh_temp + kthiplo * fhl_temp
+            kthi = ktlophi * fhh_temp + kthiphi * fhl_temp
+
+            kt = ktlo * fhh_frac + kthi * fhl_frac
+            # Derivative with respect to temperature
+            dktdT = (kthi - ktlo) * dfhldT
+
+            # Derivative with respect to fraction
+            dktdF = (kthi - ktlo) * dfhldF + (ktlophi - ktloplo) * dfhhdF
+            
             #Cheking that interpolation can be performed to the calculation wavenumbers
             inwave = np.where( (CIA.WAVEN>=WAVEN.min()) & (CIA.WAVEN<=WAVEN.max()) )
             inwave = inwave[0]
@@ -4051,7 +4099,6 @@ class ForwardModel_0:
         if Layer is None:
             Layer = self.LayerX
             
-        
         from scipy import interpolate
 
         if((WAVEC.min()<Scatter.WAVE.min()) & (WAVEC.max()>Scatter.WAVE.min())):
@@ -6092,9 +6139,9 @@ def calc_tau_rayleighls(ISPACE,WAVEC,ID,ISO,VMR,TOTAM):
 ###############################################################################################
 
 @jit(nopython=True)
-def bilinear_xy(Q, x1, x2, y1, y2, x, y):
-    fxy1 = ((x2 - x + 1e-30) / (x2 - x1 + 2e-30)) * Q[0] + ((x - x1 + 1e-30) / (x2 - x1 + 2e-30)) * Q[1]
-    fxy2 = ((x2 - x + 1e-30) / (x2 - x1 + 2e-30)) * Q[2] + ((x - x1 + 1e-30) / (x2 - x1 + 2e-30)) * Q[3]
+def bilinear_xy(Q00, Q10, Q01, Q11, x1, x2, y1, y2, x, y):
+    fxy1 = ((x2 - x + 1e-30) / (x2 - x1 + 2e-30)) * Q00 + ((x - x1 + 1e-30) / (x2 - x1 + 2e-30)) * Q10
+    fxy2 = ((x2 - x + 1e-30) / (x2 - x1 + 2e-30)) * Q01 + ((x - x1 + 1e-30) / (x2 - x1 + 2e-30)) * Q11
     return ((y2 - y + 1e-30) / (y2 - y1 + 2e-30)) * fxy1 + ((y - y1 + 1e-30) / (y2 - y1 + 2e-30)) * fxy2
 
 @jit(nopython=True)
@@ -6145,8 +6192,8 @@ def trilinear_interpolation(grid, x_values, y_values, z_values, x_array, y_array
                 Q000, Q100, Q010, Q110 = grid[ix, iy, iz], grid[ix+1, iy, iz], grid[ix, iy+1, iz], grid[ix+1, iy+1, iz]
                 Q001, Q101, Q011, Q111 = grid[ix, iy, iz+1], grid[ix+1, iy, iz+1], grid[ix, iy+1, iz+1], grid[ix+1, iy+1, iz+1]
 
-                fz1 = bilinear_xy(np.array([Q000, Q100, Q010, Q110]), x1, x2, y1, y2, x, y)
-                fz2 = bilinear_xy(np.array([Q001, Q101, Q011, Q111]), x1, x2, y1, y2, x, y)
+                fz1 = bilinear_xy(Q000, Q100, Q010, Q110, x1, x2, y1, y2, x, y)
+                fz2 = bilinear_xy(Q001, Q101, Q011, Q111, x1, x2, y1, y2, x, y)
 
                 result[k, i] = ((z2 - z + 1e-30) / (z2 - z1 + 2e-30)) * fz1 + ((z - z1 + 1e-30) / (z2 - z1 + 2e-30)) * fz2
     return result

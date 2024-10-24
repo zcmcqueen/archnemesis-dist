@@ -552,7 +552,7 @@ class OptimalEstimation_0:
 
         for i in range(self.NX):
             x_out[i] = self.XA[i] + mp1[i,0] - mp2[i,0]
-
+        
         return x_out
 
     def calc_serr(self):

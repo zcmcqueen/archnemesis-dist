@@ -337,6 +337,9 @@ def read_input_files(runname,Fortran=True):
     #Read aerosol profiles
     Atm.read_aerosol()
     
+    #Read para-h2
+    Atm.read_parah2()
+    
     if Fortran==True:
         
         #Calculating the atmospheric density (kg/m3)
@@ -364,6 +367,8 @@ def read_input_files(runname,Fortran=True):
 
     Measurement,Scatter,Spec,WOFF,fmerrname,NITER,PHILIMIT,NSPEC,IOFF,LIN = read_inp(runname,Scatter=Scatter)
 
+    Measurement.WOFF = WOFF
+    
     Retrieval = OptimalEstimation_0()
     Retrieval.NITER=NITER
     Retrieval.PHILIMIT=PHILIMIT
@@ -385,7 +390,6 @@ def read_input_files(runname,Fortran=True):
 
     #Reading Spectroscopy parameters from .lls or .kls files
     ##############################################################
-
     if Spec.ILBL==0:
         Spec.read_kls(runname)
     elif Spec.ILBL==2:

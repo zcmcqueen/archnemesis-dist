@@ -230,7 +230,6 @@ class Variables_0:
         @param NXVAR_array: 1D array
             Number of parameters in the state vector associated with each model
         """
-
         nxvar = np.zeros(self.NVAR,dtype='int32')
 
         if self.NVAR==1:
@@ -252,7 +251,6 @@ class Variables_0:
                 ipar = self.VARPARAM[i,0]
                 ipar2 = self.VARPARAM[i,1]
                 ipar3 = self.VARPARAM[i,2]
-
             if imod == -1:
                 nxvar[i] = NPRO
             elif imod == 0:
@@ -338,7 +336,12 @@ class Variables_0:
             elif imod == 233:
                 nxvar[i] = 3*int(ipar)
             elif imod == 444:
-                nxvar[i] = 1 + 1 + int(ipar)
+                try:
+                    idust = self.VARIDENT[i,1]-1
+                    nxvar[i] = self.HAZE_PARAMS['NX',idust]
+                except: # happens when reading .mre
+                    nxvar[i] = ipar + 2
+                    
             elif imod == 446:
                 nxvar[i] = 1
             elif imod == 447:
@@ -1288,6 +1291,7 @@ class Variables_0:
                         xai, xa_erri = line[:2]
                         
                         x0[ix] = np.log(float(xai))
+                        lx[ix] = 1
                         sx[ix,ix] = (float(xa_erri)/float(xai))**2.
 
                         ix = ix + 1
@@ -1302,6 +1306,7 @@ class Variables_0:
                         v, xai, xa_erri = line[:3]
                         if not stopread:
                             x0[ix] = np.log(float(xai))
+                            lx[ix] = 1
                             sx[ix,ix] = (float(xa_erri)/float(xai))**2.
 
                             ix = ix + 1
@@ -1318,6 +1323,12 @@ class Variables_0:
                     self.HAZE_PARAMS['NREAL',idust] = float(nreal_ref)
                     self.HAZE_PARAMS['WAVE_REF',idust] = float(vref)
                     self.HAZE_PARAMS['WAVE_NORM',idust] = float(v_od_norm)
+                    
+                    varparam[i,0] = int(nwave)
+                    varparam[i,1] = float(clen)
+                    varparam[i,2] = float(vref)
+                    varparam[i,3] = float(nreal_ref)
+                    varparam[i,4] = float(v_od_norm)
                     
                     if float(clen) > 0:
                         for j in range(int(nwave)):

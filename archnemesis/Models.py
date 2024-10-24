@@ -1715,7 +1715,6 @@ def model444(Scatter,idust,iscat,xprof,haze_params):
     
     Scatter.WAVER = haze_params['WAVE',idust]
     Scatter.REFIND_IM = np.exp(xprof[2:])
-    
     reference_nreal = haze_params['NREAL',idust]
     reference_wave = haze_params['WAVE_REF',idust]
     normalising_wave = haze_params['WAVE_NORM',idust]

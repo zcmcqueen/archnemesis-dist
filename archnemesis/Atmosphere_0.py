@@ -127,7 +127,8 @@ class Atmosphere_0:
         self.VMR = None # np.zeros((NP,NVMR)) or np.zeros((NP,NVMR,NLOCATIONS)) 
         self.DUST = None # np.zeros((NP,NDUST)) or np.zeros((NP,NDUST,NLOCATIONS)) #particles per m3
         self.DUST_UNITS_FLAG = None # np.zeros(NDUST), -1 for legacy units, 0 for standard
-        self.DUST_RENORMALISATION = {}
+        self.DUST_RENORMALISATION = {} # flags for normalising clouds to specific opacity
+        self.PARAH2 = None # np.zeros(NP) 
     ##################################################################################
 
     def assess(self):
@@ -1366,6 +1367,30 @@ class Atmosphere_0:
                 f.write('{:<15.3E}'.format(self.DUST[i]))
         f.close()
 
+    ##################################################################################
+
+    def read_parah2(self):
+        """
+        Reads in the para-h2 profile from parah2.ref.
+        """
+        try:
+            with open('parah2.ref', 'r') as file:
+                self.PARAH2 = []
+                first = False
+                for line in file:
+                    if line.startswith('#'):
+                        continue
+                    if not first:
+                        first = True
+                        continue
+                    self.PARAH2.append(float(line.split()[-1]))          
+            
+        except FileNotFoundError as e:
+            return
+        self.PARAH2 = np.array(self.PARAH2)
+        if len(self.PARAH2) != len(self.P):
+            raise Exception("Incorrect number of entries in parah2.ref!")
+            
     ##################################################################################
 
     def calc_coldens(self):

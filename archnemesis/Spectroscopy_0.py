@@ -101,7 +101,7 @@ class Spectroscopy_0:
         self.G_ORD = None     #(NG)
         self.DELG = None      #(NG)
         self.FWHM = None
-
+        
         self.K = None #(NWAVE,NG,NP,NT,NGAS)
 
 

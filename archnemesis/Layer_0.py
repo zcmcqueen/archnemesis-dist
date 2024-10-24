@@ -135,7 +135,8 @@ class Layer_0:
         self.AMOUNT = None     #(NLAY,NVMR) Gaseous line-of-sight column density of each gas in each layer (m-2)
         self.PP = None         #(NLAY,NVMR) Effective partial pressure of each gas in each layer (Pa)
         self.CONT = None       #(NLAY,NDUST)  Line-of-sight column density of each dust population in each layer (particles/m2)
-
+        self.FRAC = None     #(NLAY) Fraction of para-h2 in each layer
+        
         #Matrices relating the properties at the reference input profiles wrt the properties of each layer 
         self.DTE = None        #(NLAY,NP)
         self.DAM = None        #(NLAY,NP)
@@ -318,7 +319,7 @@ class Layer_0:
 
     ####################################################################################################
  
-    def calc_layering(self, H, P, T, ID, VMR, DUST):
+    def calc_layering(self, H, P, T, ID, VMR, DUST, PARAH2):
         """
         Function to split atmosphere into layer and calculate their effective properties.
         
@@ -345,11 +346,11 @@ class Layer_0:
         self.layer_split(H=H, P=P, T=T, LAYANG=self.LAYANG)
         
         #Once we have the layers, we calculate the effective properties of each layer
-        self.layer_average(ID=ID, VMR=VMR, DUST=DUST)
+        self.layer_average(ID=ID, VMR=VMR, DUST=DUST, PARAH2=PARAH2)
 
     ####################################################################################################
 
-    def calc_layeringg(self, H, P, T, ID, VMR, DUST):
+    def calc_layeringg(self, H, P, T, ID, VMR, DUST, PARAH2):
         """
         
         Function to split atmosphere into layer and calculate their effective properties.
@@ -381,7 +382,7 @@ class Layer_0:
         self.layer_split(H=H, P=P, T=T, LAYANG=self.LAYANG)
         
         #Once we have the layers, we calculate the effective properties of each layer
-        self.layer_averageg(ID=ID, VMR=VMR, DUST=DUST)
+        self.layer_averageg(ID=ID, VMR=VMR, DUST=DUST, PARAH2=PARAH2)
 
     ####################################################################################################
 
@@ -414,7 +415,7 @@ class Layer_0:
 
     ####################################################################################################
 
-    def layer_average(self, ID, VMR, DUST):
+    def layer_average(self, ID, VMR, DUST, PARAH2):
         """
         Function to calculate the effective properties of each layer based on the
         layer boundaries, and the reference input profiles
@@ -433,9 +434,9 @@ class Layer_0:
         """
         # get averaged layer properties
 
-        HEIGHT,PRESS,TEMP,TOTAM,AMOUNT,PP,CONT,DELH,BASET,LAYSF\
+        HEIGHT,PRESS,TEMP,TOTAM,AMOUNT,PP,CONT,FRAC,DELH,BASET,LAYSF\
             = layer_average(RADIUS=self.RADIUS, H=self.H, P=self.P, T=self.T,
-                ID=ID, VMR=VMR, DUST=DUST, BASEH=self.BASEH, BASEP=self.BASEP,
+                ID=ID, VMR=VMR, DUST=DUST, PARAH2=PARAH2, BASEH=self.BASEH, BASEP=self.BASEP,
                 LAYANG=self.LAYANG, LAYINT=self.LAYINT, LAYHT=self.LAYHT,
                 NINT=self.NINT, DUST_UNITS = self.DUST_UNITS_FLAG)
         self.HEIGHT = HEIGHT
@@ -445,13 +446,14 @@ class Layer_0:
         self.AMOUNT = AMOUNT
         self.PP = PP
         self.CONT = CONT
+        self.FRAC = FRAC
         self.DELH = DELH
         self.BASET = BASET
         self.LAYSF = LAYSF
 
     ####################################################################################################
 
-    def layer_averageg(self, ID, VMR, DUST):
+    def layer_averageg(self, ID, VMR, DUST, PARAH2):
         """
         Function to calculate the effective properties of each layer based on the
         layer boundaries, and the reference input profiles. In addition, this function
@@ -471,9 +473,9 @@ class Layer_0:
             the column j corresponds to the dust population.
         """
         # get averaged layer properties
-        HEIGHT,PRESS,TEMP,TOTAM,AMOUNT,PP,CONT,DELH,BASET,LAYSF,DTE,DAM,DCO\
+        HEIGHT,PRESS,TEMP,TOTAM,AMOUNT,PP,CONT,FRAC,DELH,BASET,LAYSF,DTE,DAM,DCO,DPH\
             = layer_averageg(RADIUS=self.RADIUS, H=self.H, P=self.P, T=self.T,
-                ID=ID, VMR=VMR, DUST=DUST, BASEH=self.BASEH, BASEP=self.BASEP,
+                ID=ID, VMR=VMR, DUST=DUST, PARAH2=PARAH2, BASEH=self.BASEH, BASEP=self.BASEP,
                 LAYANG=self.LAYANG, LAYINT=self.LAYINT, LAYHT=self.LAYHT,
                 NINT=self.NINT)
         self.HEIGHT = HEIGHT
@@ -483,13 +485,14 @@ class Layer_0:
         self.AMOUNT = AMOUNT
         self.PP = PP
         self.CONT = CONT
+        self.FRAC = FRAC
         self.DELH = DELH
         self.BASET = BASET
         self.LAYSF = LAYSF
         self.DTE = DTE
         self.DAM = DAM
         self.DCO = DCO
-
+        self.DPH = DPH
     ####################################################################################################
 
     def plot_Layer(self):
@@ -624,7 +627,7 @@ def interpg(X_data, Y_data, X):
 
 #########################################################################################
 
-def layer_average(RADIUS, H, P, T, ID, VMR, DUST, BASEH, BASEP,
+def layer_average(RADIUS, H, P, T, ID, VMR, DUST, PARAH2, BASEH, BASEP,
                   LAYANG=0.0, LAYINT=0, LAYHT=0.0, NINT=101, AMFORM=1, DUST_UNITS=None):
     """
     Calculates average layer properties.
@@ -650,6 +653,8 @@ def layer_average(RADIUS, H, P, T, ID, VMR, DUST, BASEH, BASEP,
         the column j corresponds to the gas with RADTRANS ID ID[j].
     @param DUST: 2D array
         DUST[i,j] is dust density of dust popoulation j at vertical point i  (particles/m3)
+    @param PARAH2: 1D array
+        Para-H2 fraction
     @param BASEH: 1D array
         Heights of the layer bases.
     @param BASEP: 1D array
@@ -751,6 +756,10 @@ def layer_average(RADIUS, H, P, T, ID, VMR, DUST, BASEH, BASEP,
     MOLWT  = np.zeros(NPRO)
     # CONT = no. of particles/area for each dust population (particles/m2)
     CONT = np.zeros((NLAY,NDUST))
+    # FRAC = fraction of para-H2 in each layer
+    FRAC   = np.zeros(NLAY)
+    if PARAH2 is None:
+        PARAH2 = np.zeros(NPRO)
 
     # Calculate average properties depending on intergration type
     if LAYINT == 0:
@@ -762,6 +771,8 @@ def layer_average(RADIUS, H, P, T, ID, VMR, DUST, BASEH, BASEP,
         HEIGHT = np.sqrt(S**2+z0**2+2*S*z0*cos) - RADIUS
         PRESS = interp(H,P,HEIGHT)
         TEMP = interp(H,T,HEIGHT)
+        FRAC = interp(H,PARAH2,HEIGHT)
+        
 
         # Ideal gas law: N/(Area*Path_length) = P/(k_B*T)
         DUDS = PRESS/(k_B*TEMP)
@@ -806,6 +817,8 @@ def layer_average(RADIUS, H, P, T, ID, VMR, DUST, BASEH, BASEP,
             h = np.sqrt(S**2+z0**2+2*S*z0*cos)-RADIUS
             p = interp(H,P,h)
             temp = interp(H,T,h)
+            frac = interp(H,PARAH2,h)
+            
             duds = p/(k_B*temp)
 
             amount = np.zeros((NINT, NVMR))
@@ -815,6 +828,7 @@ def layer_average(RADIUS, H, P, T, ID, VMR, DUST, BASEH, BASEP,
             HEIGHT[I]  = simpson(h*duds,S)/TOTAM[I]
             PRESS[I] = simpson(p*duds,S)/TOTAM[I]
             TEMP[I]  = simpson(temp*duds,S)/TOTAM[I]
+            FRAC[I]  = simpson(frac*duds,S)/TOTAM[I]
 
             if VMR.ndim > 1:
                 amount = np.zeros((NINT, NVMR))
@@ -871,11 +885,11 @@ def layer_average(RADIUS, H, P, T, ID, VMR, DUST, BASEH, BASEP,
         CONT = (CONT.T * LAYSF**-1 ).T
     else:
         CONT = CONT/LAYSF
-    return HEIGHT,PRESS,TEMP,TOTAM,AMOUNT,PP,CONT,DELH,BASET,LAYSF
+    return HEIGHT,PRESS,TEMP,TOTAM,AMOUNT,PP,CONT,FRAC,DELH,BASET,LAYSF
 
 #########################################################################################
 
-def layer_averageg(RADIUS, H, P, T, ID, VMR, DUST, BASEH, BASEP,
+def layer_averageg(RADIUS, H, P, T, ID, VMR, DUST, PARAH2, BASEH, BASEP,
                   LAYANG=0.0, LAYINT=0, LAYHT=0.0, NINT=101, AMFORM=1):
     """
     Calculates average layer properties.
@@ -901,6 +915,8 @@ def layer_averageg(RADIUS, H, P, T, ID, VMR, DUST, BASEH, BASEP,
         the column j corresponds to the gas with RADTRANS ID ID[j].
     @param DUST: 2D array
         DUST[i,j] is dust density of dust popoulation j at vertical point i  (particles/m3)
+    @param PARAH2: 1D array
+        Para-H2 fraction
     @param BASEH: 1D array
         Heights of the layer bases.
     @param BASEP: 1D array
@@ -1008,12 +1024,18 @@ def layer_averageg(RADIUS, H, P, T, ID, VMR, DUST, BASEH, BASEP,
     MOLWT  = np.zeros(NLAY)
     # CONT = no. of particles/area for each dust population (particles/m2)
     CONT = np.zeros((NLAY,NDUST))
+    # FRAC = fraction of para-H2 in each layer
+    FRAC = np.zeros(NLAY)
+    if PARAH2 is None:
+        PARAH2 = np.zeros(NPRO)
     #DTE = matrix to relate the temperature in each layer (TEMP) to the temperature in the input profiles (T)
     DTE = np.zeros((NLAY, NPRO))
     #DCO = matrix to relate the dust abundance in each layer (CONT) to the dust abundance in the input profiles (DUST)
     DCO = np.zeros((NLAY, NPRO))
     #DAM = matrix to relate the gaseous abundance in each layer (AMOUNT) to the gas VMR in the input profiles (VMR)
     DAM = np.zeros((NLAY, NPRO))
+    #DPH = matrix to relate para-H2 in each layer (FRAC) to that in the input profiles (PARAH2)
+    DPH = np.zeros((NLAY, NPRO))
 
     #Defining the weights for the integration with the Simpson's rule
     w = np.ones(NINT) * 4.
@@ -1036,6 +1058,11 @@ def layer_averageg(RADIUS, H, P, T, ID, VMR, DUST, BASEH, BASEP,
             DTE[ilay,J[ilay]] = DTE[ilay,J[ilay]] + (1.0-F[ilay])
             DTE[ilay,J[ilay]+1] = DTE[ilay,J[ilay]+1] + (F[ilay])
 
+        FRAC,J,F = interpg(H,PARAH2,HEIGHT)
+        for ilay in range(NLAY):
+            DPH[ilay,J[ilay]] = DPH[ilay,J[ilay]] + (1.0-F[ilay])
+            DPH[ilay,J[ilay]+1] = DPH[ilay,J[ilay]+1] + (F[ilay])
+            
         # Ideal gas law: N/(Area*Path_length) = P/(k_B*T)
         DUDS = PRESS/(k_B*TEMP)
         TOTAM = DUDS*DELS
@@ -1088,6 +1115,7 @@ def layer_averageg(RADIUS, H, P, T, ID, VMR, DUST, BASEH, BASEP,
             h = np.sqrt(S**2+z0**2+2*S*z0*cos)-RADIUS
             p = interp(H,P,h)
             temp,JJ,F = interpg(H,T,h)
+            frac,JJP,FP = interpg(H,PARAH2,h)
             duds = p/(k_B*temp)
 
             amount = np.zeros((NINT, NVMR))
@@ -1097,11 +1125,16 @@ def layer_averageg(RADIUS, H, P, T, ID, VMR, DUST, BASEH, BASEP,
             HEIGHT[I]  = simpson(h*duds,x=S)/TOTAM[I]
             PRESS[I] = simpson(p*duds,x=S)/TOTAM[I]
             TEMP[I]  = simpson(temp*duds,x=S)/TOTAM[I]
+            FRAC[I]  = simpson(frac*duds,x=S)/TOTAM[I]
 
             for iint in range(NINT):
                 DTE[I,JJ[iint]] = DTE[I,JJ[iint]] + (1.-F[iint])*w[iint]*duds[iint]
                 DTE[I,JJ[iint]+1] = DTE[I,JJ[iint]+1] + (F[iint])*w[iint]*duds[iint]
 
+                DPH[I,JJP[iint]] = DPH[I,JJP[iint]] + (1.-FP[iint])*w[iint]*duds[iint]
+                DPH[I,JJP[iint]+1] = DPH[I,JJP[iint]+1] + (FP[iint])*w[iint]*duds[iint]
+
+                
             if VMR.ndim > 1:
                 amount = np.zeros((NINT, NVMR))
                 for J in range(NVMR):
@@ -1169,7 +1202,7 @@ def layer_averageg(RADIUS, H, P, T, ID, VMR, DUST, BASEH, BASEP,
         DAM[:,IPRO] = DAM[:,IPRO] / LAYSF
         DCO[:,IPRO] = DCO[:,IPRO] / LAYSF
 
-    return HEIGHT,PRESS,TEMP,TOTAM,AMOUNT,PP,CONT,DELH,BASET,LAYSF,DTE,DAM,DCO
+    return HEIGHT,PRESS,TEMP,TOTAM,AMOUNT,PP,CONT,FRAC,DELH,BASET,LAYSF,DTE,DAM,DCO,DPH
 
 #########################################################################################
 

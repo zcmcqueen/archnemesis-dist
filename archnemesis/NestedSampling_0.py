@@ -66,17 +66,103 @@ class NestedSampling_0:
         Cornerplot of results.
         """ 
         
-        a = pymultinest.Analyzer(n_params = len(self.parameters), outputfiles_basename = self.prefix)
+        prior_means = self.XA
+        prior_stds = self.XA_ERR
+
+        # Initialize the analyzer
+        a = pymultinest.Analyzer(n_params=len(self.parameters), outputfiles_basename=self.prefix)
         s = a.get_stats()
 
         print('Creating marginal plot ...')
-        data = a.get_data()[:,2:]
-        weights = a.get_data()[:,0]
 
+        # Extract data and weights
+        data_array = a.get_data()
+        weights = data_array[:, 0]
+        data = data_array[:, 2:]
+
+        # Apply weight mask (optional, depending on your data)
         mask = weights > 1e-4
+        data_masked = data[mask, :]
+        weights_masked = weights[mask]
 
-        corner.corner(data[mask,:], weights=weights[mask], 
-            labels=self.parameters, show_titles=True)
+        # Generate prior samples from Gaussian distributions
+        num_prior_samples = 1000000
+        prior_samples = np.zeros((num_prior_samples, len(self.parameters)))
+
+        for i in range(len(self.parameters)):
+            prior_samples[:, i] = np.random.normal(
+                loc=prior_means[i],
+                scale=prior_stds[i],
+                size=num_prior_samples
+            )
+
+        # Combine prior and posterior samples for consistent axis ranges
+        combined_samples = np.vstack((data_masked, prior_samples))
+
+        # Determine axis ranges from combined samples
+        ranges = []
+        for i in range(len(self.parameters)):
+            min_val = np.min(data_masked[:, i])
+            max_val = np.max(data_masked[:, i])
+            ranges.append((min_val, max_val))
+
+            
+        # Plot the corner plot for posterior samples
+        
+        figure = corner.corner(
+            prior_samples,
+            labels=self.parameters,
+            color='red',
+            range=ranges,
+            bins=50,  # Match bins with the posterior histogram
+            hist_kwargs={'density': True},
+            plot_contours=True,
+            fill_contours=False,
+            contour_colors=['red'],
+            plot_datapoints=False,  # Adjust transparency
+            zorder = -1,
+            smooth = 1.0# Plot on the same figure
+        )
+        
+        figure = corner.corner(
+            data_masked,
+            weights=weights_masked,
+            labels=self.parameters,
+            show_titles=True,
+            color='blue',
+            range=ranges,
+            bins=50,  # Adjust as needed
+            hist_kwargs={'density': True},
+            plot_contours=True,
+            fill_contours=False,
+            contour_colors=['blue'],
+            fig=figure ,
+            zorder = 1,
+            smooth = 1.0,
+            data_kwargs={'alpha': 0.5},  # Adjust transparency
+        )
+
+
+            
+
+        # Adjust the diagonal plots (1D histograms) to add legends
+        axes = np.array(figure.axes).reshape((len(self.parameters), len(self.parameters)))
+
+        for i in range(len(self.parameters)):
+            ax = axes[i, i]
+            # Add legends to diagonal plots
+            handles, labels = ax.get_legend_handles_labels()
+            ax.legend(handles, labels)
+            
+        from matplotlib.lines import Line2D
+
+        legend_elements = [
+            Line2D([0], [0], color='blue', lw=2, label='Posterior'),
+            Line2D([0], [0], color='red', lw=2, label='Prior')
+        ]
+
+        figure.legend(handles=legend_elements, loc='upper right')
+        
         plt.savefig(self.prefix + 'corner.png')
         plt.close()
 
@@ -146,7 +232,7 @@ def coreretNS(runname,Variables,Measurement,Atmosphere,Spectroscopy,Scatter,Stel
     for i in NestedSampling.vars_to_vary:
         dist_code = 0                              ### PLACEHOLDER - need to add custom distributions!
         if dist_code == 0:
-            NestedSampling.priors.append(norm(NestedSampling.XA[i], NestedSampling.XA_ERR[i]).ppf)
+            NestedSampling.priors.append(scipy.stats.norm(NestedSampling.XA[i], NestedSampling.XA_ERR[i]).ppf)
         elif dist_code == 1:
             NestedSampling.priors.append(lambda x, i=i: x * (NestedSampling.XA[i] + NestedSampling.XA_ERR[i] - \
                                                              NestedSampling.XA[i] + NestedSampling.XA_ERR[i]) + \

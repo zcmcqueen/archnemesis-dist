@@ -254,36 +254,45 @@ class CIA_0:
         s = f.readline().split()
         dnu = float(s[0])
         s = f.readline().split()
-        npara = int(s[0])
+        NPARA = int(s[0])
         f.close()
 
-        if npara!=0:
-            sys.exit('error in read_cia :: routines have not been adapted yet for npara!=0')
-
-        #Reading the actual CIA file
-        if npara==0:
-            NPAIR = 9
-
-        IPAIRG1=[39,39,39,39,39,22,22,6,39]
-        IPAIRG2=[39,40,39,40,22,6,22,6,6]
-        INORMALT=[0,0,1,1,0,0,0,0,0]
-
         f = FortranFile(self.CIADATA+cianame, 'r' )
-        TEMPS = f.read_reals( dtype='float64' )
-        KCIA_list = f.read_reals( dtype='float32' )
-        NT = len(TEMPS)
-        NWAVE = int(len(KCIA_list)/NT/NPAIR)
+        
+        if NPARA!=0:
+            NPAIR = 2
+            TEMPS = f.read_reals(dtype='float32')
+            FRAC = np.abs(f.read_reals(dtype='float32'))
+            K_H2H2 = f.read_reals(dtype='float32')
+            K_H2HE = f.read_reals(dtype='float32')
+            KCIA_list = np.vstack([K_H2H2,K_H2HE]).reshape((-1,),order='F')
+            IPAIRG1=[39,39]
+            IPAIRG2=[39,40]
+            INORMALT=[0,0]
+            
+        #Reading the actual CIA file
+        if NPARA==0:
+            NPAIR = 9 # 9 pairs of collision induced absorption opacities
+            FRAC = np.array([0])
+            TEMPS = f.read_reals( dtype='float64' )
+            KCIA_list = f.read_reals( dtype='float32' )
+            IPAIRG1=[39,39,39,39,39,22,22,6,39]
+            IPAIRG2=[39,40,39,40,22,6,22,6,6]
+            INORMALT=[0,0,1,1,0,0,0,0,0]
 
+        NT = len(TEMPS)
+        NWAVE = int(len(KCIA_list)/NT/NPAIR/max(NPARA,1))
         NU_GRID = np.linspace(0,dnu*(NWAVE-1),NWAVE)
-        K_CIA = np.zeros([NPAIR, NT, NWAVE])
+        K_CIA = np.zeros((NPAIR,max(NPARA,1),NT,NWAVE)) # NPAIR x NT x NWAVE
     
         index = 0
         for iwn in range(NWAVE):
             for itemp in range(NT):
-                for ipair in range(NPAIR):
-                    K_CIA[ipair,itemp,iwn] = KCIA_list[index]  #cm-1 amagat-2
-                    index += 1
-
+                for ipara in range(max(NPARA,1)):
+                    for ipair in range(NPAIR):
+                        K_CIA[ipair,ipara,itemp,iwn] = KCIA_list[index]
+                        index += 1
+                        
         #Changing the units of the CIA table (NEMESIS format) from cm-1 amagat-2 to cm5 molecule-2
         AMAGAT = 2.68675E19 #molecule cm-3 (definition of amagat unit)
         K_CIA = K_CIA / (AMAGAT**2.) #cm5 molecule-2
@@ -291,11 +300,13 @@ class CIA_0:
         self.NWAVE = NWAVE
         self.NT = NT
         self.NPAIR = NPAIR
+        self.NPARA = NPARA
         self.IPAIRG1 = IPAIRG1
         self.IPAIRG2 = IPAIRG2
         self.INORMALT = INORMALT
         self.WAVEN = NU_GRID
         self.TEMP = TEMPS
+        self.FRAC = FRAC
         self.K_CIA = K_CIA
 
     ##################################################################################
