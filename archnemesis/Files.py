@@ -58,6 +58,8 @@ def file_lines(fname):
 ###############################################################################################
 
 # read_input_files_hdf5()
+# read_retparam_hdf5()
+# read_bestfit_hdf5()
 
 ###############################################################################################
 
@@ -330,6 +332,53 @@ def read_retparam_hdf5(runname):
     
 
     return NVAR,NXVAR,VARIDENT,VARPARAM,APRPARAM,APRERRPARAM,RETPARAM,RETERRPARAM
+
+###############################################################################################
+
+def read_bestfit_hdf5(runname):
+    """
+
+        DESCRIPTION : 
+
+            Read the best fit from the HDF5 file and include it in the Measurement class
+
+        INPUTS :
+      
+            runname :: Name of the NEMESIS run
+
+        OPTIONAL INPUTS: none
+        
+        OUTPUTS : 
+
+            Measurement :: Python class defining the measurement and best fit to the data
+
+        CALLING SEQUENCE:
+        
+            Measurement = read_bestfit_hdf5(runname)
+ 
+        MODIFICATION HISTORY : Juan Alday (25/03/2023)
+    """
+
+    import h5py
+
+    #Reading the best fit
+    f = h5py.File(runname+'.h5','r')
+    YN = np.array(f.get('Retrieval/Output/OptimalEstimation/YN'))
+    f.close()
+ 
+    #Writing the measurement vector in same format as in Measurement
+    Measurement = Measurement_0()
+    Measurement.read_hdf5(runname)
+
+    SPECMOD = np.zeros(Measurement.MEAS.shape)
+    ix = 0
+    for i in range(Measurement.NGEOM):
+        SPECMOD[0:Measurement.NCONV[i],i] = YN[ix:ix+Measurement.NCONV[i]]
+        ix = ix + Measurement.NCONV[i]
+
+    Measurement.edit_SPECMOD(SPECMOD)
+
+    return Measurement
 
 ###############################################################################################
 ###############################################################################################
