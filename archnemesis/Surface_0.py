@@ -1246,7 +1246,7 @@ def calc_Hapke_BRDFx(w,K,BS0,hs,BC0,hc,ROUGHNESS,G1,G2,F,i,e,phi):
             phix = 180. - (phi-180.)
         else:
             phix = phi
-
+            
         #Calculating the scattering phase angle
         cg = mu * mu0 + np.sqrt(1. - mu**2.) * np.sqrt(1. - mu0**2.) * np.cos(phix/180.*np.pi) 
         if cg>1.0:
@@ -1254,6 +1254,7 @@ def calc_Hapke_BRDFx(w,K,BS0,hs,BC0,hc,ROUGHNESS,G1,G2,F,i,e,phi):
         if cg<0.0:
             cg = 0.0
         g = np.arccos(cg)/np.pi*180.   #Scattering phase angle (degrees) (NTHETA)
+        
         
         #Calculate some of the input parameters for the Hapke formalism
         gamma = np.sqrt(1. - w)
@@ -1276,14 +1277,13 @@ def calc_Hapke_BRDFx(w,K,BS0,hs,BC0,hc,ROUGHNESS,G1,G2,F,i,e,phi):
         nui = calc_Hapke_nu(i,theta_bar,E1i,E2i,chi)
         
         #Calculating the effective incidence and reflection angles
-        mu0eff, mueff = calc_Hapke_eff_angles(i,e,phi,theta_bar,E1e,E1i,E2e,E2i,chi)
+        mu0eff, mueff = calc_Hapke_eff_angles(i,e,phix,theta_bar,E1e,E1i,E2e,E2i,chi)
 
         #Calculating the shadowing function S
         if i<=e:
             S = mueff/nue * mu0/nui * chi / (1.0 - fphi + fphi*chi*mu0/nui)
         else:
             S = mueff/nue * mu0/nui * chi / (1.0 - fphi + fphi*chi*mu/nue)
-
 
         #Calculating the shadow-hiding opposition function Bs
         Bs = BS0 / ( 1. + (1./hs) * np.tan( g/2./180.*np.pi) )
