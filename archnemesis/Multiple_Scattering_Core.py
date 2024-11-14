@@ -143,6 +143,20 @@ def phasint2(nphi, ic, nmu, mu, iscat, cons, ncons, icont, ncont, pfunc, xmu):
     if iscat == 0:
         pl = 0.75 * (1.0 + cpl * cpl)/ (4 * np.pi)
         pm = 0.75 * (1.0 + cmi * cmi)/ (4 * np.pi)
+    elif iscat == 2:
+        f1 = pfunc[0]
+        f2 = 1.0 - f1
+        hg11 = 1.0 - pfunc[1] * pfunc[1]
+        hg12 = 2.0 - hg11
+        hg21 = 1.0 - pfunc[2] * pfunc[2]
+        hg22 = 2.0 - hg21
+        pl = f1 * hg11 / np.sqrt(hg12 - 2.0 * pfunc[1] * cpl) ** 3 + f2 * hg21 / np.sqrt(hg22 - 2.0 * pfunc[2] * cpl) ** 3
+        pm = f1 * hg11 / np.sqrt(hg12 - 2.0 * pfunc[1] * cmi) ** 3 + f2 * hg21 / np.sqrt(hg22 - 2.0 * pfunc[2] * cmi) ** 3
+        pl /= 4*np.pi
+        pm /= 4*np.pi
+        
+        
+        
     else:
         pl = np.interp(cpl, xmu, pfunc) #phase1(cpl, iscat, cons, ncons, icont, ncont, vwave, pfunc, xmu)
         pm = np.interp(cmi, xmu, pfunc) #phase1(cmi, iscat, cons, ncons, icont, ncont, vwave, pfunc, xmu)        
@@ -534,7 +548,7 @@ def angle_quadrature(solar,sol_ang,emiss_ang,mu,nmu):
     return solar1, isol, iemm, t, u 
 
 @njit(fastmath = True, error_model='numpy')
-def calc_rtj_matrix(ic,mu,wtmu,bb,tautot,tauscat,tauray,frac,ppln,pmin,pplr,pmir,cc=None,mminv=None,e=None):
+def calc_rtj_matrix(ic,mu,wtmu,bb,tautot,tauscat,tauray,frac,ppln,pmin,pplr,pmir,cc,mminv,e):
     '''
     Calculate the Reflection, Transmission and Source matrices for a given atmospheric layer
     
@@ -620,7 +634,7 @@ def calc_rtj_matrix(ic,mu,wtmu,bb,tautot,tauscat,tauray,frac,ppln,pmin,pplr,pmir
 
 @njit(fastmath = True,parallel=False, cache = True, error_model='numpy')
 def scloud11wave_core(phasarr, radg, sol_angs, emiss_angs, solar, aphis, lowbc, galb, mu1, wt1, nf,
-                vwaves, bnu, taus, tauray,omegas_s, nphi,iray, lfrac):
+                vwaves, bnu, taus, tauray,omegas_s, nphi,iray,imie, lfrac):
     
     """
     Calculate spectrum using the adding-doubling method.
@@ -663,6 +677,8 @@ def scloud11wave_core(phasarr, radg, sol_angs, emiss_angs, solar, aphis, lowbc, 
         Number of azimuth integration ordinates
     iray:
         Flag for using rayleigh scattering
+    iray:
+        Flag for phase function type
     lfrac(NWAVE,NCONT,NLAY):
         Fraction of scattering contributed by each type in each layer
     
@@ -756,15 +772,18 @@ def scloud11wave_core(phasarr, radg, sol_angs, emiss_angs, solar, aphis, lowbc, 
             # Expand into successive fourier components until convergence or ic = nf
             
             for ic in range(nf+1):
-                ppln*=0
-                pmin*=0 
-                pplr*=0
-                pmir*=0
+                ppln.fill(0.)
+                pmin.fill(0.)
+                pplr.fill(0.)
+                pmir.fill(0.)
 
                 for j1 in range(ncont):                    
                     pfunc = phasarr[j1, widx, 0, :]
                     xmu   = phasarr[j1, widx, 1, :]
-                    iscat = 4
+                    if imie == 0:
+                        iscat = 2
+                    else:
+                        iscat = 4
                     ncons = 0
                     cons8 = pfunc
                     norm = 1
@@ -790,13 +809,13 @@ def scloud11wave_core(phasarr, radg, sol_angs, emiss_angs, solar, aphis, lowbc, 
                 if(lowbc == 1):
                     js[:,0,ic] = (1-galb[widx])*radg[widx]
                     if ic == 0:
-                        ts[:,:,ic] *= 0.0
+                        ts[:,:,ic].fill(0.0)
                         for j in range(nmu):
                             rs[:,j,ic] = 2*galb[widx]*mu[j]*wtmu[j] 
                         rs[:,:,ic]*= xfac
                     else:
-                        ts[:,:,ic] *= 0.0
-                        rs[:,:,ic] *= 0.0
+                        ts[:,:,ic].fill(0.0)
+                        rs[:,:,ic].fill(0.0)
                         
                     if lookdown == True:
                         surface_defined = True
@@ -832,7 +851,7 @@ def scloud11wave_core(phasarr, radg, sol_angs, emiss_angs, solar, aphis, lowbc, 
                     frac = lfrac[widx,:,k]
 
                     #Calculating the matrices
-                    rl, tl, jl, iscl = calc_rtj_matrix(ic,mu,wtmu,bc,taut,tauscat,taur,frac,ppln,pmin,pplr,pmir,cc=cc,mminv=mminv,e=e)
+                    rl, tl, jl, iscl = calc_rtj_matrix(ic,mu,wtmu,bc,taut,tauscat,taur,frac,ppln,pmin,pplr,pmir,cc,mminv,e)
                     
                     #Combining layers along the path
                     if l == 0 and surface_defined == False:
@@ -849,7 +868,7 @@ def scloud11wave_core(phasarr, radg, sol_angs, emiss_angs, solar, aphis, lowbc, 
                     #raise ValueError('hola')
 
                 if ic != 0:
-                    jcomb[:,:,ic] *= 0.0
+                    jcomb[:,:,ic].fill(0.0)
 
             #calculating the spectra
             for ipath in range(ngeom):

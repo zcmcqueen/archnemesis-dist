@@ -819,7 +819,7 @@ def model47(atm, ipar, tau, pref, fwhm, MakePlot=False):
         DESCRIPTION :
         
             Profile is represented by a Gaussian with a specified optical thickness centred
-            at a variable pressure level plus a variable FWHM (log press) in height.
+            at a variable pressure level plus a variable FWHM (log press).
         
         INPUTS :
         
@@ -1132,6 +1132,60 @@ def model50(atm,ipar,xprof,MakePlot=False):
 
     for j in range(npro):
         xmap[j,ipar,j] = xref[j]
+
+    return atm,xmap
+
+def model51(atm, ipar, scale, scale_gas, scale_iso):
+    """
+        FUNCTION NAME : model51()
+        
+        DESCRIPTION :
+        
+            Function defining the model parameterisation 51 (49 in NEMESIS).
+            In this model, the profile is scaled using a single factor with 
+            respect to a reference profile.
+        
+        INPUTS :
+        
+            atm :: Python class defining the atmosphere
+
+            ipar :: Atmospheric parameter to be changed
+                    (0 to NVMR-1) :: Gas VMR
+                    (NVMR) :: Temperature
+                    (NVMR+1 to NVMR+NDUST-1) :: Aerosol density
+                    (NVMR+NDUST) :: Para-H2
+                    (NVMR+NDUST+1) :: Fractional cloud coverage
+
+            scale :: Scaling factor
+            scale_gas :: Reference gas
+            scale_iso :: Reference isotope
+        
+        OUTPUTS :
+        
+            atm :: Updated atmospheric class
+            xmap(1,ngas+2+ncont,npro) :: Matrix of relating derivatives to 
+                                             elements in state vector
+        
+        CALLING SEQUENCE:
+        
+            atm,xmap = model2(atm,ipar,scf)
+        
+        MODIFICATION HISTORY : Juan Alday (29/03/2021)
+        
+    """
+    npar = atm.NVMR+2+atm.NDUST
+
+    iref_vmr = np.where((atm.ID == scale_gas)&(atm.ISO == scale_iso))[0][0]
+    x1 = np.zeros(atm.NP)
+    xref = np.zeros(atm.NP)
+    
+    xref[:] = atm.VMR[:,iref_vmr]
+    x1[:] = xref * scale
+    atm.VMR[:,ipar] = x1
+
+    xmap = np.zeros([1,npar,atm.NP])
+
+    xmap[0,ipar,:] = xref[:]
 
     return atm,xmap
 

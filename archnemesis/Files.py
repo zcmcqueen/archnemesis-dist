@@ -453,6 +453,9 @@ def read_input_files(runname,Fortran=True):
     #Read para-h2
     Atm.read_parah2()
     
+    #Read .vpf
+    Atm.read_vpf()
+    
     if Fortran==True:
         
         #Calculating the atmospheric density (kg/m3)

@@ -7,6 +7,7 @@ Created on Tue Mar 16 17:27:12 2021
 
 Atmosphere Class.
 """
+from archnemesis import Data
 from archnemesis import *
 import numpy as np
 from scipy.special import legendre
@@ -129,6 +130,8 @@ class Atmosphere_0:
         self.DUST_UNITS_FLAG = None # np.zeros(NDUST), -1 for legacy units, 0 for standard
         self.DUST_RENORMALISATION = {} # flags for normalising clouds to specific opacity
         self.PARAH2 = None # np.zeros(NP) 
+        
+        self.SVP = {}
     ##################################################################################
 
     def assess(self):
@@ -518,6 +521,7 @@ class Atmosphere_0:
 
         """
         Subroutine to adjust the vmrs at a particular level to add up to 1.0.
+        Also limits vmrs to svp if specified in .vpf.
         ISCALE :: Flag to indicate if gas vmr can be scaled(1) or not (0).
         """
 
@@ -540,7 +544,7 @@ class Atmosphere_0:
                     xfac = (1.0-sum1)/(sumtot-sum1)
                     vmr[ipro,jvmr1] = self.VMR[ipro,jvmr1] * xfac
                     #self.VMR[ipro,jvmr1] = self.VMR[ipro,jvmr1] * xfac
-
+            
             self.edit_VMR(vmr)
 
         elif self.NLOCATIONS>1:
@@ -561,6 +565,20 @@ class Atmosphere_0:
                         #self.VMR[ipro,jvmr1] = self.VMR[ipro,jvmr1] * xfac
 
             self.edit_VMR(vmr)
+            
+            
+        for i in range(len(self.ID)):
+            if (self.ID[i],self.ISO[i]) in self.SVP.keys():
+                try:
+                    vp,svpflag = self.SVP[(self.ID[i],self.ISO[i])]
+                    a,b,c,d = Data.gas_data.svp_coefficients[self.ID[i]]
+                except:
+                    sys.exit(f'error :: Could not find saturation vapour coefficients for gas {self.ID[i]}')
+                
+                svp = vp*np.exp(a + b/self.T + c*self.T + d*self.T**2)
+                pp = self.VMR[:,i]*self.P/101325
+                self.VMR[:,i] = np.where(pp > svp, svp/(self.P/101325), self.VMR[:,i])
+            
 
     ##################################################################################
 
@@ -1392,7 +1410,29 @@ class Atmosphere_0:
             raise Exception("Incorrect number of entries in parah2.ref!")
             
     ##################################################################################
-
+    
+    def read_vpf(self):
+        """
+        Reads in saturation vapour pressures from runname.vpf.
+        """
+        try:
+            with open(self.runname + '.vpf', 'r') as file:
+                lines = file.readlines()        
+            for line in lines[1:]:
+                gas_id, iso_id, vp, svpflag = line.split()
+                gas_id = int(gas_id)
+                iso_id = int(iso_id)
+                vp = float(vp)
+                svpflag = int(svpflag)
+                self.SVP[(gas_id,iso_id)] = (vp,svpflag)
+                
+        except FileNotFoundError as e:
+            return
+    
+    
+    ##################################################################################
+    
+    
     def calc_coldens(self):
         """
         Routine to integrate the density of each gas at all altitudes

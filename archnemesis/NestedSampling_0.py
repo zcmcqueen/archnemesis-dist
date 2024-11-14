@@ -48,7 +48,7 @@ class NestedSampling_0:
             sys.stdout.close()  # Close the devnull
             sys.stdout = original_stdout  # Restore the original stdout
         
-        return -np.log(self.reduced_chi_squared(self.Y,YN,self.Y_ERR))
+        return -self.reduced_chi_squared(self.Y,YN,self.Y_ERR)
     
     def Prior(self, cube):
         """
@@ -91,8 +91,8 @@ class NestedSampling_0:
 
         for i in range(len(self.parameters)):
             prior_samples[:, i] = np.random.normal(
-                loc=prior_means[i],
-                scale=prior_stds[i],
+                loc=prior_means[self.vars_to_vary[i]],
+                scale=prior_stds[self.vars_to_vary[i]]*10,
                 size=num_prior_samples
             )
 
@@ -102,18 +102,17 @@ class NestedSampling_0:
         # Determine axis ranges from combined samples
         ranges = []
         for i in range(len(self.parameters)):
-            min_val = np.min(data_masked[:, i])
-            max_val = np.max(data_masked[:, i])
+            min_val = np.nanmin(data_masked[:, i])
+            max_val =np.nanmax(data_masked[:, i])
             ranges.append((min_val, max_val))
 
-            
         # Plot the corner plot for posterior samples
         
         figure = corner.corner(
             prior_samples,
             labels=self.parameters,
             color='red',
-            range=ranges,
+#             range=ranges,
             bins=50,  # Match bins with the posterior histogram
             hist_kwargs={'density': True},
             plot_contours=True,
@@ -130,7 +129,7 @@ class NestedSampling_0:
             labels=self.parameters,
             show_titles=True,
             color='blue',
-            range=ranges,
+#             range=ranges,
             bins=50,  # Adjust as needed
             hist_kwargs={'density': True},
             plot_contours=True,
@@ -225,14 +224,14 @@ def coreretNS(runname,Variables,Measurement,Atmosphere,Spectroscopy,Scatter,Stel
     # Setting up prior distributions - right now, this just sets up log-gaussians with a standard deviation
     # equal to what is specified in the .apr file. There is support for log-uniform distributions for dist_code=1.
     
-    NestedSampling.vars_to_vary = [i for i in range(len(NestedSampling.XA)) if NestedSampling.XA_ERR[i]>1e-7]
+    NestedSampling.vars_to_vary = [i for i in range(len(NestedSampling.XA)) if NestedSampling.XA_ERR[i]>1e-5]
 
     NestedSampling.priors = []
 
     for i in NestedSampling.vars_to_vary:
         dist_code = 0                              ### PLACEHOLDER - need to add custom distributions!
         if dist_code == 0:
-            NestedSampling.priors.append(scipy.stats.norm(NestedSampling.XA[i], NestedSampling.XA_ERR[i]).ppf)
+            NestedSampling.priors.append(scipy.stats.norm(NestedSampling.XA[i], NestedSampling.XA_ERR[i]*10).ppf)
         elif dist_code == 1:
             NestedSampling.priors.append(lambda x, i=i: x * (NestedSampling.XA[i] + NestedSampling.XA_ERR[i] - \
                                                              NestedSampling.XA[i] + NestedSampling.XA_ERR[i]) + \
@@ -254,7 +253,8 @@ def coreretNS(runname,Variables,Measurement,Atmosphere,Spectroscopy,Scatter,Stel
                                   n_dims=len(NestedSampling.parameters), 
                                   outputfiles_basename=NestedSampling.prefix, 
                                   verbose=True, 
-                                  n_live_points = NestedSampling.N_LIVE_POINTS)
+                                  n_live_points = NestedSampling.N_LIVE_POINTS,
+                                  evidence_tolerance = 0.5)
 
     #Print parameters
     if rank == 0:

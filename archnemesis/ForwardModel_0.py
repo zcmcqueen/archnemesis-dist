@@ -5,6 +5,7 @@ import matplotlib.pyplot as plt
 import os,sys
 from numba import jit
 from multiprocessing import Pool
+from joblib import Parallel, delayed
 #!/usr/local/bin/python3
 # -*- coding: utf-8 -*-
 
@@ -972,7 +973,7 @@ class ForwardModel_0:
         """
         
         ifm, nfm, xnx, ixrun, nemesisSO, YNtot = inp
-        print(f'Calculating forward model {ifm+1}/{nfm}')
+        print(f'Calculating forward model {ifm+1}/{nfm}',flush=True)
         original_stdout = sys.stdout  # Store the original stdout
         try:
             sys.stdout = open(os.devnull, 'w')  # Redirect stdout
@@ -985,7 +986,7 @@ class ForwardModel_0:
         finally:
             sys.stdout.close()  # Close the devnull
             sys.stdout = original_stdout  # Restore the original stdout
-            print(f'Calculated forward model {ifm+1}/{nfm}')
+            print(f'Calculated forward model {ifm+1}/{nfm}',flush=True)
             
         return YNtot
     
@@ -1120,9 +1121,12 @@ class ForwardModel_0:
                        (i + 1) * base_chunk_size + min(i + 1, remainder),
                        xnx, ixrun, nemesisSO, YNtot, nfm) for i in range(NCores)]
 
-            with Pool(NCores) as pool:
-                results = pool.map(self.chunked_execution, chunks)
+#             with Pool(NCores) as pool:
+#                 results = pool.map(self.chunked_execution, chunks)
 
+            results = Parallel(n_jobs=NCores)(
+                delayed(self.chunked_execution)(chunk) for chunk in chunks
+            )
             # Reorder and combine results based on their starting index
             ordered_results = sorted(results, key=lambda x: x[0])
             YNtot = np.sum(np.stack([res[1] for res in ordered_results]), axis=0)
@@ -1426,6 +1430,17 @@ class ForwardModel_0:
 
                 ix = ix + self.Variables.NXVAR[ivar]
 
+            
+            elif self.Variables.VARIDENT[ivar,2]==51:
+#           Model 51. Scaling of a reference profile
+#           ***************************************************************                
+                scale = np.exp(self.Variables.XN[ix])
+                scale_gas, scale_iso = self.Variables.VARPARAM[ivar,:2]
+                self.AtmosphereX,xmap1 = model51(self.AtmosphereX,ipar,scale,scale_gas,scale_iso)
+                xmap[ix:ix+self.Variables.NXVAR[ivar],:,0:self.AtmosphereX.NP] = xmap1[:,:,:]
+                
+                ix = ix + self.Variables.NXVAR[ivar]
+                
 
             elif self.Variables.VARIDENT[ivar,0]==228:
 #           Model 228. Retrieval of instrument line shape for ACS-MIR and wavelength calibration
@@ -3065,8 +3080,10 @@ class ForwardModel_0:
         TAUDUST1,TAUCLSCAT,dTAUDUST1,dTAUCLSCAT = self.calc_tau_dust() #(NWAVE,NLAYER,NDUST)
 
         #Calculating the total optical depth for the aerosols
+        TAUDUST1 = np.clip(np.nan_to_num(TAUDUST1),0,1e20)
+        
         print('CIRSrad :: Aerosol optical depths at ',self.MeasurementX.WAVE[0],' :: ',np.sum(TAUDUST1[0,:,:],axis=0))
-
+        
         #Adding the opacity by the different dust populations
         TAUDUST = np.sum(TAUDUST1,2)  #(NWAVE,NLAYER) Absorption + Scattering
         TAUSCAT = np.sum(TAUCLSCAT,2)  #(NWAVE,NLAYER) Scattering
@@ -4387,7 +4404,15 @@ class ForwardModel_0:
         # Phase function
         
         PHASE_ARRAY = np.zeros((Scatter.NDUST, Measurement.NWAVE, 2, NTHETA))
-        PHASE_ARRAY[:, :, 0, :] = np.transpose(Scatter.calc_phase(Scatter.THETA, Measurement.WAVE), (2, 0, 1))
+        if Scatter.IMIE == 0:
+            for i in range(Scatter.NDUST):
+                PHASE_ARRAY[i, :, 0, -1] = np.interp(VWAVES,Scatter.WAVE,Scatter.F.T[i])
+                PHASE_ARRAY[i, :, 0, -2] = np.interp(VWAVES,Scatter.WAVE,Scatter.G1.T[i])
+                PHASE_ARRAY[i, :, 0, -3] = np.interp(VWAVES,Scatter.WAVE,Scatter.G2.T[i])
+            
+        else:
+            PHASE_ARRAY[:, :, 0, :] = np.transpose(Scatter.calc_phase(Scatter.THETA, Measurement.WAVE), (2, 0, 1))
+            
         PHASE_ARRAY[:, :, 1, :] = np.cos(Scatter.THETA * np.pi / 180)
         
         # Core function call
@@ -4410,6 +4435,7 @@ class ForwardModel_0:
             omegas_s=OMEGA[:,:,:],
             nphi=NPHI,
             iray=IRAY,
+            imie=IMIE,
             lfrac=FRAC
         )
 

@@ -321,6 +321,8 @@ class Variables_0:
                 nxvar[i] = NPRO
             elif imod == 50:
                 nxvar[i] = NPRO
+            elif imod==51:
+                nxvar[i] = 1
             elif imod == 228:
                 nxvar[i] = 8
             elif imod == 229:
@@ -1004,8 +1006,24 @@ class Variables_0:
                     ix = ix + nlevel
 
 
-
-            
+                elif varident[i,2] == 51:
+#               ********* multiple of different profile ************************
+                    prof = np.fromfile(f,sep=' ',count=2,dtype='int')
+                    profgas = prof[0]
+                    profiso = prof[1]
+                    tmp = np.fromfile(f,sep=' ',count=2,dtype='float')
+                    scale = tmp[0]
+                    escale = tmp[1]
+                    
+                    varparam[i,0] = profgas
+                    varparam[i,1] = profiso
+                    x0[ix] = np.log(scale)
+                    lx[ix] = 1
+                    err = escale/scale
+                    sx[ix,ix] = err**2.
+                    
+                    ix = ix + 1
+                    
                 else:
                     sys.exit('error in read_apr() :: Variable ID not included in this function')
 
