@@ -442,7 +442,7 @@ def read_input_files(runname,Fortran=True):
     #Initialise Atmosphere class and read file (.ref, aerosol.ref)
     ##############################################################
 
-    Atm = Atmosphere_0(runname=runname)
+    Atm = Atmosphere_0(runname=runname,Fortran=Fortran)
 
     #Read gaseous atmosphere
     Atm.read_ref()
@@ -471,6 +471,10 @@ def read_input_files(runname,Fortran=True):
 
     Layer = Layer_0(Atm.RADIUS)
     Scatter,Stellar,Surface,Layer = read_set(runname,Layer=Layer)
+    if Layer.LAYTYP==4:
+        nlay, pbase = read_play()
+        Layer.NLAY = nlay
+        Layer.P_base = pbase*101325 
     if Layer.LAYTYP==5:
         nlay,hbase = read_hlay()
         Layer.NLAY = nlay
@@ -584,7 +588,7 @@ def read_input_files(runname,Fortran=True):
     #Reading .apr file and Variables Class
     #################################################################
 
-    Variables = Variables_0()
+    Variables = Variables_0(Fortran=Fortran)
     Variables.read_apr(runname,Atm.NP)
     Variables.XN = copy(Variables.XA)
     Variables.SX = copy(Variables.SA)

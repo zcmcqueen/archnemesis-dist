@@ -1264,10 +1264,10 @@ class ForwardModel_0:
                     if jcont>self.AtmosphereX.NDUST+2:
                         raise ValueError('error :: Variable outside limits',self.Variables.VARIDENT[ivar,0],self.Variables.VARIDENT[ivar,1],self.Variables.VARIDENT[ivar,2])
                     elif jcont==self.AtmosphereX.NDUST+1:   #Para-H2
-                        if flagh2p==True:
-                            xref[:] = self.AtmosphereX.PARAH2
-                        else:
-                            raise ValueError('error :: Para-H2 is declared as variable but atmosphere is not from Giant Planet')
+#                         if flagh2p==True:
+                        xref[:] = self.AtmosphereX.PARAH2
+#                         else:
+#                             raise ValueError('error :: Para-H2 is declared as variable but atmosphere is not from Giant Planet')
                     elif abs(jcont)==self.AtmosphereX.NDUST+2: #Fractional cloud cover
                         xref[:] = self.AtmosphereX.FRAC
                     else:
@@ -1322,7 +1322,15 @@ class ForwardModel_0:
 
                 xprof = np.zeros(self.Variables.NXVAR[ivar])
                 xprof[:] = self.Variables.XN[ix:ix+self.Variables.NXVAR[ivar]]
-                self.AtmosphereX,xmap1 = modelm1(self.AtmosphereX,ipar,xprof)
+                jtmp = ipar - (self.AtmosphereX.NVMR+1)
+                if self.Variables.VARPARAM[ivar,0]\
+                and ipar > self.AtmosphereX.NVMR\
+                and jtmp < self.AtmosphereX.NDUST: # Fortran true so flip aerosol model
+                    
+                    self.AtmosphereX,xmap1 = model0(self.AtmosphereX,ipar,xprof)
+                else:
+                    self.AtmosphereX,xmap1 = modelm1(self.AtmosphereX,ipar,xprof)
+                    
                 xmap[ix:ix+self.Variables.NXVAR[ivar],:,0:self.AtmosphereX.NP] = xmap1[:,:,:]
 
                 ix = ix + self.Variables.NXVAR[ivar]
@@ -1333,7 +1341,14 @@ class ForwardModel_0:
 
                 xprof = np.zeros(self.Variables.NXVAR[ivar])
                 xprof[:] = self.Variables.XN[ix:ix+self.Variables.NXVAR[ivar]]
-                self.AtmosphereX,xmap1 = model0(self.AtmosphereX,ipar,xprof)
+                jtmp = ipar - (self.AtmosphereX.NVMR+1)
+                if self.Variables.VARPARAM[ivar,0]\
+                and ipar > self.AtmosphereX.NVMR\
+                and jtmp < self.AtmosphereX.NDUST: # Fortran true so flip aerosol model
+                    self.AtmosphereX,xmap1 = modelm1(self.AtmosphereX,ipar,xprof)
+                else:
+                    self.AtmosphereX,xmap1 = model0(self.AtmosphereX,ipar,xprof)
+        
                 xmap[ix:ix+self.Variables.NXVAR[ivar],:,0:self.AtmosphereX.NP] = xmap1[:,:,:]
 
                 ix = ix + self.Variables.NXVAR[ivar]
@@ -1435,7 +1450,7 @@ class ForwardModel_0:
 #           Model 51. Scaling of a reference profile
 #           ***************************************************************                
                 scale = np.exp(self.Variables.XN[ix])
-                scale_gas, scale_iso = self.Variables.VARPARAM[ivar,:2]
+                scale_gas, scale_iso = self.Variables.VARPARAM[ivar,1:3]
                 self.AtmosphereX,xmap1 = model51(self.AtmosphereX,ipar,scale,scale_gas,scale_iso)
                 xmap[ix:ix+self.Variables.NXVAR[ivar],:,0:self.AtmosphereX.NP] = xmap1[:,:,:]
                 
@@ -1694,10 +1709,10 @@ class ForwardModel_0:
                     if jcont>self.AtmosphereX.NDUST+2:
                         raise ValueError('error :: Variable outside limits',self.Variables.VARIDENT[ivar,0],self.Variables.VARIDENT[ivar,1],self.Variables.VARIDENT[ivar,2])
                     elif jcont==self.AtmosphereX.NDUST+1:   #Para-H2
-                        if flagh2p==True:
-                            xref[:] = self.AtmosphereX.PARAH2
-                        else:
-                            raise ValueError('error :: Para-H2 is declared as variable but atmosphere is not from Giant Planet')
+#                         if flagh2p==True:
+                        xref[:] = self.AtmosphereX.PARAH2
+#                         else:
+#                             raise ValueError('error :: Para-H2 is declared as variable but atmosphere is not from Giant Planet')
                     elif abs(jcont)==self.AtmosphereX.NDUST+2: #Fractional cloud cover
                         xref[:] = self.AtmosphereX.FRAC
                     else:

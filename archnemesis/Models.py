@@ -643,7 +643,7 @@ def model32(atm,ipar,pref,fsh,tau,MakePlot=False):
 
 
         if jknee < 0:
-            sys.exit('error in model 32 :: jknee is negative')
+            jknee = 0
 
         #Calculating cloud density at the first level occupied by the cloud
         delh = atm.H[jknee+1] - hknee   #metres
@@ -1773,8 +1773,8 @@ def model444(Scatter,idust,iscat,xprof,haze_params):
     
     
     Scatter.makephase(idust, iscat, pars)
-
-    xextnorm = np.interp(normalising_wave,Scatter.WAVER,Scatter.KEXT[:,idust])
+    
+    xextnorm = np.interp(normalising_wave,Scatter.WAVE,Scatter.KEXT[:,idust])
     Scatter.KEXT[:,idust] = Scatter.KEXT[:,idust]/xextnorm
     Scatter.KSCA[:,idust] = Scatter.KSCA[:,idust]/xextnorm
     return Scatter

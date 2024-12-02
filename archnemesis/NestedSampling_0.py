@@ -1,7 +1,12 @@
+import archnemesis as ans
 from archnemesis import *
 import scipy
-import pymultinest
-from pymultinest.solve import solve
+try:
+    import pymultinest
+    from pymultinest.solve import solve
+except ImportError:
+    pymultinest = None
+    solve = None
 import os
 import corner
 
@@ -25,13 +30,16 @@ class NestedSampling_0:
         
         
         self.N_LIVE_POINTS = N_LIVE_POINTS
+        if pymultinest is None:
+            raise ImportError("pymultinest was not found. To use the NestedSampling class, you must install it: \n https://johannesbuchner.github.io/PyMultiNest/install.html") 
             
-    def reduced_chi_squared(self, a,b,err):
+            
+    def chi_squared(self, a,b,err):
         """
         Calculate chi^2/n statistic.
         """        
         
-        return np.sum(((a.flatten() - b.flatten())**2)/(len(a.flatten())*(err.flatten()**2)))
+        return np.sum(((a.flatten() - b.flatten())**2)/(err.flatten()**2))
 
     def LogLikelihood(self,cube):
         """
@@ -48,7 +56,7 @@ class NestedSampling_0:
             sys.stdout.close()  # Close the devnull
             sys.stdout = original_stdout  # Restore the original stdout
         
-        return -self.reduced_chi_squared(self.Y,YN,self.Y_ERR)
+        return -self.chi_squared(self.Y,YN,self.Y_ERR)/2
     
     def Prior(self, cube):
         """
@@ -63,9 +71,9 @@ class NestedSampling_0:
     
     def make_plots(self):
         """
-        Cornerplot of results.
-        """ 
-        
+        Cornerplot of results with analytical prior.
+        """
+
         prior_means = self.XA
         prior_stds = self.XA_ERR
 
@@ -85,86 +93,154 @@ class NestedSampling_0:
         data_masked = data[mask, :]
         weights_masked = weights[mask]
 
-        # Generate prior samples from Gaussian distributions
-        num_prior_samples = 1000000
-        prior_samples = np.zeros((num_prior_samples, len(self.parameters)))
-
-        for i in range(len(self.parameters)):
-            prior_samples[:, i] = np.random.normal(
-                loc=prior_means[self.vars_to_vary[i]],
-                scale=prior_stds[self.vars_to_vary[i]]*10,
-                size=num_prior_samples
-            )
-
-        # Combine prior and posterior samples for consistent axis ranges
-        combined_samples = np.vstack((data_masked, prior_samples))
-
-        # Determine axis ranges from combined samples
+        # Determine axis ranges from posterior samples
         ranges = []
         for i in range(len(self.parameters)):
             min_val = np.nanmin(data_masked[:, i])
-            max_val =np.nanmax(data_masked[:, i])
-            ranges.append((min_val, max_val))
+            max_val = np.nanmax(data_masked[:, i])
+            ranges.append((min_val-0.01, max_val+0.01))
 
-        # Plot the corner plot for posterior samples
-        
-        figure = corner.corner(
-            prior_samples,
-            labels=self.parameters,
-            color='red',
-#             range=ranges,
-            bins=50,  # Match bins with the posterior histogram
-            hist_kwargs={'density': True},
-            plot_contours=True,
-            fill_contours=False,
-            contour_colors=['red'],
-            plot_datapoints=False,  # Adjust transparency
-            zorder = -1,
-            smooth = 1.0# Plot on the same figure
-        )
-        
+        # Plot posterior samples
         figure = corner.corner(
             data_masked,
             weights=weights_masked,
             labels=self.parameters,
             show_titles=True,
             color='blue',
-#             range=ranges,
+            range=ranges,
             bins=50,  # Adjust as needed
             hist_kwargs={'density': True},
             plot_contours=True,
             fill_contours=False,
             contour_colors=['blue'],
-            fig=figure ,
-            zorder = 1,
-            smooth = 1.0,
+            smooth=1.0,
             data_kwargs={'alpha': 0.5},  # Adjust transparency
         )
 
-
-            
-
-        # Adjust the diagonal plots (1D histograms) to add legends
+        # Overlay analytical prior
         axes = np.array(figure.axes).reshape((len(self.parameters), len(self.parameters)))
 
         for i in range(len(self.parameters)):
+            x = np.linspace(ranges[i][0], ranges[i][1], 1000)
+            y = (
+                (1 / (np.sqrt(2 * np.pi) * prior_stds[self.vars_to_vary[i]]))
+                * np.exp(-0.5 * ((x - prior_means[self.vars_to_vary[i]]) / prior_stds[self.vars_to_vary[i]])**2)
+            )
+            y *= np.max(np.histogram(data_masked[:, i], bins=50, density=True)[0])
             ax = axes[i, i]
-            # Add legends to diagonal plots
-            handles, labels = ax.get_legend_handles_labels()
-            ax.legend(handles, labels)
-            
-        from matplotlib.lines import Line2D
+            ax.plot(x, y, color='red', lw=2, label='Prior')
 
+        # Add legends
+        from matplotlib.lines import Line2D
         legend_elements = [
             Line2D([0], [0], color='blue', lw=2, label='Posterior'),
             Line2D([0], [0], color='red', lw=2, label='Prior')
         ]
-
         figure.legend(handles=legend_elements, loc='upper right')
-        
+
         plt.savefig(self.prefix + 'corner.png')
         plt.close()
 
+    def extract(self):
+        """
+        Extracts the fitted parameter values and their uncertainties.
+
+        Returns:
+        --------
+        dict
+            A dictionary with parameter names as keys and tuples of 
+            (mean, standard deviation) as values.
+        """
+        if not hasattr(self, 'result') or 'samples' not in self.result:
+            raise AttributeError("No results found. Ensure the sampling process has been completed.")
+
+        # Extract parameter samples
+        samples = self.result['samples']
+        parameters = self.parameters
+
+        # Compute mean and standard deviation for each parameter
+        parameter_values = {
+            param: (samples[:, i].mean(), samples[:, i].std())
+            for i, param in enumerate(parameters)
+        }
+
+        return parameter_values        
+        
+    def compare(self):
+        """
+        Plots a corner plot of the current run's posterior samples and compares them
+        to Gaussian distributions derived from retprof and reterr from a .mre file.
+
+        Parameters
+        ----------
+        """
+        lat,lon,ngeom,ny,wave,specret,specmeas,specerrmeas,nx,Var,aprprof,aprerr,retprof,reterr = ans.Files.read_mre(self.ForwardModel.runname)
+        
+        
+        
+        # Load posterior samples from the current run
+        analyzer = pymultinest.Analyzer(n_params=len(self.parameters), outputfiles_basename=self.prefix)
+        data_array = analyzer.get_data()
+        weights = data_array[:, 0]
+        samples = data_array[:, 2:]
+
+        # Mask low-weight samples (optional)
+        mask = weights > 1e-4
+        samples_masked = samples[mask, :]
+        weights_masked = weights[mask]
+
+        # Generate Gaussian samples from retprof and reterr
+        num_gaussian_samples = 100000
+        gaussian_samples = np.zeros((num_gaussian_samples, len(self.parameters)))
+
+        for i,ip in enumerate(self.parameters):
+            gaussian_samples[:, i] = np.random.normal(loc=np.log(retprof[int(ip),0]), 
+                                                      scale=reterr[int(ip),0]/retprof[int(ip),0], 
+                                                      size=num_gaussian_samples)
+
+        # Create a corner plot
+        figure = corner.corner(
+            samples_masked,
+            weights=weights_masked,
+            labels=self.parameters,
+            color="blue",
+            bins=50,
+            hist_kwargs={'density': True},
+            show_titles=True,
+            plot_contours=True,
+            fill_contours=False,
+            contour_colors=["blue"],
+            title_fmt=".2f",
+            smooth = 1.0
+        )
+
+        # Overlay the Gaussian distributions
+        corner.corner(
+            gaussian_samples,
+            labels=self.parameters,
+            color="red",
+            bins=50,
+            hist_kwargs={'density': True},
+            show_titles=False,
+            plot_contours=True,
+            fill_contours=False,
+            plot_datapoints=False,  # Adjust transparency
+            contour_colors=["red"],
+            fig=figure,
+            smooth = 1.0
+        )
+
+        # Add legend to the plot
+        from matplotlib.lines import Line2D
+
+        legend_elements = [
+            Line2D([0], [0], color="blue", lw=2, label="Nested Sampling Posterior"),
+            Line2D([0], [0], color="red", lw=2, label="Optimal Estimation Result"),
+        ]
+        figure.legend(handles=legend_elements, loc="upper right")
+
+        plt.show()
+        
 def coreretNS(runname,Variables,Measurement,Atmosphere,Spectroscopy,Scatter,Stellar,Surface,CIA,Layer):
     """
         FUNCTION NAME : coreretNS()
@@ -231,7 +307,7 @@ def coreretNS(runname,Variables,Measurement,Atmosphere,Spectroscopy,Scatter,Stel
     for i in NestedSampling.vars_to_vary:
         dist_code = 0                              ### PLACEHOLDER - need to add custom distributions!
         if dist_code == 0:
-            NestedSampling.priors.append(scipy.stats.norm(NestedSampling.XA[i], NestedSampling.XA_ERR[i]*10).ppf)
+            NestedSampling.priors.append(scipy.stats.norm(NestedSampling.XA[i], NestedSampling.XA_ERR[i]).ppf)
         elif dist_code == 1:
             NestedSampling.priors.append(lambda x, i=i: x * (NestedSampling.XA[i] + NestedSampling.XA_ERR[i] - \
                                                              NestedSampling.XA[i] + NestedSampling.XA_ERR[i]) + \

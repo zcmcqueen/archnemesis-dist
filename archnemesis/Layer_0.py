@@ -861,7 +861,7 @@ def layer_average(RADIUS, H, P, T, ID, VMR, DUST, PARAH2, BASEH, BASEP,
                     dd[:,J] = interp(H, DUST[:,J], h)
                     if DUST_UNITS is not None:
                         if DUST_UNITS[J] == -1:
-                            CONT[I,J] = simpson(dd[:,J]*duds,S) * MOLWT[I] / AVOGAD
+                            CONT[I,J] = simpson(dd[:,J]*duds,S) * np.interp(I/NLAY,np.arange(NPRO),MOLWT) / AVOGAD
                             continue
                     CONT[I,J] = simpson(dd[:,J],S)
                     
@@ -870,7 +870,7 @@ def layer_average(RADIUS, H, P, T, ID, VMR, DUST, PARAH2, BASEH, BASEP,
                 dd = interp(H, DUST, h) 
                 if DUST_UNITS is not None:
                     if DUST_UNITS[0] == -1:
-                        CONT[I] = simpson(dd*duds,S) * MOLWT[I] / AVOGAD
+                        CONT[I] = simpson(dd*duds,S) * np.interp(I/NLAY,np.arange(NPRO),MOLWT) / AVOGAD
                         continue
                 CONT[I] = simpson(dd,S)
             
@@ -1351,5 +1351,46 @@ def read_hlay():
         hbase[i] = float(s[0])
 
     return nlay,hbase
+
+#########################################################################################
+
+
+def read_play():
+
+    """
+        FUNCTION NAME : read_play()
+        
+        DESCRIPTION : Read the height.lay file used to set the altitude of the base of the layers
+                      in a Nemesis run
+        
+        INPUTS : None
+        
+        OPTIONAL INPUTS: none
+        
+        OUTPUTS :
+        
+            nlay :: Number of layers in atmospheric model
+
+        
+        CALLING SEQUENCE:
+        
+            nlay,hbase = read_play()
+        
+        MODIFICATION HISTORY : Juan Alday (29/04/2019)
+        
+    """
+
+    f = open('pressure.lay','r')
+
+    header = f.readline().split()
+
+    s = f.readline().split()
+    nlay = int(s[0])
+    pbase = np.zeros(nlay)
+    for i in range(nlay):
+        s = f.readline().split()
+        pbase[i] = float(s[0])
+
+    return nlay,pbase
 
 #########################################################################################

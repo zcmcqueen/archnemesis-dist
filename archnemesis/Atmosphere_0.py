@@ -16,7 +16,7 @@ class Atmosphere_0:
     """
     Clear atmosphere. Simplest possible profile.
     """
-    def __init__(self, runname='', NP=10, NVMR=6, NDUST=0, NLOCATIONS=1, IPLANET=-1, AMFORM=1):
+    def __init__(self, runname='', Fortran = False, NP=10, NVMR=6, NDUST=0, NLOCATIONS=1, IPLANET=-1, AMFORM=1):
         """
         Set up an atmosphere profile with NP points and NVMR gases.
         Use the class methods to edit Height, Pressure, Temperature and
@@ -113,6 +113,7 @@ class Atmosphere_0:
         self.IPLANET = IPLANET
         self.AMFORM = AMFORM
         self.NLOCATIONS = NLOCATIONS
+        self.Fortran = Fortran
 
         # Input the following profiles using the edit_ methods.
         self.RADIUS = None    #float of (NLOCATIONS) #m
@@ -1345,7 +1346,10 @@ class Atmosphere_0:
         #Filling the information into the class
         self.NP = npro
         self.NDUST = naero
-        self.DUST_UNITS_FLAG = np.zeros(self.NDUST)
+        if self.Fortran:
+            self.DUST_UNITS_FLAG = -1*np.ones(self.NDUST)
+        else:
+            self.DUST_UNITS_FLAG = np.zeros(self.NDUST)
         if self.H is None:
             self.edit_H(height*1.0e3)   #m
         self.edit_DUST((aerodens.T*xscale).T)    #particles m-3

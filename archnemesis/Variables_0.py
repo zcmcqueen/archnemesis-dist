@@ -18,7 +18,7 @@ Model variables Class.
 
 class Variables_0:
 
-    def __init__(self, NVAR=2, NPARAM=10, NX=10, JPRE=-1, JTAN=-1, JSURF=-1, JALB=-1, JXSC=-1, JRAD=-1, JLOGG=-1, JFRAC=-1):
+    def __init__(self, NVAR=2, NPARAM=10, NX=10, JPRE=-1, JTAN=-1, JSURF=-1, JALB=-1, JXSC=-1, JRAD=-1, JLOGG=-1, JFRAC=-1, Fortran = False):
 
         """
         Inputs
@@ -106,7 +106,9 @@ class Variables_0:
         self.JRAD = JRAD
         self.JLOGG = JLOGG
         self.JFRAC = JFRAC
-
+        self.Fortran = Fortran
+        
+        
         # Input the following profiles using the edit_ methods.
         self.VARIDENT = None # np.zeros(NVAR,3)
         self.VARPARAM = None # np.zeros(NVAR,NPARAM)
@@ -342,7 +344,7 @@ class Variables_0:
                     idust = self.VARIDENT[i,1]-1
                     nxvar[i] = self.HAZE_PARAMS['NX',idust]
                 except: # happens when reading .mre
-                    nxvar[i] = ipar + 2
+                    nxvar[i] = ipar
                     
             elif imod == 446:
                 nxvar[i] = 1
@@ -370,7 +372,6 @@ class Variables_0:
             
             else:
                 sys.exit('error :: varID not included in calc_NXVAR()')
-
         self.NXVAR = nxvar
 
     ################################################################################################################
@@ -585,7 +586,8 @@ class Variables_0:
                             if xfac >= sxminfac:
                                 sx[ix+j,ix+k] = np.sqrt(sx[ix+j,ix+j]*sx[ix+k,ix+k])*xfac
                                 sx[ix+k,ix+j] = sx[ix+j,ix+k]
-                        
+                                
+                    varparam[i,0] = self.Fortran
                     ix = ix + nlevel
 
 
@@ -630,7 +632,7 @@ class Variables_0:
                             if xfac >= sxminfac:
                                 sx[ix+j,ix+k] = np.sqrt(sx[ix+j,ix+j]*sx[ix+k,ix+k])*xfac
                                 sx[ix+k,ix+j] = sx[ix+j,ix+k]
-                
+                    varparam[i,0] = self.Fortran
                     ix = ix + nlevel
 
                 elif varident[i,2] == 1:
@@ -1015,8 +1017,8 @@ class Variables_0:
                     scale = tmp[0]
                     escale = tmp[1]
                     
-                    varparam[i,0] = profgas
-                    varparam[i,1] = profiso
+                    varparam[i,1] = profgas
+                    varparam[i,2] = profiso
                     x0[ix] = np.log(scale)
                     lx[ix] = 1
                     err = escale/scale
@@ -1322,27 +1324,27 @@ class Variables_0:
                     for j in range(int(nwave)):
                         line = haze_f.readline().split()
                         v, xai, xa_erri = line[:3]
-                        if not stopread:
-                            x0[ix] = np.log(float(xai))
-                            lx[ix] = 1
-                            sx[ix,ix] = (float(xa_erri)/float(xai))**2.
 
-                            ix = ix + 1
-                        
-                        if float(clen) < 0:
-                            stopread = True
+                        x0[ix] = np.log(float(xai))
+                        lx[ix] = 1
+                        sx[ix,ix] = (float(xa_erri)/float(xai))**2.
+
+                        ix = ix + 1
                         haze_waves.append(float(v))
+
+                        if float(clen) < 0:
+                            break
                             
                             
                     idust = varident[i,1]-1
                     
-                    self.HAZE_PARAMS['NX',idust] = 2+int(nwave)
+                    self.HAZE_PARAMS['NX',idust] = 2+len(haze_waves)
                     self.HAZE_PARAMS['WAVE',idust] = haze_waves
                     self.HAZE_PARAMS['NREAL',idust] = float(nreal_ref)
                     self.HAZE_PARAMS['WAVE_REF',idust] = float(vref)
                     self.HAZE_PARAMS['WAVE_NORM',idust] = float(v_od_norm)
                     
-                    varparam[i,0] = int(nwave)
+                    varparam[i,0] = 2+len(haze_waves)
                     varparam[i,1] = float(clen)
                     varparam[i,2] = float(vref)
                     varparam[i,3] = float(nreal_ref)
