@@ -38,8 +38,7 @@ class NestedSampling_0:
         """
         Calculate chi^2/n statistic.
         """        
-        
-        return np.sum(((a.flatten() - b.flatten())**2)/(err.flatten()**2))
+        return np.sum(((a - b.T.flatten())**2)/(err**2))
 
     def LogLikelihood(self,cube):
         """
@@ -310,8 +309,8 @@ def coreretNS(runname,Variables,Measurement,Atmosphere,Spectroscopy,Scatter,Stel
             NestedSampling.priors.append(scipy.stats.norm(NestedSampling.XA[i], NestedSampling.XA_ERR[i]).ppf)
         elif dist_code == 1:
             NestedSampling.priors.append(lambda x, i=i: x * (NestedSampling.XA[i] + NestedSampling.XA_ERR[i] - \
-                                                             NestedSampling.XA[i] + NestedSampling.XA_ERR[i]) + \
-                                                             NestedSampling.XA[i] - NestedSampling.XA_ERR[i])
+                                                             NestedSampling.XA[i] + 5*NestedSampling.XA_ERR[i]) + \
+                                                             NestedSampling.XA[i] - 5*NestedSampling.XA_ERR[i])
         else:  
             print('DISTRIBUTION ID NOT DEFINED!', flush = True)
 
