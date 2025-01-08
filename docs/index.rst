@@ -54,16 +54,34 @@ Dependencies on other Python packages
    :maxdepth: 2
 
 .. toctree::
-   :caption: Radiative transfer
+   :caption: General Structure
    :hidden:
    
-   radiative_transfer.ipynb
+   documentation/general_structure.ipynb
+ 
+.. toctree::
+   :caption: Reference classes
+   :hidden:
+   
+   documentation/reference_classes.ipynb
+
+.. toctree::
+   :caption: Model parameterisations
+   :hidden:
+   
+   documentation/model_parameterisations.ipynb
+
+.. toctree::
+   :caption: Forward Model
+   :hidden:
+   
+   documentation/forward_model.ipynb
  
 .. toctree::
    :caption: Retrievals
    :hidden:
    
-   retrievals.ipynb
+   documentation/retrievals.ipynb
    
 .. toctree::
    :caption: Examples
