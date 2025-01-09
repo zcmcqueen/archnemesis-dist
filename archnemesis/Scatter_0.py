@@ -495,7 +495,7 @@ class Scatter_0:
 
         nzen = 2*self.NMU    #The gauss_lobatto function calculates both positive and negative angles, and Nemesis just uses the posiive
         ndigits = 12
-        x,w = gauss_lobatto(nzen,ndigits)
+        x,w = gauss_lobatto(nzen,ndigits=n_digits)
         self.MU = np.array(x[self.NMU:nzen],dtype='float64')
         self.WTMU = np.array(w[self.NMU:nzen],dtype='float64')
 
@@ -2056,82 +2056,60 @@ def legendre_p(l, x):
             P1 = Pn
         return P1
 
-def gauss_lobatto(n, n_digits):
-
+def gauss_lobatto(n, n_digits=None):
     """
-    Computes the Gauss-Lobatto quadrature [1]_ points and weights.
-
-    The Gauss-Lobatto quadrature approximates the integral:
-
-    .. math::
-        \int_{-1}^1 f(x)\,dx \approx \sum_{i=1}^n w_i f(x_i)
-
-    The nodes `x_i` of an order `n` quadrature rule are the roots of `P'_(n-1)`
-    and the weights `w_i` are given by:
-
-    .. math::
-        &w_i = \frac{2}{n(n-1) \left[P_{n-1}(x_i)\right]^2},\quad x\neq\pm 1\\
-        &w_i = \frac{2}{n(n-1)},\quad x=\pm 1
+    Compute the Gauss-Lobatto quadrature points and weights of order n.
 
     Parameters
-    ==========
-
-    n : the order of quadrature
-
-    n_digits : number of significant digits of the points and weights to return
+    ----------
+    n : int
+        The order of the quadrature (number of nodes).
+    n_digits : int, optional
+        If given, round the points and weights to this many decimal places.
 
     Returns
-    =======
-
-    (x, w) : the ``x`` and ``w`` are lists of points and weights as Floats.
-             The points `x_i` and weights `w_i` are returned as ``(x, w)``
-             tuple of lists.
-
-    Examples
-    ========
-
-    >>> from sympy.integrals.quadrature import gauss_lobatto
-    >>> x, w = gauss_lobatto(3, 5)
-    >>> x
-    [-1, 0, 1]
-    >>> w
-    [0.33333, 1.3333, 0.33333]
-    >>> x, w = gauss_lobatto(4, 5)
-    >>> x
-    [-1, -0.44721, 0.44721, 1]
-    >>> w
-    [0.16667, 0.83333, 0.83333, 0.16667]
-
-    See Also
-    ========
-
-    gauss_legendre,gauss_laguerre, gauss_gen_laguerre, gauss_hermite, gauss_chebyshev_t, gauss_chebyshev_u, gauss_jacobi
-
-    References
-    ==========
-
-    .. [1] https://en.wikipedia.org/wiki/Gaussian_quadrature#Gauss.E2.80.93Lobatto_rules
-    .. [2] http://people.math.sfu.ca/~cbm/aands/page_888.htm
+    -------
+    x : ndarray
+        The array of quadrature nodes of length n.
+    w : ndarray
+        The array of corresponding weights of length n.
     """
-    from sympy.core import S, Dummy, pi
-    from sympy.polys.orthopolys import (legendre_poly, laguerre_poly,
-                                        hermite_poly, jacobi_poly)
-    from sympy.polys.rootoftools import RootOf
+    
+    from numpy.polynomial.legendre import Legendre
+    
+    if n < 2:
+        raise ValueError("Gauss-Lobatto requires n >= 2.")
 
-    x = Dummy("x")
-    p = legendre_poly(n-1, x, polys=True)
-    pd = p.diff(x)
-    xi = []
-    w = []
-    for r in pd.real_roots():
-        if isinstance(r, RootOf):
-            r = r.eval_rational(S(1)/10**(n_digits+2))
-        xi.append(r.n(n_digits))
-        w.append((2/(n*(n-1) * p.subs(x, r)**2)).n(n_digits))
+    # Build the (n-1)-th Legendre polynomial in the standard (orthonormal) form:
+    #   P_{n-1}(x) = Legendre.basis(n-1)
+    Pn_1 = Legendre.basis(n-1)
 
-    xi.insert(0, -1)
-    xi.append(1)
-    w.insert(0, (S(2)/(n*(n-1))).n(n_digits))
-    w.append((S(2)/(n*(n-1))).n(n_digits))
-    return xi, w
+    # Differentiate to get P'_{n-1}(x)
+    dPn_1 = Pn_1.deriv()
 
+    # Roots of the derivative give the interior Lobatto nodes
+    interior_roots = dPn_1.roots()
+
+    # Evaluate P_{n-1}(x) at those interior nodes
+    Pn_1_vals = Pn_1(interior_roots)
+
+    # Compute weights for the interior nodes
+    w_interior = 2.0 / (n * (n - 1) * (Pn_1_vals**2))
+
+    # Append the boundary nodes: -1 and +1
+    x = np.concatenate(([-1.0], interior_roots, [1.0]))
+    # Boundary weights
+    w_boundary = 2.0 / (n * (n - 1))
+    w = np.concatenate(([w_boundary], w_interior, [w_boundary]))
+
+    # Sort them in ascending order (not strictly necessary, but often desired)
+    # Because dPn_1.roots() is usually ascending, the below is optional:
+    order = np.argsort(x)
+    x, w = x[order], w[order]
+
+    # If requested, round to n_digits decimal places
+    if n_digits is not None:
+        x = np.round(x, n_digits)
+        w = np.round(w, n_digits)
+
+    return x, w
