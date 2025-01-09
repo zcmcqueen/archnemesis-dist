@@ -14,6 +14,8 @@ extensions = [
     "sphinx.ext.mathjax",
 #    "sphinx.ext.viewcode",
     "IPython.sphinxext.ipython_console_highlighting",
+    "sphinx_design",
+    "myst_parser",
     ]
 
 
@@ -51,3 +53,5 @@ nbsphinx_thumbnails = {
 html_theme = 'sphinx_rtd_theme'
 
 exclude_patterns = ['_build', '**.ipynb_checkpoints']
+
+myst_enable_extensions = ["colon_fence"]
