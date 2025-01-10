@@ -13,42 +13,57 @@ archNEMESIS
 
 __________
 
-This website includes the documentation regarding the Python version of the NEMESIS (Non-linear Optimal Estimator for MultivariatE
-Spectral analySIS) planetary atmosphere radiative transfer and retrieval code. 
+ArchNEMESIS is an open source Python package developed for the analysis of remote sensing spectroscopic observations of planetary atmospheres. 
+It is based on the widely used NEMESIS (Non-linear Optimal Estimator for MultivariatE Spectral analySIS) radiative transfer and retrieval tool, 
+which has been extensively used for the investigation of a wide variety of planetary environments.
 
-The main description of the NEMESIS code was published by `Irwin et al. (2008) <https://doi.org/10.1016/j.jqsrt.2007.11.006>`_.
-The original Fortran version of the code is `available here <https://doi.org/10.5281/zenodo.4303976>`_.
+ArchNEMESIS is currently maintained by `Juan Alday <https://research.open.ac.uk/people/ja22256>_` and `Joseph Penn <https://www.physics.ox.ac.uk/our-people/penn>_`.
+The `NEMESIS <https://nemesiscode.github.io/index.html>_` algorithm, code archNEMESIS is based on, was originally developed by `Patrick Irwin <https://www.physics.ox.ac.uk/our-people/irwin>_`.
 
-In this website, we aim to provide a more practical description of the code, including retrieval examples applied to different observing geometries or physical parameterisations.
+In this website, we aim to provide a detailed description of the code and its functionalities. In addition, we include several jupyter notebooks
+to help users get used to some of these functionalities. 
 
-**NOTE:** At this stage, documentation is under development.
+If interested users are missing key points in the documentation, or would appreciate seeing jupyter notebooks for certain purposes, do not 
+hesitate to contact us.
 
-Install archNEMESIS
+Installation
 --------------------
 
-The latest version of code has to be downloaded from `Github <https://github.com/juanaldayparejo/archnemesis-dist.git>`_.
+The latest version of code has to be downloaded from `Github <https://github.com/juanaldayparejo/archnemesis-dist.git>`_ under a GNU General Public License v3.
 
-Once the code has been downloaded from Github, move the archnemesis-dist/ package to a desired path. Then, inside the package, type ::
+Given that archNEMESIS is a highly dynamic package were new additions are frequently introduced, we recommend installing the package 
+but keeping it editable by typing:
 
 $ pip install --editable .
 
-This will install the NemesisPy package, but with the ability to update any changes made to the code (e.g., when introducing new model parameterisations).
+This will install archNEMESIS package, but with the ability to update any changes made to the code (e.g., when introducing new model parameterisations or methods).
 
-In the future, we aim to release official versions to The Python Package Index (PyPI), so that it can be directly installed using pip.
+Citing archNEMESIS
+--------------------
 
+If archNEMESIS has been significant in your research, we suggest citing the following articles:
+
+- ArchNEMESIS reference publication:
+   - *In preparation*.
+
+- NEMESIS reference publication:
+   - Irwin, P. G. J., Teanby, N. A., De Kok, R., Fletcher, L. N., Howett, C. J. A., Tsang, C. C. C., ... & Parrish, P. D. (2008). The NEMESIS planetary atmosphere radiative transfer and retrieval tool. *Journal of Quantitative Spectroscopy and Radiative Transfer*, 109(6), 1136-1150. doi: `10.1016/j.jqsrt.2007.11.006 <https://doi.org/10.1016/j.jqsrt.2007.11.006>_`
 
 Revision history
 -----------------------------
 
-- 1.0.0 (1 August, 2024)
-    - First version of the code.
+- 1.0.0 (1 February, 2025)
+    - First release for publication at Journal of Open Research Software.
 
-Dependencies on other Python packages
+Dependencies
 -----------------------------
 
-- `numpy <https://numpy.org/>`_: Used widely throughout the code to define N-dimensional arrays and perform mathematical operations (e.g., matrix multiplication).
-- `matplotlib <https://matplotlib.org/>`_: Used to create visualizations. 
-- `numba <https://numba.pydata.org/>`_: Used in specific functions to include the JIT compiler decorator and speed up the radiative transfer calculations.
+Numerical calculations: `numpy <https://numpy.org/>`_; `scipy <https://scipy.org/>`_
+Visualisations: `matplotlib <https://matplotlib.org/>`_
+File handling: `h5py <https://www.h5py.org/>`_
+Optimisation: `numba <https://numba.pydata.org/>`_; `joblib <https://joblib.readthedocs.io/en/stable/>`_
+Nested sampling: `pymultinest <https://johannesbuchner.github.io/PyMultiNest/>`_ 
+Extraction of ERA-5 model profiles: `cdsapi <https://pypi.org/project/cdsapi/>`_; `pygrib <https://jswhit.github.io/pygrib/>`_  
 
 .. toctree::
    :maxdepth: 2
