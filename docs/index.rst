@@ -17,8 +17,8 @@ ArchNEMESIS is an open source Python package developed for the analysis of remot
 It is based on the widely used NEMESIS (Non-linear Optimal Estimator for MultivariatE Spectral analySIS) radiative transfer and retrieval tool, 
 which has been extensively used for the investigation of a wide variety of planetary environments.
 
-ArchNEMESIS is currently maintained by `Juan Alday <https://research.open.ac.uk/people/ja22256>_` and `Joseph Penn <https://www.physics.ox.ac.uk/our-people/penn>_`.
-The `NEMESIS <https://nemesiscode.github.io/index.html>_` algorithm, code archNEMESIS is based on, was originally developed by `Patrick Irwin <https://www.physics.ox.ac.uk/our-people/irwin>_`.
+ArchNEMESIS is currently maintained by `Juan Alday <https://research.open.ac.uk/people/ja22256>`_ and `Joseph Penn <https://www.physics.ox.ac.uk/our-people/penn>`_.
+The `NEMESIS <https://nemesiscode.github.io/index.html>`_ algorithm, code archNEMESIS is based on, was originally developed by `Patrick Irwin <https://www.physics.ox.ac.uk/our-people/irwin>`_.
 
 In this website, we aim to provide a detailed description of the code and its functionalities. In addition, we include several jupyter notebooks
 to help users get used to some of these functionalities. 
@@ -32,7 +32,7 @@ Installation
 The latest version of code has to be downloaded from `Github <https://github.com/juanaldayparejo/archnemesis-dist.git>`_ under a GNU General Public License v3.
 
 Given that archNEMESIS is a highly dynamic package were new additions are frequently introduced, we recommend installing the package 
-but keeping it editable by typing:
+but keeping it editable by typing::
 
 $ pip install --editable .
 
@@ -47,7 +47,7 @@ If archNEMESIS has been significant in your research, we suggest citing the foll
    - *In preparation*.
 
 - NEMESIS reference publication:
-   - Irwin, P. G. J., Teanby, N. A., De Kok, R., Fletcher, L. N., Howett, C. J. A., Tsang, C. C. C., ... & Parrish, P. D. (2008). The NEMESIS planetary atmosphere radiative transfer and retrieval tool. *Journal of Quantitative Spectroscopy and Radiative Transfer*, 109(6), 1136-1150. doi: `10.1016/j.jqsrt.2007.11.006 <https://doi.org/10.1016/j.jqsrt.2007.11.006>_`
+   - Irwin, P. G. J., Teanby, N. A., De Kok, R., Fletcher, L. N., Howett, C. J. A., Tsang, C. C. C., ... & Parrish, P. D. (2008). The NEMESIS planetary atmosphere radiative transfer and retrieval tool. *Journal of Quantitative Spectroscopy and Radiative Transfer*, 109(6), 1136-1150. doi: `10.1016/j.jqsrt.2007.11.006 <https://doi.org/10.1016/j.jqsrt.2007.11.006>`_
 
 Revision history
 -----------------------------
@@ -58,12 +58,12 @@ Revision history
 Dependencies
 -----------------------------
 
-Numerical calculations: `numpy <https://numpy.org/>`_; `scipy <https://scipy.org/>`_
-Visualisations: `matplotlib <https://matplotlib.org/>`_
-File handling: `h5py <https://www.h5py.org/>`_
-Optimisation: `numba <https://numba.pydata.org/>`_; `joblib <https://joblib.readthedocs.io/en/stable/>`_
-Nested sampling: `pymultinest <https://johannesbuchner.github.io/PyMultiNest/>`_ 
-Extraction of ERA-5 model profiles: `cdsapi <https://pypi.org/project/cdsapi/>`_; `pygrib <https://jswhit.github.io/pygrib/>`_  
+- Numerical calculations: `numpy <https://numpy.org/>`_; `scipy <https://scipy.org/>`_
+- Visualisations: `matplotlib <https://matplotlib.org/>`_
+- File handling: `h5py <https://www.h5py.org/>`_
+- Optimisation: `numba <https://numba.pydata.org/>`_; `joblib <https://joblib.readthedocs.io/en/stable/>`_
+- Nested sampling: `pymultinest <https://johannesbuchner.github.io/PyMultiNest/>`_ 
+- Extraction of ERA-5 model profiles: `cdsapi <https://pypi.org/project/cdsapi/>`_; `pygrib <https://jswhit.github.io/pygrib/>`_  
 
 .. toctree::
    :maxdepth: 2
