@@ -23,7 +23,7 @@ The `NEMESIS <https://nemesiscode.github.io/index.html>`_ algorithm, code archNE
 In this website, we aim to provide a detailed description of the code and its functionalities. In addition, we include several jupyter notebooks
 to help users get used to some of these functionalities. 
 
-If interested users are missing key points in the documentation, would appreciate seeing jupyter notebooks for certain purposes, or want to report issues, please do so by contacting us or joining our `Discord <https://discord.gg/vhUeW5vc>`_ channel.
+If interested users are missing key points in the documentation, would appreciate seeing jupyter notebooks for certain purposes, or want to report issues, please do so by contacting us or joining our `Discord <https://discord.gg/Te43qbrVFK>`_ channel.
 
 Installation
 --------------------
