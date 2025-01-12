@@ -66,7 +66,10 @@ class Atmosphere_0:
             and RADTRANS isotope ID ISO[j]
         @attribute MOLWT: float
             Molecular weight of the atmosphere in kg mol-1
-
+        @attribute PARAH2: 1D array
+            Verical profile of para-H2 fraction (para-H2/total amount of H2). 
+            The value 1-PARAH2 would be the ortho-H2 fraction.
+        
         Methods
         -------
         Atmosphere_0.assess()
@@ -100,6 +103,9 @@ class Atmosphere_0:
         Atmosphere_0.write_ref()
         Atmosphere_0.read_aerosol()
         Atmosphere_0.write_aerosol()
+        Atmosphere_0.read_parah2()
+        Atmosphere_0.write_parah2()
+        Atmosphere_0.read_vpf()
 
         Atmosphere_0.plot_Atm()
         Atmosphere_0.plot_Dust()
@@ -1393,7 +1399,7 @@ class Atmosphere_0:
 
     def read_parah2(self):
         """
-        Reads in the para-h2 profile from parah2.ref.
+        Reads in the para-h2 fraction profile from parah2.ref.
         """
         try:
             with open('parah2.ref', 'r') as file:
@@ -1412,6 +1418,22 @@ class Atmosphere_0:
         self.PARAH2 = np.array(self.PARAH2)
         if len(self.PARAH2) != len(self.P):
             raise Exception("Incorrect number of entries in parah2.ref!")
+        
+    ##################################################################################
+
+    def write_parah2(self):
+        """
+        Writes the para-h2 fraction profile to parah2.ref.
+        """
+       
+        if self.NLOCATIONS!=1:
+            raise ValueError('error :: write_parah2 only works if NLOCATIONS=1')
+       
+        f = open('parah2.ref','w')
+        f.write('\t %i \n' % (self.NP))
+        for i in range(self.NP):
+            f.write('\t %7.4f \t %7.4f \n'  % (self.H[i]/1.0e3,self.PARAH2[i]))
+        f.close()
             
     ##################################################################################
     
