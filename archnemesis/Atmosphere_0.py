@@ -209,6 +209,10 @@ class Atmosphere_0:
             if self.NDUST>0:
                 assert self.DUST.shape == (self.NP,self.NDUST) , \
                     'DUST must have size (NP,NDUST)'
+                    
+            if self.PARAH2 is not None:
+                assert len(self.PARAH2) == self.NP , \
+                    'PARAH2 must have size (NP)'
                 
         elif self.NLOCATIONS>1:
 
@@ -241,6 +245,10 @@ class Atmosphere_0:
             if self.NDUST>0:
                 assert self.DUST.shape == (self.NP,self.NDUST,self.NLOCATIONS) , \
                     'DUST must have size (NP,NDUST,NLOCATIONS)'
+                    
+            if self.PARAH2 is not None:
+                assert self.PARAH2.shape == (self.NP,self.NLOCATIONS) , \
+                    'PARAH2 must have size (NP,NLOCATIONS)'
 
     ##################################################################################
 
@@ -372,6 +380,10 @@ class Atmosphere_0:
             dset = grp.create_dataset('DUST',data=self.DUST)
             dset.attrs['title'] = "Aerosol abundance"
             dset.attrs['units'] = "particles m-3"
+            
+        if self.PARAH2 is not None:
+            dset = grp.create_dataset('PARAH2',data=self.PARAH2)
+            dset.attrs['title'] = "Para-H2 fraction"
 
         f.close()
 
@@ -421,7 +433,10 @@ class Atmosphere_0:
 
             if self.NDUST>0:
                 self.DUST = np.array(f.get(name+'/DUST'))
-
+                
+            parah2 = name+'/PARAH2'
+            if parah2:
+                self.PARAH2 = np.array(f.get(name+'/PARAH2'))
 
             if self.AMFORM==0:
                 self.MOLWT = np.array(f.get(name+'/MOLWT'))
