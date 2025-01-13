@@ -141,6 +141,7 @@ class Measurement_0:
     Measurement_0.select_geometry()
     Measurement_0.select_geometries()
     Measurement_0.select_TANHE_SO()
+    Measurement_0.crop_wave()
     
     Measurement_0.wavesetc()
     Measurement_0.wavesetb()
@@ -1408,6 +1409,44 @@ class Measurement_0:
         self.edit_ERRMEAS(errmeastmp)
 
     #################################################################################################################
+        
+    def crop_wave(self,wavemin,wavemax,iconv=None):
+    
+        """
+        Based on the information of the Measurement class, update it based on selected minimum and maximum wavelengths
+        """
+
+        if iconv is None:
+            #Selecting the tangent heights
+            iconv = np.where( (self.VCONV[:,0]>=wavemin) & (self.VCONV[:,0]<=wavemax) )[0]
+
+        if len(iconv)<=0:
+            raise ValueError('error in crop_wave :: there are no wavelengths within the specified spectral range')
+
+        #Defining arrays
+        nconvx = len(iconv)
+        vconvx = self.VCONV[iconv,:]
+        measx = self.MEAS[iconv,:]
+        errmeasx = self.ERRMEAS[iconv,:]
+                
+        #Updating class
+        self.NCONV = np.zeros(self.NGEOM,dtype='int32') + nconvx
+        self.edit_VCONV(vconvx)
+        self.edit_MEAS(measx)
+        self.edit_ERRMEAS(errmeasx)
+        
+        if self.FWHM<0.0:
+            nfilx = self.NFIL[iconv]
+            vfilx = self.VFIL[0:nfilx.max(),iconv]
+            afilx = self.AFIL[0:nfilx.max(),iconv]
+            
+            self.NFIL = nfilx
+            self.VFIL = vfilx
+            self.AFIL = afilx
+
+        self.assess()
+
+    #################################################################################################################
 
     def wavesetc(self,Spectroscopy,IGEOM=0):
         """
@@ -2226,7 +2265,7 @@ class Measurement_0:
 
         from mpl_toolkits.axes_grid1 import make_axes_locatable
 
-        fig,ax1 = plt.subplots(1,1,figsize=(12,4))
+        fig,ax1 = plt.subplots(1,1,figsize=(10,4))
 
         colormap = 'nipy_spectral'
         cmap = matplotlib.cm.get_cmap(colormap,100)
@@ -2246,6 +2285,7 @@ class Measurement_0:
             ax1.set_xlabel('Wavelength ($\mu$m)')
         ax1.set_ylabel('Transmission')
         ax1.set_title('Latitude = '+str(np.round(self.LATITUDE,1))+' - Longitude = '+str(np.round(self.LONGITUDE,1)))
+        ax1.set_facecolor('lightgray')
         ax1.grid()
         
         # Create a ScalarMappable object
