@@ -92,7 +92,7 @@ def read_input_files_hdf5(runname):
 
         CALLING SEQUENCE:
         
-            Atmosphere,Measurement,Spectroscopy,Scatter,Stellar,Surface,CIA,Layer,Variables,Retrieval = read_input_files_hdf5(runname)
+            Atmosphere,Measurement,Spectroscopy,Scatter,Stellar,Surface,CIA,Layer,Variables,Retrieval,Telluric = read_input_files_hdf5(runname)
  
         MODIFICATION HISTORY : Juan Alday (25/03/2023)
     """
