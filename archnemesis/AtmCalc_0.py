@@ -405,24 +405,26 @@ class AtmCalc_0:
                 IMOD[j] = 28
 
             if self.CG==True:
-                if IMOD[j]==2:
-                    IMOD[j] = IMOD[j] + 8
-                if IMOD[j]==3:
-                    IMOD[j] = IMOD[j] + 8          
-                if IMOD[j]==17:
-                    IMOD[j] = IMOD[j] + 8
-                if IMOD[j]==18:
-                    IMOD[j] = IMOD[j] + 8  
-
-                NLAYIN[j] = (j+1) + NCG - self.NPATH 
-            
-                #note that always want to include CG layers from 1 to NLAYIN above
-                #so that if NPATH=1 and NCG=1 you just include CG layers 1 
-                #        if NPATH=1 and NCG=NUSE you include CG layers 1 to NCG
-                #        if NPATH=NCG=NUSE you include layers 1-1, 1-2,... 1-NCG
-                #NPATH=NUSE and NCG=1 is not allowed
-
+                
                 raise ValueError('CG paths are not yet implemented')
+                
+                #if IMOD[j]==2:
+                #    IMOD[j] = IMOD[j] + 8
+                #if IMOD[j]==3:
+                #    IMOD[j] = IMOD[j] + 8          
+                #if IMOD[j]==17:
+                #    IMOD[j] = IMOD[j] + 8
+                #if IMOD[j]==18:
+                #    IMOD[j] = IMOD[j] + 8  
+
+                #NLAYIN[j] = (j+1) + NCG - self.NPATH 
+            
+                ##note that always want to include CG layers from 1 to NLAYIN above
+                ##so that if NPATH=1 and NCG=1 you just include CG layers 1 
+                ##        if NPATH=1 and NCG=NUSE you include CG layers 1 to NCG
+                ##        if NPATH=NCG=NUSE you include layers 1-1, 1-2,... 1-NCG
+                ##NPATH=NUSE and NCG=1 is not allowed
+
                 #for i in range(NLAYIN[j]):
                 #    LAYINC[i,j] = FSTCG+i-1
                 #    SCALE[i,j] = 1.0
