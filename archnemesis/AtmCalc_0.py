@@ -190,9 +190,9 @@ class AtmCalc_0:
         if((self.SCATTER==True) or (self.SINGLE==True) or (self.SPHSINGLE==True)):
             if self.LIMB==True:
                 if self.SINGLE==True:
-                    sys.exit('error in .pat file :: SINGLE and LIMB not catered for')
+                    raise ValueError('error in .pat file :: SINGLE and LIMB not catered for')
                 if self.SPHSINGLE==True:
-                    sys.exit('error in .pat file :: SPHSINGLE and LIMB not catered for')  
+                    raise ValueError('error in .pat file :: SPHSINGLE and LIMB not catered for')  
             else:
                 if self.ANGLE!=0.0:
                     print('warning in .pat file :: ANGLE must be 0.0 for scattering calculations - resetting')    
@@ -200,7 +200,7 @@ class AtmCalc_0:
 
         if self.HEMISPHERE==True:
             if self.LIMB==True:
-                sys.exit('error in .pat file :: cannot do HEMISPHERE and LIMB')  
+                raise ValueError('error in .pat file :: cannot do HEMISPHERE and LIMB')  
             else:
                 if self.ANGLE!=0.0:
                     print('warning in .pat file :: ANGLE must be 0.0 for HEMISPHERE - resetting') 
@@ -322,7 +322,7 @@ class AtmCalc_0:
         #####################################################
 
         if self.CG==True:
-            sys.exit('error in .pat file :: Curtis-Godson files are not implemented in the path calculation yet')
+            raise ValueError('error in .pat file :: Curtis-Godson files are not implemented in the path calculation yet')
 
         #Calculating the calculation type to pass to RADTRANS
         ######################################################
@@ -339,7 +339,7 @@ class AtmCalc_0:
         if self.UPFLUX==True:
             self.NPATH = NUSE
         if((self.NETFLUX==True)):
-            sys.exit('error :: need to properly define the paths (should be 2*NLAYER for upward and downward flux)')
+            raise ValueError('error :: need to properly define the paths (should be 2*NLAYER for upward and downward flux)')
             self.NPATH = NUSE
 
         NLAYIN = np.zeros(self.NPATH,dtype='int32')
@@ -380,19 +380,19 @@ class AtmCalc_0:
                 if self.SCATTER==True:
                     IMOD[j] = 25
                 else:
-                    sys.exit('error in .pat file :: cannot do upward flux calculation with scattering turned off')
+                    raise ValueError('error in .pat file :: cannot do upward flux calculation with scattering turned off')
 
             if self.OUTFLUX==True:
                 if self.SCATTER==True:
                     IMOD[j] = 26
                 else:
-                    sys.exit('error in .pat file :: cannot do outward flux calculation with scattering turned off')
+                    raise ValueError('error in .pat file :: cannot do outward flux calculation with scattering turned off')
                 
             if self.BOTFLUX==True:
                 if self.SCATTER==True:
                     IMOD[j] = 27
                 else:
-                    sys.exit('error in .pat file :: cannot do bottom flux calculation with scattering turned off')
+                    raise ValueError('error in .pat file :: cannot do bottom flux calculation with scattering turned off')
 
             if self.LIMB==True:
                 if self.SCATTER==True:

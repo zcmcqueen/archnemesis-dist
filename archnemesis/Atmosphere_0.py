@@ -595,7 +595,7 @@ class Atmosphere_0:
                     vp,svpflag = self.SVP[(self.ID[i],self.ISO[i])]
                     a,b,c,d = Data.gas_data.svp_coefficients[self.ID[i]]
                 except:
-                    sys.exit(f'error :: Could not find saturation vapour coefficients for gas {self.ID[i]}')
+                    raise ValueError(f'error :: Could not find saturation vapour coefficients for gas {self.ID[i]}')
                 
                 svp = vp*np.exp(a + b/self.T + c*self.T + d*self.T**2)
                 pp = self.VMR[:,i]*self.P/101325
@@ -783,7 +783,7 @@ class Atmosphere_0:
         from archnemesis.Data.gas_data import const
 
         #if self.NLOCATIONS>1:
-        #    sys.exit('error :: adjust_hydrostatP only works if NLOCATIONS = 1')
+        #    raise ValueError('error :: adjust_hydrostatP only works if NLOCATIONS = 1')
 
         if self.NLOCATIONS==1:
 
@@ -823,10 +823,10 @@ class Atmosphere_0:
             
             #Checking that htan and ptan are arrays with size NLOCATIONS
             if len(htan)!=self.NLOCATIONS:
-                sys.exit('error in adjus_thydrostatP :: htan must have NLOCATION elements')
+                raise ValueError('error in adjus_thydrostatP :: htan must have NLOCATION elements')
 
             if len(ptan)!=self.NLOCATIONS:
-                sys.exit('error in adjus_thydrostatP :: ptan must have NLOCATION elements')
+                raise ValueError('error in adjus_thydrostatP :: ptan must have NLOCATION elements')
             
             for iLOC in range(self.NLOCATIONS):
             
@@ -933,7 +933,7 @@ class Atmosphere_0:
             ialt = np.unique(ialtx)
             
             if len(ialt)!=1:
-                sys.exit('error in adjust_hydrostatH :: when using multiple locations it is assumed that the z = 0.0 km is at the same level index')
+                raise ValueError('error in adjust_hydrostatH :: when using multiple locations it is assumed that the z = 0.0 km is at the same level index')
             else:
                 ialt = int(ialt[0])
 
@@ -945,7 +945,7 @@ class Atmosphere_0:
                     
             ialt = np.unique(ialtx)
             if len(ialt)!=1:
-                sys.exit('error in adjust_hydrostatH :: when using multiple locations it is assumed that the z = 0.0 km is at the same level index')
+                raise ValueError('error in adjust_hydrostatH :: when using multiple locations it is assumed that the z = 0.0 km is at the same level index')
             else:
                 ialt = int(ialt[0])
 
@@ -1004,7 +1004,7 @@ class Atmosphere_0:
         if self.NLOCATIONS==1:
 
             if len(vmr)!=self.NP:
-                sys.exit('error in Atmosphere.add_gas() :: Number of altitude levels in vmr must be the same as in Atmosphere')
+                raise ValueError('error in Atmosphere.add_gas() :: Number of altitude levels in vmr must be the same as in Atmosphere')
             else:
                 vmr1 = np.zeros([self.NP,ngas])
                 gasID1 = np.zeros(ngas,dtype='int32')
@@ -1023,7 +1023,7 @@ class Atmosphere_0:
         elif self.NLOCATIONS>1:
 
             if vmr.shape!=(self.NP,self.NLOCATIONS):
-                sys.exit('error in Atmosphere.add_gas() :: vmr must have size (NP,NLOCATIONS)')
+                raise ValueError('error in Atmosphere.add_gas() :: vmr must have size (NP,NLOCATIONS)')
             else:
                 vmr1 = np.zeros([self.NP,ngas,self.NLOCATIONS])
                 gasID1 = np.zeros(ngas,dtype='int32')
@@ -1079,10 +1079,10 @@ class Atmosphere_0:
 
 
         if len(vmr)!=self.NP:
-            sys.exit('error in Atmosphere.update_gas() :: Number of altitude levels in vmr must be the same as in Atmosphere')
+            raise ValueError('error in Atmosphere.update_gas() :: Number of altitude levels in vmr must be the same as in Atmosphere')
 
         if len(igas)==0:
-            sys.exit('error in Atmosphere.update_gas() :: Gas ID and Iso ID not found in reference atmosphere')
+            raise ValueError('error in Atmosphere.update_gas() :: Gas ID and Iso ID not found in reference atmosphere')
         else:
             if self.NLOCATIONS==1:
                 vmr1 = np.zeros((self.NP,self.NVMR))
@@ -1151,7 +1151,7 @@ class Atmosphere_0:
         """
         
         if iLOCATION>self.NLOCATIONS-1:
-            sys.exit('error in select_location :: iLOCATION must be between 0 and NLOCATIONS-1',[0,self.NLOCATIONS-1])
+            raise ValueError('error in select_location :: iLOCATION must be between 0 and NLOCATIONS-1',[0,self.NLOCATIONS-1])
 
         self.NLOCATIONS = 1
         self.edit_P(self.P[:,iLOCATION])
@@ -1268,7 +1268,7 @@ class Atmosphere_0:
         """
 
         if self.NLOCATIONS>1:
-            sys.exit('error :: write_ref only works if NLOCATIONS=1')
+            raise ValueError('error :: write_ref only works if NLOCATIONS=1')
 
         fref = open(self.runname+'.ref','w')
         fref.write('\t %i \n' % (self.AMFORM))
@@ -1313,7 +1313,7 @@ class Atmosphere_0:
         """
 
         if self.NLOCATIONS!=1:
-            sys.exit('error :: read_aerosol only works if NLOCATIONS=1')
+            raise ValueError('error :: read_aerosol only works if NLOCATIONS=1')
             
             
         #Check if the density can be calculated
@@ -1362,7 +1362,7 @@ class Atmosphere_0:
             self.NP = npro
         else:
             if self.NP!=npro:
-                sys.exit('Number of altitude points in aerosol.ref must be equal to NP')
+                raise ValueError('Number of altitude points in aerosol.ref must be equal to NP')
 
         #Filling the information into the class
         self.NP = npro
@@ -1387,7 +1387,7 @@ class Atmosphere_0:
         """
 
         if self.NLOCATIONS!=1:
-            sys.exit('error :: read_aerosol only works if NLOCATIONS=1')
+            raise ValueError('error :: read_aerosol only works if NLOCATIONS=1')
             
         #Check if the density can be calculated
         if((self.T is not None) & (self.P is not None)):
