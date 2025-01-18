@@ -2,7 +2,7 @@ from archnemesis import *
 import numpy as np
 import matplotlib.pyplot as plt
 import matplotlib as matplotlib
-import os,sys
+import os
 from numba import jit
 
 #!/usr/local/bin/python3
@@ -536,7 +536,7 @@ class Measurement_0:
         #Checking if Measurement exists
         e = "/Measurement" in f
         if e==False:
-            sys.exit('error :: Measurement is not defined in HDF5 file')
+            raise ValueError('error :: Measurement is not defined in HDF5 file')
         else:
 
             self.NGEOM = np.int32(f.get('Measurement/NGEOM'))
@@ -822,7 +822,7 @@ class Measurement_0:
         """
 
         if self.FWHM<0.0:
-            sys.exit('error in write_sha() :: The .sha file is only used if FWHM>0')
+            raise ValueError('error in write_sha() :: The .sha file is only used if FWHM>0')
 
         f = open(self.runname+'.sha','w')
         f.write("%i \n" %  (self.ISHAPE))
@@ -863,7 +863,7 @@ class Measurement_0:
             afil[0:nfil[i],i] = afil1[0:nfil[i],i]
     
         if self.NCONV[0]!=nconv:
-            sys.exit('error :: Number of convolution wavelengths in .fil and .spx files must be the same')
+            raise ValueError('error :: Number of convolution wavelengths in .fil and .spx files must be the same')
 
         self.NFIL = nfil
         self.VFIL = vfil
@@ -1189,7 +1189,7 @@ class Measurement_0:
         """
 
         if IGEOM>self.NGEOM-1:
-            sys.exit('error in remove_geometry :: IGEOM must be between 0 and NGEOM')
+            raise ValueError('error in remove_geometry :: IGEOM must be between 0 and NGEOM')
 
         self.NGEOM = self.NGEOM - 1
         self.NCONV = np.delete(self.NCONV,IGEOM,axis=0)
@@ -1228,7 +1228,7 @@ class Measurement_0:
         """
 
         if IGEOM>self.NGEOM-1:
-            sys.exit('error in select_geometry :: IGEOM must be between 0 and NGEOM')
+            raise ValueError('error in select_geometry :: IGEOM must be between 0 and NGEOM')
 
         self.NGEOM = 1
         NCONV = np.zeros(self.NGEOM,dtype='int32')
@@ -1298,9 +1298,9 @@ class Measurement_0:
 
         NGEOMsel = len(IGEOM)
         if np.max(IGEOM)>self.NGEOM-1:
-            sys.exit('error in select_geometries :: IGEOM must be between 0 and NGEOM')
+            raise ValueError('error in select_geometries :: IGEOM must be between 0 and NGEOM')
         if np.min(IGEOM)<0:
-            sys.exit('error in select_geometries :: IGEOM must be between 0 and NGEOM')
+            raise ValueError('error in select_geometries :: IGEOM must be between 0 and NGEOM')
 
         self.NGEOM = NGEOMsel
         NCONV = np.zeros(self.NGEOM,dtype='int32')
@@ -1502,14 +1502,14 @@ class Measurement_0:
             
             #Sorting the wavenumbers if the ILS is flipped
             if wavemin>=wavemax:
-                sys.exit('error in wavesetc :: the spectral points defining the instrument lineshape must be increasing')
+                raise ValueError('error in wavesetc :: the spectral points defining the instrument lineshape must be increasing')
 
             #Checking that the lbl-tables encompass this wavelength range
             err = 0.01
             if (wavemin<(1-err)*Spectroscopy.WAVE.min() or wavemax>(1+err)*Spectroscopy.WAVE.max()):
                 print('Required wavelength range :: ',wavemin,wavemax)
                 print('Wavelength range in lbl-tables :: ',Spectroscopy.WAVE.min(),Spectroscopy.WAVE.max())
-                sys.exit('error from wavesetc :: Channel wavelengths not covered by lbl-tables')
+                raise ValueError('error from wavesetc :: Channel wavelengths not covered by lbl-tables')
 
 
             #Selecting the necessary wavenumbers
@@ -1576,7 +1576,7 @@ class Measurement_0:
                         wavemax= vmaxx
 
                 if (wavemin<Spectroscopy.WAVE.min() or wavemax>Spectroscopy.WAVE.max()):
-                    sys.exit('error from wavesetc :: Channel wavelengths not covered by k-tables')
+                    raise ValueError('error from wavesetc :: Channel wavelengths not covered by k-tables')
 
                 #Selecting the necessary wavenumbers
                 iwavemin = np.argmin(np.abs(Spectroscopy.WAVE,wavemin))
@@ -1601,7 +1601,7 @@ class Measurement_0:
                 wavemax = self.VCONV[self.NCONV[IGEOM]-1,IGEOM] + dv
 
                 if (wavemin<Spectroscopy.WAVE.min() or wavemax>Spectroscopy.WAVE.max()):
-                    sys.exit('error from wavesetc :: Channel wavelengths not covered by k-tables')
+                    raise ValueError('error from wavesetc :: Channel wavelengths not covered by k-tables')
 
                 iwave = np.where( (Spectroscopy.WAVE>=wavemin) & (Spectroscopy.WAVE<=wavemax) )
                 iwave = iwave[0]
@@ -1609,7 +1609,7 @@ class Measurement_0:
                 self.NWAVE = len(self.WAVE)
 
             else:
-                sys.exit('error :: Measurement FWHM is not defined')
+                raise ValueError('error :: Measurement FWHM is not defined')
 
         else:
             
@@ -1648,30 +1648,30 @@ class Measurement_0:
             if IGEOM=='All':
                 IG = 0
                 if ModSpec.ndim!=2:
-                    sys.exit('error in lblconvg :: ModSpec must have 2 dimensions (NWAVE,NGEOM)')
+                    raise ValueError('error in lblconvg :: ModSpec must have 2 dimensions (NWAVE,NGEOM)')
                 SPECONV = lblconv_ngeom(self.NWAVE,wavecorr,ModSpec,self.NCONV[IG],self.VCONV[:,IG],self.ISHAPE,self.FWHM)
             else:
                 if ModSpec.ndim!=1:
-                    sys.exit('error in lblconvg :: ModSpec must have 1 dimensions (NWAVE)')
+                    raise ValueError('error in lblconvg :: ModSpec must have 1 dimensions (NWAVE)')
                 IG = IGEOM
                 SPECONV = lblconv(self.NWAVE,wavecorr,ModSpec,self.NCONV[IG],self.VCONV[:,IG],self.ISHAPE,self.FWHM)
             
         elif self.FWHM<0.0:  #Convolution with VFIL,AFIL
             if IGEOM=='All':
                 if ModSpec.ndim!=2:
-                    sys.exit('error in lblconvg :: ModSpec must have 2 dimensions (NWAVE,NGEOM)')
+                    raise ValueError('error in lblconvg :: ModSpec must have 2 dimensions (NWAVE,NGEOM)')
                 IG = 0
                 SPECONV = lblconv_fil_ngeom(self.NWAVE,wavecorr,ModSpec,self.NCONV[IG],self.VCONV[:,IG],self.NFIL,self.VFIL,self.AFIL)
             else:
                 if ModSpec.ndim!=1:
-                    sys.exit('error in lblconvg :: ModSpec must have 1 dimensions (NWAVE)')
+                    raise ValueError('error in lblconvg :: ModSpec must have 1 dimensions (NWAVE)')
                 IG = IGEOM
                 SPECONV = lblconv_fil(self.NWAVE,wavecorr,ModSpec,self.NCONV[IG],self.VCONV[:,IG],self.NFIL,self.VFIL,self.AFIL)
 
         elif self.FWHM==0.0:  #No convolution
             if IGEOM=='All':
                 if ModSpec.ndim!=2:
-                    sys.exit('error in lblconvg :: ModSpec must have 2 dimensions (NWAVE,NGEOM)')
+                    raise ValueError('error in lblconvg :: ModSpec must have 2 dimensions (NWAVE,NGEOM)')
                 SPECONV = np.zeros(self.VCONV.shape)
                 for IG in range(self.NGEOM):
                     SPECONV[:,IG] = np.interp(self.VCONV[:,IG],wavecorr,ModSpec[:,IG])
@@ -1717,15 +1717,15 @@ class Measurement_0:
             if IGEOM=='All':
                 IG = 0
                 if ModSpec.ndim!=2:
-                    sys.exit('error in lblconvg :: ModSpec must have 2 dimensions (NWAVE,NGEOM)')
+                    raise ValueError('error in lblconvg :: ModSpec must have 2 dimensions (NWAVE,NGEOM)')
                 if ModGrad.ndim!=3:
-                    sys.exit('error in lblconvg :: ModGrad must have 3 dimensions (NWAVE,NGEOM,NX)')
+                    raise ValueError('error in lblconvg :: ModGrad must have 3 dimensions (NWAVE,NGEOM,NX)')
                 SPECONV,dSPECONV = lblconvg_ngeom(self.NWAVE,wavecorr,ModSpec,ModGrad,self.NCONV[IG],self.VCONV[:,IG],self.ISHAPE,self.FWHM)
             else:
                 if ModSpec.ndim!=1:
-                    sys.exit('error in lblconvg :: ModSpec must have 1 dimensions (NWAVE)')
+                    raise ValueError('error in lblconvg :: ModSpec must have 1 dimensions (NWAVE)')
                 if ModGrad.ndim!=2:
-                    sys.exit('error in lblconvg :: ModGrad must have 2 dimensions (NWAVE,NX)')
+                    raise ValueError('error in lblconvg :: ModGrad must have 2 dimensions (NWAVE,NX)')
                 IG = IGEOM
                 SPECONV,dSPECONV = lblconvg(self.NWAVE,wavecorr,ModSpec,ModGrad,self.NCONV[IG],self.VCONV[:,IG],self.ISHAPE,self.FWHM)
             
@@ -1733,17 +1733,17 @@ class Measurement_0:
 
             if IGEOM=='All':
                 if ModSpec.ndim!=2:
-                    sys.exit('error in lblconvg :: ModSpec must have 2 dimensions (NWAVE,NGEOM)')
+                    raise ValueError('error in lblconvg :: ModSpec must have 2 dimensions (NWAVE,NGEOM)')
                 if ModGrad.ndim!=3:
-                    sys.exit('error in lblconvg :: ModGrad must have 3 dimensions (NWAVE,NGEOM,NX)')
+                    raise ValueError('error in lblconvg :: ModGrad must have 3 dimensions (NWAVE,NGEOM,NX)')
                 IG = 0
                 SPECONV,dSPECONV = lblconvg_fil_ngeom(self.NWAVE,wavecorr,ModSpec,ModGrad,self.NCONV[IG],self.VCONV[:,IG],self.NFIL,self.VFIL,self.AFIL)
 
             else:
                 if ModSpec.ndim!=1:
-                    sys.exit('error in lblconvg :: ModSpec must have 1 dimensions (NWAVE)')
+                    raise ValueError('error in lblconvg :: ModSpec must have 1 dimensions (NWAVE)')
                 if ModGrad.ndim!=2:
-                    sys.exit('error in lblconvg :: ModGrad must have 2 dimensions (NWAVE,NX)')
+                    raise ValueError('error in lblconvg :: ModGrad must have 2 dimensions (NWAVE,NX)')
                 IG = IGEOM
                 SPECONV,dSPECONV = lblconvg_fil(self.NWAVE,wavecorr,ModSpec,ModGrad,self.NCONV[IG],self.VCONV[:,IG],self.NFIL,self.VFIL,self.AFIL)
 
@@ -1751,17 +1751,17 @@ class Measurement_0:
             
             if IGEOM=='All':
                 if ModSpec.ndim!=2:
-                    sys.exit('error in lblconvg :: ModSpec must have 2 dimensions (NWAVE,NGEOM)')
+                    raise ValueError('error in lblconvg :: ModSpec must have 2 dimensions (NWAVE,NGEOM)')
                 if ModGrad.ndim!=3:
-                    sys.exit('error in lblconvg :: ModGrad must have 3 dimensions (NWAVE,NGEOM,NX)')
+                    raise ValueError('error in lblconvg :: ModGrad must have 3 dimensions (NWAVE,NGEOM,NX)')
                 SPECONV = ModSpec
                 dSPECONV = ModGrad
                 
             else:
                 if ModSpec.ndim!=1:
-                    sys.exit('error in lblconvg :: ModSpec must have 1 dimensions (NWAVE)')
+                    raise ValueError('error in lblconvg :: ModSpec must have 1 dimensions (NWAVE)')
                 if ModGrad.ndim!=2:
-                    sys.exit('error in lblconvg :: ModGrad must have 2 dimensions (NWAVE,NX)')
+                    raise ValueError('error in lblconvg :: ModGrad must have 2 dimensions (NWAVE,NX)')
 
                 SPECONV = ModSpec[:,IGEOM]
                 dSPECONV = ModGrad[:,IGEOM,:]
@@ -1810,7 +1810,7 @@ class Measurement_0:
 
             if self.FWHM>0.0:
 
-                sys.exit('error in convg :: IGEOM=All with FWHM>0 has not yet been implemented')
+                raise ValueError('error in convg :: IGEOM=All with FWHM>0 has not yet been implemented')
 
             elif self.FWHM==0.0:
 
@@ -1821,7 +1821,7 @@ class Measurement_0:
 
             elif self.FWHM<0.0:
 
-                sys.exit('error in convg :: IGEOM=All with FWHM<0 has not yet been implemented')
+                raise ValueError('error in convg :: IGEOM=All with FWHM<0 has not yet been implemented')
 
         else:
 
@@ -2003,7 +2003,7 @@ class Measurement_0:
 
             if self.FWHM>0.0:
 
-                sys.exit('error in convg :: IGEOM=All with FWHM>0 has not yet been implemented')
+                raise ValueError('error in convg :: IGEOM=All with FWHM>0 has not yet been implemented')
 
             elif self.FWHM==0.0:
 
@@ -2015,7 +2015,7 @@ class Measurement_0:
 
             elif self.FWHM<0.0:
 
-                sys.exit('error in convg :: IGEOM=All with FWHM<0 has not yet been implemented')
+                raise ValueError('error in convg :: IGEOM=All with FWHM<0 has not yet been implemented')
             
 
         else:
@@ -2105,7 +2105,7 @@ class Measurement_0:
 
                 print(fpy)
                 print('error in convg :: This part of the programme has not been tested yet')
-                sys.exit()
+                raise ValueError()
                 
                 for ICONV in range(self.NCONV[IGEOM]):
                     
@@ -2632,7 +2632,7 @@ def lblconv(nwave,vwave,y,nconv,vconv,ishape,fwhm):
                 #Gaussian instrument shape
                 f1 = np.exp(-((vwave[inwave[i]]-vcen)/sig)**2.0)
             else:
-                #sys.exit('lblconv :: ishape not included yet in function')
+                #raise ValueError('lblconv :: ishape not included yet in function')
                 dummy = 1
 
             if f1>0.0:
@@ -2728,7 +2728,7 @@ def lblconv_ngeom(nwave,vwave,y,nconv,vconv,ishape,fwhm):
                         #Gaussian instrument shape
                         f1 = np.exp(-((vwave[inwave[i]]-vcen)/sig)**2.0)
                     #else:
-                    #    sys.exit('lblconv :: ishape not included yet in function')
+                    #    raise ValueError('lblconv :: ishape not included yet in function')
 
                     if f1>0.0:
                         yout[j,:] = yout[j,:] + f1*y[inwave[i],:]
@@ -2923,9 +2923,9 @@ def lblconvg_ngeom(nwave,vwave,y,dydx,nconv,vconv,ishape,fwhm):
         ngeom = dydx.shape[1]
 
         #if dydx.shape[0]!=nconv:
-        #    sys.exit('error in lblconvg :: Number of elements in dydx must be nconv')
+        #    raise ValueError('error in lblconvg :: Number of elements in dydx must be nconv')
         #if y.shape[0]!=nconv:
-        #    sys.exit('error in lblconvg :: Number of elements in y must be nconv')
+        #    raise ValueError('error in lblconvg :: Number of elements in y must be nconv')
 
         yout = np.zeros((nconv,ngeom))
         ynor = np.zeros((nconv,ngeom))
@@ -2969,7 +2969,7 @@ def lblconvg_ngeom(nwave,vwave,y,dydx,nconv,vconv,ishape,fwhm):
                     #Gaussian instrument shape
                     f1 = np.exp(-((vwave[inwave[i]]-vcen)/sig)**2.0)
                 #else:
-                #    sys.exit('lblconv :: ishape not included yet in function')
+                #    raise ValueError('lblconv :: ishape not included yet in function')
 
                 if f1>0.0:
                     yout[j,:] = yout[j,:] + f1*y[inwave[i],:]
@@ -2982,7 +2982,7 @@ def lblconvg_ngeom(nwave,vwave,y,dydx,nconv,vconv,ishape,fwhm):
 
     #else:
 
-    #    sys.exit('error in lblconvg :: Dimensions in y and/or dydx are not correct')
+    #    raise ValueError('error in lblconvg :: Dimensions in y and/or dydx are not correct')
 
     return yout,gradout
 
@@ -3034,9 +3034,9 @@ def lblconvg(nwave,vwave,y,dydx,nconv,vconv,ishape,fwhm):
         nx = dydx.shape[1]
 
         #if dydx.shape[0]!=nconv:
-        #    sys.exit('error in lblconvg :: Number of elements in dydx must be nconv')
+        #    raise ValueError('error in lblconvg :: Number of elements in dydx must be nconv')
         #if y.shape[0]!=nconv:
-        #    sys.exit('error in lblconvg :: Number of elements in y must be nconv')
+        #    raise ValueError('error in lblconvg :: Number of elements in y must be nconv')
 
         yout = np.zeros((nconv))
         ynor = np.zeros((nconv))
@@ -3080,7 +3080,7 @@ def lblconvg(nwave,vwave,y,dydx,nconv,vconv,ishape,fwhm):
                     #Gaussian instrument shape
                     f1 = np.exp(-((vwave[inwave[i]]-vcen)/sig)**2.0)
                 #else:
-                #    sys.exit('lblconv :: ishape not included yet in function')
+                #    raise ValueError('lblconv :: ishape not included yet in function')
 
                 if f1>0.0:
                     yout[j] = yout[j] + f1*y[inwave[i]]
@@ -3141,9 +3141,9 @@ def lblconvg_fil_ngeom(nwave,vwave,y,dydx,nconv,vconv,nfil,vfil,afil):
         ngeom = dydx.shape[1]
 
         #if dydx.shape[0]!=nconv:
-        #    sys.exit('error in lblconvg :: Number of elements in dydx must be nconv')
+        #    raise ValueError('error in lblconvg :: Number of elements in dydx must be nconv')
         #if y.shape[0]!=nconv:
-        #    sys.exit('error in lblconvg :: Number of elements in y must be nconv')
+        #    raise ValueError('error in lblconvg :: Number of elements in y must be nconv')
 
         yout = np.zeros((nconv,ngeom))
         ynor = np.zeros((nconv,ngeom))
@@ -3225,9 +3225,9 @@ def lblconvg_fill(nwave,vwave,y,dydx,nconv,vconv,nfil,vfil,afil):
         nx = dydx.shape[1]
 
         #if dydx.shape[0]!=nconv:
-        #    sys.exit('error in lblconvg :: Number of elements in dydx must be nconv')
+        #    raise ValueError('error in lblconvg :: Number of elements in dydx must be nconv')
         #if y.shape[0]!=nconv:
-        #    sys.exit('error in lblconvg :: Number of elements in y must be nconv')
+        #    raise ValueError('error in lblconvg :: Number of elements in y must be nconv')
 
         yout = np.zeros((nconv))
         ynor = np.zeros((nconv))

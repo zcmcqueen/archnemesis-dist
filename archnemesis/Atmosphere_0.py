@@ -245,7 +245,7 @@ class Atmosphere_0:
             if self.NDUST>0:
                 assert self.DUST.shape == (self.NP,self.NDUST,self.NLOCATIONS) , \
                     'DUST must have size (NP,NDUST,NLOCATIONS)'
-                    
+            
             if self.PARAH2 is not None:
                 assert self.PARAH2.shape == (self.NP,self.NLOCATIONS) , \
                     'PARAH2 must have size (NP,NLOCATIONS)'
@@ -403,10 +403,10 @@ class Atmosphere_0:
         else:
             name = '/Atmosphere'
 
-        #Checking if Surface exists
+        #Checking if Atmosphere exists
         e = name in f
         if e==False:
-            sys.exit('error :: Atmosphere is not defined in HDF5 file')
+            raise ValueError('error :: Atmosphere is not defined in HDF5 file')
         else:
 
             self.NP = np.int32(f.get(name+'/NP'))
@@ -435,7 +435,7 @@ class Atmosphere_0:
                 self.DUST = np.array(f.get(name+'/DUST'))
                 
             parah2 = name+'/PARAH2'
-            if parah2:
+            if parah2 in f:
                 self.PARAH2 = np.array(f.get(name+'/PARAH2'))
 
             if self.AMFORM==0:
@@ -1604,7 +1604,7 @@ class Atmosphere_0:
         fig,ax1 = plt.subplots(1,1,figsize=(4,4))
 
         #Plotting the geometry
-        if((subobs_lat is not None) & (subobs_lon is not None)):
+        if((subobs_lat!=None) & (subobs_lon!=None)):
             map = Basemap(projection='ortho', resolution=None,
                 lat_0=subobs_lat, lon_0=subobs_lon)
         else:

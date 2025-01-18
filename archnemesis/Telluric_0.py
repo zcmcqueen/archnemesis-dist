@@ -103,13 +103,13 @@ class Telluric_0:
         
         #Writing the Atmosphere
         if self.Atmosphere is None:
-            sys.exit('error in write_hdf5 :: Telluric.Atmosphere must be defined')   
+            raise ValueError('error in write_hdf5 :: Telluric.Atmosphere must be defined')   
         else:
             self.Atmosphere.write_hdf5(runname,inside_telluric=True)
                 
         #Writing the spectroscopy
         if self.Spectroscopy is None:
-            sys.exit('error in write_hdf5 :: Telluric.Spectroscopy must be defined')   
+            raise ValueError('error in write_hdf5 :: Telluric.Spectroscopy must be defined')   
         else:
             self.Spectroscopy.write_hdf5(runname,inside_telluric=True)
   
@@ -130,7 +130,7 @@ class Telluric_0:
         e = name in f
         if e==False:
             f.close()
-            sys.exit('error :: Telluric is not defined in HDF5 file')
+            raise ValueError('error :: Telluric is not defined in HDF5 file')
         else:
 
             grp = f[name]
@@ -394,7 +394,7 @@ class Telluric_0:
         Layer.NLAY = 31
         Layer.LAYTYP=2
         Layer.LAYANG=0.
-        Layer.calc_layering(H=self.Atmosphere.H,P=self.Atmosphere.P,T=self.Atmosphere.T, ID=self.Atmosphere.ID,VMR=self.Atmosphere.VMR, DUST=self.Atmosphere.DUST)
+        Layer.calc_layering(H=self.Atmosphere.H,P=self.Atmosphere.P,T=self.Atmosphere.T, ID=self.Atmosphere.ID,VMR=self.Atmosphere.VMR, DUST=self.Atmosphere.DUST, PARAH2=self.Atmosphere.PARAH2)
     
         #Defining extra classes for geometry
         Scatter = Scatter_0()
@@ -465,7 +465,7 @@ class Telluric_0:
             del k_layer
 
         else:
-            sys.exit('error in CIRSrad :: ILBL must be either 0 or 2')
+            raise ValueError('error in CIRSrad :: ILBL must be either 0 or 2')
 
         #Calculating the atmospheric transmission
         ###################################################################
@@ -602,9 +602,9 @@ def extract_grib_parameter(filename,parameter,latitude,longitude):
     v = (longitude-lon1)/(lon2-lon1)
 
     if u>1.:
-        sys.exit('error in the interpolation between latitudes')
+        raise ValueError('error in the interpolation between latitudes')
     if v>1.:
-        sys.exit('error in the interpolation between longitudes')
+        raise ValueError('error in the interpolation between longitudes')
     
     param_lat1_lon1 = param_3d_array[0,0,:]
     param_lat1_lon2 = param_3d_array[0,1,:]

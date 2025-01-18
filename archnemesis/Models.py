@@ -14,7 +14,7 @@
 from archnemesis import *
 import numpy as np
 import matplotlib.pyplot as plt
-import os,sys
+import os
 
 ###############################################################################################
 
@@ -63,15 +63,15 @@ def modelm1(atm,ipar,xprof,MakePlot=False):
 
     npro = len(xprof)
     if npro!=atm.NP:
-        sys.exit('error in model -1 :: Number of levels in atmosphere does not match and profile')
+        raise ValueError('error in model -1 :: Number of levels in atmosphere does not match and profile')
 
     npar = atm.NVMR+2+atm.NDUST
     xmap = np.zeros([npro,npar,npro])
 
     if ipar<atm.NVMR:  #Gas VMR
-        sys.exit('error :: Model -1 is just compatible with aerosol populations (Gas VMR given)')
+        raise ValueError('error :: Model -1 is just compatible with aerosol populations (Gas VMR given)')
     elif ipar==atm.NVMR: #Temperature
-        sys.exit('error :: Model -1 is just compatible with aerosol populations (Temperature given)')
+        raise ValueError('error :: Model -1 is just compatible with aerosol populations (Temperature given)')
     elif ipar>atm.NVMR:
         jtmp = ipar - (atm.NVMR+1)
         x1 = np.exp(xprof)
@@ -80,9 +80,9 @@ def modelm1(atm,ipar,xprof,MakePlot=False):
             atm.DUST_UNITS_FLAG[jtmp] = -1
             atm.DUST[:,jtmp] = x1 #* 1000. * rho
         elif jtmp==atm.NDUST:
-            sys.exit('error :: Model -1 is just compatible with aerosol populations')
+            raise ValueError('error :: Model -1 is just compatible with aerosol populations')
         elif jtmp==atm.NDUST+1:
-            sys.exit('error :: Model -1 is just compatible with aerosol populations')
+            raise ValueError('error :: Model -1 is just compatible with aerosol populations')
     
     for j in range(npro):
         xmap[0:npro,ipar,j] = x1[:] #* 1000. * rho
@@ -154,7 +154,7 @@ def model0(atm,ipar,xprof,MakePlot=False):
 
     npro = len(xprof)
     if npro!=atm.NP:
-        sys.exit('error in model 0 :: Number of levels in atmosphere does not match and profile')
+        raise ValueError('error in model 0 :: Number of levels in atmosphere does not match and profile')
 
     npar = atm.NVMR+2+atm.NDUST
     xmap = np.zeros([npro,npar,npro])
@@ -454,10 +454,10 @@ def model9(atm,ipar,href,fsh,tau,MakePlot=False):
 
     #Checking that profile is for aerosols
     if(ipar<=atm.NVMR):
-        sys.exit('error in model 9 :: This model is defined for aerosol profiles only')
+        raise ValueError('error in model 9 :: This model is defined for aerosol profiles only')
 
     if(ipar>atm.NVMR+atm.NDUST):
-        sys.exit('error in model 9 :: This model is defined for aerosol profiles only')
+        raise ValueError('error in model 9 :: This model is defined for aerosol profiles only')
     
 
     #Calculating the actual atmospheric scale height in each level
@@ -585,10 +585,10 @@ def model32(atm,ipar,pref,fsh,tau,MakePlot=False):
 
     #Checking that profile is for aerosols
     if(ipar<=atm.NVMR):
-        sys.exit('error in model 32 :: This model is defined for aerosol profiles only')
+        raise ValueError('error in model 32 :: This model is defined for aerosol profiles only')
 
     if(ipar>atm.NVMR+atm.NDUST):
-        sys.exit('error in model 32 :: This model is defined for aerosol profiles only')
+        raise ValueError('error in model 32 :: This model is defined for aerosol profiles only')
     
     icont = ipar - (atm.NVMR+1)   #Index of the aerosol population we are modifying
 
@@ -859,10 +859,10 @@ def model47(atm, ipar, tau, pref, fwhm, MakePlot=False):
 
     # First, check that the profile is for aerosols
     if ipar <= atm.NVMR:
-        sys.exit('Error in model47: This model is defined for aerosol profiles only')
+        raise ValueError('Error in model47: This model is defined for aerosol profiles only')
 
     if ipar > atm.NVMR + atm.NDUST:
-        sys.exit('Error in model47: This model is defined for aerosol profiles only')
+        raise ValueError('Error in model47: This model is defined for aerosol profiles only')
     
     icont = ipar - (atm.NVMR + 1)   # Index of the aerosol population we are modifying
 
@@ -1002,7 +1002,7 @@ def model49(atm,ipar,xprof,MakePlot=False):
 
     npro = len(xprof)
     if npro!=atm.NP:
-        sys.exit('error in model 49 :: Number of levels in atmosphere and scaling factor profile does not match')
+        raise ValueError('error in model 49 :: Number of levels in atmosphere and scaling factor profile does not match')
 
     npar = atm.NVMR+2+atm.NDUST
     xmap = np.zeros((npro,npar,npro))
@@ -1093,7 +1093,7 @@ def model50(atm,ipar,xprof,MakePlot=False):
 
     npro = len(xprof)
     if npro!=atm.NP:
-        sys.exit('error in model 50 :: Number of levels in atmosphere and scaling factor profile does not match')
+        raise ValueError('error in model 50 :: Number of levels in atmosphere and scaling factor profile does not match')
 
     npar = atm.NVMR+2+atm.NDUST
     xmap = np.zeros((npro,npar,npro))
@@ -1669,7 +1669,7 @@ def model230(Measurement,nwindows,liml,limh,par,MakePlot=False):
         ivtot = ivtot + nconv1
 
     if ivtot!=nconv:
-        sys.exit('error in model 230 :: The spectral windows must cover the whole measured spectral range')
+        raise ValueError('error in model 230 :: The spectral windows must cover the whole measured spectral range')
 
     mfil = nfil2.max()
     vfil = np.zeros([mfil,nconv])
@@ -2063,7 +2063,7 @@ def model887(Scatter,xsc,idust,MakePlot=False):
     """
 
     if len(xsc)!=Scatter.NWAVE:
-        sys.exit('error in model 887 :: Cross-section array must be defined at the same wavelengths as in .xsc')
+        raise ValueError('error in model 887 :: Cross-section array must be defined at the same wavelengths as in .xsc')
     else:
         kext = np.zeros([Scatter.NWAVE,Scatter.DUST])
         kext[:,:] = Scatter.KEXT
@@ -2131,10 +2131,10 @@ def model1002(atm,ipar,scf,MakePlot=False):
     xmap1 = np.zeros((atm.NLOCATIONS,npar,atm.NP,atm.NLOCATIONS))
 
     if len(scf)!=atm.NLOCATIONS:
-        sys.exit('error in model 1002 :: The number of scaling factors must be the same as the number of locations in Atmosphere')
+        raise ValueError('error in model 1002 :: The number of scaling factors must be the same as the number of locations in Atmosphere')
 
     if atm.NLOCATIONS<=1:
-        sys.exit('error in model 1002 :: This model can be applied only if NLOCATIONS>1')
+        raise ValueError('error in model 1002 :: This model can be applied only if NLOCATIONS>1')
 
     x1 = np.zeros((atm.NP,atm.NLOCATIONS))
     xref = np.zeros((atm.NP,atm.NLOCATIONS))

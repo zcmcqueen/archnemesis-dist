@@ -1,7 +1,7 @@
 from archnemesis import *
 import numpy as np
 import matplotlib.pyplot as plt
-import os,sys
+import os
 import h5py
 
 #!/usr/local/bin/python3
@@ -359,19 +359,19 @@ class Stellar_0:
 
         #Defining errors while writing file
         if self.ISPACE is None:
-            sys.exit('error :: ISPACE must be defined in Stellar class to write Stellar power to file')
+            raise ValueError('error :: ISPACE must be defined in Stellar class to write Stellar power to file')
 
         if self.RADIUS is None:
-            sys.exit('error :: RADIUS must be defined in Stellar class to write Stellar power to file')
+            raise ValueError('error :: RADIUS must be defined in Stellar class to write Stellar power to file')
 
         if self.NWAVE is None:
-            sys.exit('error :: NWAVE must be defined in Stellar class to write Stellar power to file')
+            raise ValueError('error :: NWAVE must be defined in Stellar class to write Stellar power to file')
 
         if self.WAVE is None:
-            sys.exit('error :: WAVE must be defined in Stellar class to write Stellar power to file')
+            raise ValueError('error :: WAVE must be defined in Stellar class to write Stellar power to file')
 
         if self.SOLSPEC is None:
-            sys.exit('error :: SOLSPEC Must be defined in Stellar class to write Stellar power to file')
+            raise ValueError('error :: SOLSPEC Must be defined in Stellar class to write Stellar power to file')
 
 
         header = '-1'
@@ -412,19 +412,19 @@ class Stellar_0:
 
         #Defining errors while writing file
         if self.ISPACE is None:
-            sys.exit('error :: ISPACE must be defined in Stellar class to write Stellar power to file')
+            raise ValueError('error :: ISPACE must be defined in Stellar class to write Stellar power to file')
 
         if self.RADIUS is None:
-            sys.exit('error :: RADIUS must be defined in Stellar class to write Stellar power to file')
+            raise ValueError('error :: RADIUS must be defined in Stellar class to write Stellar power to file')
 
         if self.NWAVE is None:
-            sys.exit('error :: NWAVE must be defined in Stellar class to write Stellar power to file')
+            raise ValueError('error :: NWAVE must be defined in Stellar class to write Stellar power to file')
 
         if self.WAVE is None:
-            sys.exit('error :: WAVE must be defined in Stellar class to write Stellar power to file')
+            raise ValueError('error :: WAVE must be defined in Stellar class to write Stellar power to file')
 
         if self.SOLSPEC is None:
-            sys.exit('error :: SOLSPEC Must be defined in Stellar class to write Stellar power to file')
+            raise ValueError('error :: SOLSPEC Must be defined in Stellar class to write Stellar power to file')
 
 
         if header==None:

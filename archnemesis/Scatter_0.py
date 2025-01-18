@@ -1,7 +1,7 @@
 from archnemesis import *
 import numpy as np
 import matplotlib.pyplot as plt
-import os,sys
+import os
 import miepython
 import ray
 
@@ -425,7 +425,7 @@ class Scatter_0:
         #Checking if Surface exists
         e = "/Scatter" in f
         if e==False:
-            sys.exit('error :: Scatter is not defined in HDF5 file')
+            raise ValueError('error :: Scatter is not defined in HDF5 file')
         else:
 
             self.NDUST = np.int32(f.get('Scatter/NDUST'))
@@ -494,8 +494,7 @@ class Scatter_0:
         """
 
         nzen = 2*self.NMU    #The gauss_lobatto function calculates both positive and negative angles, and Nemesis just uses the posiive
-        ndigits = 12
-        x,w = gauss_lobatto(nzen,ndigits=n_digits)
+        x,w = gauss_lobatto(nzen,n_digits=12)
         self.MU = np.array(x[self.NMU:nzen],dtype='float64')
         self.WTMU = np.array(w[self.NMU:nzen],dtype='float64')
 
@@ -742,7 +741,7 @@ class Scatter_0:
             phase1 = self.calc_lpphase(Thetax)
 
         else:
-            sys.exit('error :: IMIE value not valid in Scatter class')
+            raise ValueError('error :: IMIE value not valid in Scatter class')
 
 
         #Interpolating the phase function to the wavelengths defined in Wave
@@ -901,7 +900,7 @@ class Scatter_0:
 
         str3 = "{:<512}".format(strxx)
         if len(str3)>512:
-            sys.exit('error writing PHASEN.DAT file :: File format does not support so many scattering angles (NTHETA)')
+            raise ValueError('error writing PHASEN.DAT file :: File format does not support so many scattering angles (NTHETA)')
 
         #Fourth buffer
         str4 = ''
@@ -913,7 +912,7 @@ class Scatter_0:
                 strx2 = strx2+' %10.4f' % (self.PHASE[i,j,IDUST])
             strxx = "{:<512}".format(strx1+strx2)
             if len(strxx)>512:
-                sys.exit('error while writing PHASEN.DAT :: File format does not support so many scattering angles (NTHETA)')
+                raise ValueError('error while writing PHASEN.DAT :: File format does not support so many scattering angles (NTHETA)')
             str4=str4+strxx
 
         f.write(str1+str2+str3+str4)

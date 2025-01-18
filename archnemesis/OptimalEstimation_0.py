@@ -304,7 +304,7 @@ class OptimalEstimation_0:
         #Checking if Surface exists
         e = "/Retrieval" in f
         if e==False:
-            sys.exit('error :: Retrieval is not defined in HDF5 file')
+            raise ValueError('error :: Retrieval is not defined in HDF5 file')
         else:
 
             self.NITER = np.int32(f.get('Retrieval/NITER'))
@@ -1108,7 +1108,7 @@ def coreretOE(runname,Variables,Measurement,Atmosphere,Spectroscopy,Scatter,Stel
                         alambda = alambda * 10.
                         IBRAKE = 0
                         if alambda>1.e30:
-                            sys.exit('error in nemesis :: Death spiral in braking parameters - stopping')
+                            raise ValueError('error in nemesis :: Death spiral in braking parameters - stopping')
                         break
                     else:
                         IBRAKE = 1

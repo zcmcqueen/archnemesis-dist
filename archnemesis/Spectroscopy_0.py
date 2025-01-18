@@ -2,7 +2,7 @@ from archnemesis import *
 import numpy as np
 import scipy
 import matplotlib.pyplot as plt
-import os,sys
+import os
 from numba import jit,njit
 
 #!/usr/local/bin/python3
@@ -213,7 +213,7 @@ class Spectroscopy_0:
             assert K_array.shape == (self.NWAVE, self.NP, abs(self.NT), self.NGAS),\
                 'K should be (NWAVE,NP,NT,NGAS) if ILBL=2 (LBL-tables)'
         else:
-            sys.exit('ILBL needs to be either 0 (K-tables) or 2 (LBL-tables)')
+            raise ValueError('ILBL needs to be either 0 (K-tables) or 2 (LBL-tables)')
 
         self.K = K_array
 
@@ -258,7 +258,7 @@ class Spectroscopy_0:
         elif self.ILBL==2:
             dset.attrs['type'] = 'Line-by-line pre-tabulated look-up tables'
         else:
-            sys.exit('error :: ILBL must be 0 or 2')
+            raise ValueError('error :: ILBL must be 0 or 2')
 
 
         if self.NGAS>0:
@@ -295,7 +295,7 @@ class Spectroscopy_0:
         e = name in f
         if e==False:
             f.close()
-            sys.exit('error :: Spectroscopy is not defined in HDF5 file')
+            raise ValueError('error :: Spectroscopy is not defined in HDF5 file')
         else:
 
             self.NGAS = np.int32(f.get(name+'/NGAS'))
@@ -354,11 +354,11 @@ class Spectroscopy_0:
             isoIDlta[i] = isoID
 
         if len(np.unique(nwavelta)) != 1:
-            sys.exit('error :: Number of wavenumbers in all .lta files must be the same')
+            raise ValueError('error :: Number of wavenumbers in all .lta files must be the same')
         if len(np.unique(npresslta)) != 1:
-            sys.exit('error :: Number of pressure levels in all .lta files must be the same')
+            raise ValueError('error :: Number of pressure levels in all .lta files must be the same')
         if len(np.unique(ntemplta)) != 1:
-            sys.exit('error :: Number of temperature levels in all .lta files must be the same')
+            raise ValueError('error :: Number of temperature levels in all .lta files must be the same')
 
         self.ID = gasIDlta
         self.ISO = isoIDlta
@@ -416,13 +416,13 @@ class Spectroscopy_0:
             isoIDkta[i] = isoID
 
         if len(np.unique(nwavekta)) != 1:
-            sys.exit('error :: Number of wavenumbers in all .kta files must be the same')
+            raise ValueError('error :: Number of wavenumbers in all .kta files must be the same')
         if len(np.unique(npresskta)) != 1:
-            sys.exit('error :: Number of pressure levels in all .kta files must be the same')
+            raise ValueError('error :: Number of pressure levels in all .kta files must be the same')
         if len(np.unique(ntempkta)) != 1:
-            sys.exit('error :: Number of temperature levels in all .kta files must be the same')
+            raise ValueError('error :: Number of temperature levels in all .kta files must be the same')
         if len(np.unique(ngkta)) != 1:
-            sys.exit('error :: Number of g-ordinates in all .kta files must be the same')
+            raise ValueError('error :: Number of g-ordinates in all .kta files must be the same')
 
         self.ID = gasIDkta
         self.ISO = isoIDkta
@@ -459,10 +459,10 @@ class Spectroscopy_0:
                     elif extx=='.h5':
                         ext[i] = 1
                     else:
-                        sys.exit('error in read_hdf5 :: The extention of the look-up tables must be .kta or .h5')
+                        raise ValueError('error in read_hdf5 :: The extention of the look-up tables must be .kta or .h5')
                 
                 if len(np.unique(ext)) != 1:
-                    sys.exit('error :: all look-up tables must be defined in the same format (with same extension)')
+                    raise ValueError('error :: all look-up tables must be defined in the same format (with same extension)')
                     
                 extx = np.unique(ext)[0]
                 
@@ -485,13 +485,13 @@ class Spectroscopy_0:
                         isoIDkta[i] = isoID
 
                     if len(np.unique(nwavekta)) != 1:
-                        sys.exit('error :: Number of wavenumbers in all .kta files must be the same')
+                        raise ValueError('error :: Number of wavenumbers in all .kta files must be the same')
                     if len(np.unique(npresskta)) != 1:
-                        sys.exit('error :: Number of pressure levels in all .kta files must be the same')
+                        raise ValueError('error :: Number of pressure levels in all .kta files must be the same')
                     if len(np.unique(ntempkta)) != 1:
-                        sys.exit('error :: Number of temperature levels in all .kta files must be the same')
+                        raise ValueError('error :: Number of temperature levels in all .kta files must be the same')
                     if len(np.unique(ngkta)) != 1:
-                        sys.exit('error :: Number of g-ordinates in all .kta files must be the same')
+                        raise ValueError('error :: Number of g-ordinates in all .kta files must be the same')
 
                     self.ID = gasIDkta
                     self.ISO = isoIDkta
@@ -508,7 +508,7 @@ class Spectroscopy_0:
                     
                 else:
                     
-                    sys.exit('error :: HDF5 correlated-k look-up tables have not yet been implemented')
+                    raise ValueError('error :: HDF5 correlated-k look-up tables have not yet been implemented')
 
             elif self.ILBL==2:
 
@@ -522,10 +522,10 @@ class Spectroscopy_0:
                     elif extx=='.h5':
                         ext[i] = 1
                     else:
-                        sys.exit('error in read_hdf5 :: The extention of the look-up tables must be .lta or .h5')
+                        raise ValueError('error in read_hdf5 :: The extention of the look-up tables must be .lta or .h5')
                 
                 if len(np.unique(ext)) != 1:
-                    sys.exit('error :: all look-up tables must be defined in the same format (with same extension)')
+                    raise ValueError('error :: all look-up tables must be defined in the same format (with same extension)')
                     
                 extx = np.unique(ext)[0]
 
@@ -548,11 +548,11 @@ class Spectroscopy_0:
                         isoIDlta[i] = isoID
 
                     if len(np.unique(nwavelta)) != 1:
-                        sys.exit('error :: Number of wavenumbers in all .lta files must be the same')
+                        raise ValueError('error :: Number of wavenumbers in all .lta files must be the same')
                     if len(np.unique(npresslta)) != 1:
-                        sys.exit('error :: Number of pressure levels in all .lta files must be the same')
+                        raise ValueError('error :: Number of pressure levels in all .lta files must be the same')
                     if len(np.unique(ntemplta)) != 1:
-                        sys.exit('error :: Number of temperature levels in all .lta files must be the same')
+                        raise ValueError('error :: Number of temperature levels in all .lta files must be the same')
 
                     self.ID = gasIDlta
                     self.ISO = isoIDlta
@@ -583,7 +583,7 @@ class Spectroscopy_0:
                     for i in range(self.NGAS):
                         ilbl,wave,npress,ntemp,gasID,isoID,presslevels,templevels = read_header_lta_hdf5(self.LOCATION[i])
                         if ilbl!=2:
-                            sys.exit('error :: ILBL in look-up tables must be the same as in Spectroscopy class')
+                            raise ValueError('error :: ILBL in look-up tables must be the same as in Spectroscopy class')
                         nwavelta[i] = len(wave)
                         npresslta[i] = npress
                         ntemplta[i] = ntemp
@@ -591,11 +591,11 @@ class Spectroscopy_0:
                         isoIDlta[i] = isoID
                         
                     if len(np.unique(nwavelta)) != 1:
-                        sys.exit('error :: Number of wavenumbers in all look-up tables must be the same')
+                        raise ValueError('error :: Number of wavenumbers in all look-up tables must be the same')
                     if len(np.unique(npresslta)) != 1:
-                        sys.exit('error :: Number of pressure levels in all look-up tables must be the same')
+                        raise ValueError('error :: Number of pressure levels in all look-up tables must be the same')
                     if len(np.unique(ntemplta)) != 1:
-                        sys.exit('error :: Number of temperature levels in all look-up tables must be the same')
+                        raise ValueError('error :: Number of temperature levels in all look-up tables must be the same')
                     
                     self.ID = gasIDlta
                     self.ISO = isoIDlta
@@ -626,7 +626,7 @@ class Spectroscopy_0:
         """
         
         if self.LOCATION is None:
-            sys.exit('error in Spectroscopy.read_tables() :: LOCATION is not defined')
+            raise ValueError('error in Spectroscopy.read_tables() :: LOCATION is not defined')
             
         if self.WAVE is None:
             #In this case the headers have not been read so we need to read them
@@ -670,7 +670,7 @@ class Spectroscopy_0:
                 self.edit_K(kstore)
 
             else:
-                sys.exit('error in Spectroscopy :: ILBL must be either 0 (K-tables) or 2 (LBL-tables)')
+                raise ValueError('error in Spectroscopy :: ILBL must be either 0 (K-tables) or 2 (LBL-tables)')
 
 
     ######################################################################################################
@@ -691,7 +691,7 @@ class Spectroscopy_0:
         #Identifying the location of the gas in the Spectroscopy class
         igas = np.where( (self.ID==ID) & (self.ISO==ISO) )[0]
         if len(igas)==0:
-            sys.exit('error in write_table_hdf5 :: The specified gas is not defined in the Spectroscopy class')
+            raise ValueError('error in write_table_hdf5 :: The specified gas is not defined in the Spectroscopy class')
         
         
         if self.ILBL==2:
@@ -709,7 +709,7 @@ class Spectroscopy_0:
             elif self.ILBL==2:
                 dset.attrs['type'] = 'Line-by-line pre-tabulated look-up tables'
             else:
-                sys.exit('error :: ILBL must be 0 or 2')
+                raise ValueError('error :: ILBL must be 0 or 2')
                 
             dset = f.create_dataset('ID',data=ID)
             dset.attrs['title'] = "ID of the gaseous species"
@@ -740,7 +740,7 @@ class Spectroscopy_0:
 
         else:
             
-            sys.exit('error in write_table_hdf5 :: selected ILBL has not been implemented yet (only ILBL=2 is currently working)')
+            raise ValueError('error in write_table_hdf5 :: selected ILBL has not been implemented yet (only ILBL=2 is currently working)')
         
         
     ######################################################################################################
@@ -1511,7 +1511,7 @@ def read_header_lta_hdf5(filename):
         presslevels = np.array(f.get('PRESS'))
         templevels = np.array(f.get('TEMP'))
     else:
-        sys.exit('error in read_header_lta_hdf5 :: the defined ilbl in the look-up table must be 2')
+        raise ValueError('error in read_header_lta_hdf5 :: the defined ilbl in the look-up table must be 2')
     
     f.close()
 
@@ -1837,6 +1837,7 @@ def write_lbltable(filename,npress,ntemp,gasID,isoID,presslevels,templevels,nwav
 
     f.close()
     
+######################################################################################################
     
 @jit(nopython=True)
 def rank(weight, cont, del_g):
@@ -1898,6 +1899,8 @@ def rank(weight, cont, del_g):
 
     return k_g
 
+######################################################################################################
+
 @njit
 def interpolate_k_values(npoints, NGAS, NWAVEC, precomputed_indices, precomputed_weights, kgood, del_g, kret):
     for ipoint in range(npoints):
@@ -1921,3 +1924,4 @@ def interpolate_k_values(npoints, NGAS, NWAVEC, precomputed_indices, precomputed
                     kret[iwave, :, ipoint, igas] = k_interpolated_2
 
     return kret
+

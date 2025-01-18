@@ -1,7 +1,7 @@
 from scipy.interpolate import interp1d
 import numpy as np
 import matplotlib.pyplot as plt
-import os,sys
+import os
 from numba import jit,njit
 
 #!/usr/local/bin/python3
@@ -195,7 +195,7 @@ class Surface_0:
 
             #Determining sizes based on the number of surface locations
             if self.NLOCATIONS<0:
-                sys.exit('error :: NLOCATIONS must be greater than 1')
+                raise ValueError('error :: NLOCATIONS must be greater than 1')
 
             elif self.NLOCATIONS==1:
 
@@ -285,7 +285,6 @@ class Surface_0:
         #Checking if Atmosphere already exists
         if ('/Surface' in f)==True:
             del f['Surface']   #Deleting the Atmosphere information that was previously written in the file
-
 
         if self.GASGIANT==False:
 
@@ -645,7 +644,7 @@ class Surface_0:
         """
         
         if iLOCATION>self.NLOCATIONS-1:
-            sys.exit('error in select_location :: iLOCATION must be between 0 and NLOCATIONS-1',[0,self.NLOCATIONS-1])
+            raise ValueError('error in select_location :: iLOCATION must be between 0 and NLOCATIONS-1',[0,self.NLOCATIONS-1])
 
         self.NLOCATIONS = 1
         
@@ -1096,7 +1095,7 @@ def planck(ispace,wave,temp):
         y = 1.0e4/wave
         a = c1 * (y**5.) / 1.0e4
     else:
-        sys.exit('error in planck :: ISPACE must be either 0 or 1')
+        raise ValueError('error in planck :: ISPACE must be either 0 or 1')
 
     tmp = c2 * y / temp
     b = np.exp(tmp) - 1
@@ -1146,7 +1145,7 @@ def planckg(ispace,wave,temp):
         a = c1 * (y**5.) / 1.0e4
         ap = c1 * c2 * (y**6.) / 1.0e4 / temp**2.
     else:
-        sys.exit('error in planck :: ISPACE must be either 0 or 1')
+        raise ValueError('error in planck :: ISPACE must be either 0 or 1')
 
     tmp = c2 * y / temp
     b = np.exp(tmp) - 1

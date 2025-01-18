@@ -1,7 +1,7 @@
 from archnemesis import *
 import numpy as np
 import matplotlib.pyplot as plt
-import os,sys
+import os
 from numba import jit
 
 #!/usr/local/bin/python3
@@ -186,7 +186,7 @@ class CIA_0:
         #Checking if Spectroscopy exists
         e = "/CIA" in f
         if e==False:
-            sys.exit('error :: CIA is not defined in HDF5 file')
+            raise ValueError('error :: CIA is not defined in HDF5 file')
         else:
             self.CIADATA = f['CIA/CIADATA'][0].decode('ascii')
             self.CIATABLE = f['CIA/CIATABLE'][0].decode('ascii')
@@ -382,7 +382,7 @@ class CIA_0:
             
         iFalse = np.where(out2==False)[0]
         if len(iFalse)>0:
-            sys.exit('error in locate_INORMAL_pairs :: It appears that there are repeated pairs with the same INORMAL flag')            
+            raise ValueError('error in locate_INORMAL_pairs :: It appears that there are repeated pairs with the same INORMAL flag')            
             
         return outx
         

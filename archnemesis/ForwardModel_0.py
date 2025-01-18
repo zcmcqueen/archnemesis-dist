@@ -2,7 +2,7 @@ from archnemesis import *
 from archnemesis.Models import *
 import numpy as np
 import matplotlib.pyplot as plt
-import os,sys
+import os
 from numba import jit
 from multiprocessing import Pool
 from joblib import Parallel, delayed

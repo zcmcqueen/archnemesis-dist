@@ -204,7 +204,7 @@ def read_input_files_hdf5(runname):
         elif Telluric.Spectroscopy.ILBL==2:
             Measurement.wavesetc(Telluric.Spectroscopy,IGEOM=0)
         else:
-            sys.exit('error :: ILBL has to be either 0 or 2')
+            raise ValueError('error :: ILBL has to be either 0 or 2')
 
         #Now, reading k-tables or lbl-tables for the spectral range of interest
         Telluric.Spectroscopy.read_tables(wavemin=Measurement.WAVE.min(),wavemax=Measurement.WAVE.max())
@@ -219,7 +219,7 @@ def read_input_files_hdf5(runname):
         elif Spectroscopy.ILBL==2:
             Measurement.wavesetc(Spectroscopy,IGEOM=0)
         else:
-            sys.exit('error :: ILBL has to be either 0 or 2')
+            raise ValueError('error :: ILBL has to be either 0 or 2')
 
         #Now, reading k-tables or lbl-tables for the spectral range of interest
         Spectroscopy.read_tables(wavemin=Measurement.WAVE.min(),wavemax=Measurement.WAVE.max())
@@ -310,7 +310,7 @@ def read_retparam_hdf5(runname):
     e = "/Retrieval" in f
     if e==False:
         f.close()
-        sys.exit('error :: Retrieval is not defined in HDF5 file')
+        raise ValueError('error :: Retrieval is not defined in HDF5 file')
     else:
 
         #Checking if Retrieval already exists
@@ -328,7 +328,7 @@ def read_retparam_hdf5(runname):
         else:
             
             f.close()
-            sys.exit('error :: Retrieval/Output/Parameters is not defined in HDF5 file')
+            raise ValueError('error :: Retrieval/Output/Parameters is not defined in HDF5 file')
     
 
     return NVAR,NXVAR,VARIDENT,VARPARAM,APRPARAM,APRERRPARAM,RETPARAM,RETERRPARAM
@@ -480,7 +480,7 @@ def read_input_files(runname,Fortran=True):
         Layer.NLAY = nlay
         Layer.H_base = hbase*1.0e3    #Base height of each layer (m)
     if Layer.LAYTYP==6:
-        sys.exit('error in read_input_files :: Need to read the press.lay file but not implemented yet')
+        raise ValueError('error in read_input_files :: Need to read the press.lay file but not implemented yet')
 
     #Reading .inp file and starting Measurement,Scatter and Spectroscopy classes
     #############################################################################
@@ -515,7 +515,7 @@ def read_input_files(runname,Fortran=True):
     elif Spec.ILBL==2:
         Spec.read_lls(runname)
     else:
-        sys.exit('error :: ILBL has to be either 0 or 2')
+        raise ValueError('error :: ILBL has to be either 0 or 2')
 
     #Reading extinction and scattering cross sections
     #############################################################################
@@ -523,7 +523,7 @@ def read_input_files(runname,Fortran=True):
     Scatter.read_xsc(runname)
 
     if Scatter.NDUST!=Atm.NDUST:
-        sys.exit('error :: Number of aerosol populations must be the same in .xsc and aerosol.ref files')
+        raise ValueError('error :: Number of aerosol populations must be the same in .xsc and aerosol.ref files')
 
 
     #Initialise Measurement class and read files (.spx, .sha)
@@ -545,7 +545,7 @@ def read_input_files(runname,Fortran=True):
     elif Spec.ILBL==2:
         Measurement.wavesetc(Spec,IGEOM=0)
     else:
-        sys.exit('error :: ILBL has to be either 0 or 2')
+        raise ValueError('error :: ILBL has to be either 0 or 2')
 
     #Now, reading k-tables or lbl-tables for the spectral range of interest
     Spec.read_tables(wavemin=Measurement.WAVE.min(),wavemax=Measurement.WAVE.max())
@@ -583,7 +583,7 @@ def read_input_files(runname,Fortran=True):
         elif Scatter.IMIE==2:
             Scatter.read_lpphase()
         else:
-            sys.exit('error :: IMIE must be an integer from 0 to 2')
+            raise ValueError('error :: IMIE must be an integer from 0 to 2')
 
     #Reading .apr file and Variables Class
     #################################################################
@@ -1340,7 +1340,7 @@ def read_set(runname,Layer=None,Surface=None,Stellar=None,Scatter=None):
         elif isol==0:
             Stellar.SOLEXIST = False
         else:
-            sys.exit('error reading .set file :: SOLEXIST must be either True or False')
+            raise ValueError('error reading .set file :: SOLEXIST must be either True or False')
 
     #Creating or updating Surface class
     if Surface==None:

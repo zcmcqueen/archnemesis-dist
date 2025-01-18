@@ -1,7 +1,7 @@
 from archnemesis import *
 import numpy as np
 import matplotlib.pyplot as plt
-import os,sys
+import os
 
 #!/usr/local/bin/python3
 # -*- coding: utf-8 -*-
@@ -371,7 +371,7 @@ class Variables_0:
                 nxvar[i] = 1 * nlocations
             
             else:
-                sys.exit('error :: varID not included in calc_NXVAR()')
+                raise ValueError('error :: varID not included in calc_NXVAR()')
         self.NXVAR = nxvar
 
     ################################################################################################################
@@ -463,7 +463,7 @@ class Variables_0:
         #Checking if Variables exists
         e = "/Variables" in f
         if e==False:
-            sys.exit('error :: Variables is not defined in HDF5 file')
+            raise ValueError('error :: Variables is not defined in HDF5 file')
         else:
 
             self.NVAR = np.int32(f.get('Scatter/NVAR'))
@@ -549,7 +549,7 @@ class Variables_0:
                     tmp = np.fromfile(f1,sep=' ',count=2,dtype='float')
                     nlevel = int(tmp[0])
                     if nlevel != npro:
-                        sys.exit('profiles must be listed on same grid as .prf')
+                        raise ValueError('profiles must be listed on same grid as .prf')
                     clen = float(tmp[1])
                     pref = np.zeros([nlevel])
                     ref = np.zeros([nlevel])
@@ -578,7 +578,7 @@ class Variables_0:
                     for j in range(nlevel):
                         for k in range(nlevel):
                             if pref[j] < 0.0:
-                                sys.exit('Error in read_apr_nemesis().  A priori file must be on pressure grid')
+                                raise ValueError('Error in read_apr_nemesis().  A priori file must be on pressure grid')
                         
                             delp = np.log(pref[k])-np.log(pref[j])
                             arg = abs(delp/clen)
@@ -596,14 +596,14 @@ class Variables_0:
 #               * particles per gram to decouple it from pressure.
 #               ********* continuous particles/cm3 profile ************************
                     if varident[i,0] >= 0:
-                        sys.exit('error in read_apr_nemesis :: model -1 type is only for use with aerosols')
+                        raise ValueError('error in read_apr_nemesis :: model -1 type is only for use with aerosols')
         
                     s = f.readline().split()
                     f1 = open(s[0],'r')
                     tmp = np.fromfile(f1,sep=' ',count=2,dtype='float')
                     nlevel = int(tmp[0])
                     if nlevel != npro:
-                        sys.exit('profiles must be listed on same grid as .prf')
+                        raise ValueError('profiles must be listed on same grid as .prf')
                     clen = float(tmp[1])
                     pref = np.zeros([nlevel])
                     ref = np.zeros([nlevel])
@@ -624,7 +624,7 @@ class Variables_0:
                     for j in range(nlevel):
                         for k in range(nlevel):
                             if pref[j] < 0.0:
-                                sys.exit('Error in read_apr_nemesis().  A priori file must be on pressure grid')
+                                raise ValueError('Error in read_apr_nemesis().  A priori file must be on pressure grid')
                 
                             delp = np.log(pref[k])-np.log(pref[j])
                             arg = abs(delp/clen)
@@ -664,7 +664,7 @@ class Variables_0:
                         lx[ix] = 1
                         sx[ix,ix] = ( efsh/xfsh  )**2.
                     else:
-                        sys.exit('Error in read_apr_nemesis().  xfsh must be > 0')
+                        raise ValueError('Error in read_apr_nemesis().  xfsh must be > 0')
                 
                     ix = ix + 1
 
@@ -691,7 +691,7 @@ class Variables_0:
                         lx[ix] = 1
                         sx[ix,ix] = ( err/xfac ) **2.
                     else:
-                        sys.exit('Error in read_apr_nemesis().  xfac must be > 0')
+                        raise ValueError('Error in read_apr_nemesis().  xfac must be > 0')
             
                     ix = ix + 1
 
@@ -722,7 +722,7 @@ class Variables_0:
                         lx[ix] = 1
                         sx[ix,ix] = ( efsh/xfsh  )**2.
                     else:
-                        sys.exit('Error in read_apr_nemesis().  xfsh must be > 0')
+                        raise ValueError('Error in read_apr_nemesis().  xfsh must be > 0')
                     ix = ix + 1
                 
                     x0[ix] = np.log(pknee)
@@ -751,7 +751,7 @@ class Variables_0:
                         lx[ix] = 1
                         #inum[ix] = 1
                     else:
-                        sys.exit('error in read_apr() :: Parameter xdeep (total atmospheric aerosol column) must be positive')
+                        raise ValueError('error in read_apr() :: Parameter xdeep (total atmospheric aerosol column) must be positive')
 
                     err = edeep/xdeep
                     sx[ix,ix] = err**2.
@@ -763,7 +763,7 @@ class Variables_0:
                         lx[ix] = 1
                         #inum[ix] = 1
                     else:
-                        sys.exit('error in read_apr() :: Parameter xfsh (cloud fractional scale height) must be positive')
+                        raise ValueError('error in read_apr() :: Parameter xfsh (cloud fractional scale height) must be positive')
 
                     err = efsh/xfsh
                     sx[ix,ix] = err**2.
@@ -803,7 +803,7 @@ class Variables_0:
                             err = edeep/xdeep
                             #inum[ix] = 1
                         else:
-                            sys.exit('error in read_apr() :: Parameter xdeep (total atmospheric aerosol column) must be positive')
+                            raise ValueError('error in read_apr() :: Parameter xdeep (total atmospheric aerosol column) must be positive')
                             
                     sx[ix,ix] = err**2.
                     
@@ -815,7 +815,7 @@ class Variables_0:
                         lx[ix] = 1
                         #inum[ix] = 1
                     else:
-                        sys.exit('error in read_apr() :: Parameter xfsh (cloud fractional scale height) must be positive')
+                        raise ValueError('error in read_apr() :: Parameter xfsh (cloud fractional scale height) must be positive')
                     
                     err = efsh/xfsh
                     sx[ix,ix] = err**2.
@@ -828,7 +828,7 @@ class Variables_0:
                         lx[ix] = 1
                         #inum[ix] = 1
                     else:
-                        sys.exit('error in read_apr() :: Parameter pknee (cloud pressure level) must be positive')
+                        raise ValueError('error in read_apr() :: Parameter pknee (cloud pressure level) must be positive')
                     
                     err = eknee/pknee
                     sx[ix,ix] = err**2.
@@ -896,7 +896,7 @@ class Variables_0:
                             err = edeep/xdeep
                             #inum[ix] = 1
                         else:
-                            sys.exit('error in read_apr() :: Parameter xdeep (total atmospheric aerosol column) must be positive')
+                            raise ValueError('error in read_apr() :: Parameter xdeep (total atmospheric aerosol column) must be positive')
 
                     sx[ix,ix] = err**2.
                     
@@ -908,7 +908,7 @@ class Variables_0:
                         lx[ix] = 1
                         #inum[ix] = 1
                     else:
-                        sys.exit('error in read_apr() :: Parameter pknee (cloud pressure level) must be positive')
+                        raise ValueError('error in read_apr() :: Parameter pknee (cloud pressure level) must be positive')
                     
                     err = eknee/pknee
                     sx[ix,ix] = err**2.
@@ -921,7 +921,7 @@ class Variables_0:
                         lx[ix] = 1
                         #inum[ix] = 1
                     else:
-                        sys.exit('error in read_apr() :: Parameter xwid (width of the cloud gaussian profile) must be positive')
+                        raise ValueError('error in read_apr() :: Parameter xwid (width of the cloud gaussian profile) must be positive')
                     
                     err = ewid/xwid
                     sx[ix,ix] = err**2.
@@ -935,7 +935,7 @@ class Variables_0:
                     tmp = np.fromfile(f1,sep=' ',count=2,dtype='float')
                     nlevel = int(tmp[0])
                     if nlevel != npro:
-                        sys.exit('profiles must be listed on same grid as .prf')
+                        raise ValueError('profiles must be listed on same grid as .prf')
                     clen = float(tmp[1])
                     pref = np.zeros([nlevel])
                     ref = np.zeros([nlevel])
@@ -956,7 +956,7 @@ class Variables_0:
                     for j in range(nlevel):
                         for k in range(nlevel):
                             if pref[j] < 0.0:
-                                sys.exit('Error in read_apr_nemesis().  A priori file must be on pressure grid')
+                                raise ValueError('Error in read_apr_nemesis().  A priori file must be on pressure grid')
                         
                             delp = np.log(pref[k])-np.log(pref[j])
                             arg = abs(delp/clen)
@@ -976,7 +976,7 @@ class Variables_0:
                     tmp = np.fromfile(f1,sep=' ',count=2,dtype='float')
                     nlevel = int(tmp[0])
                     if nlevel != npro:
-                        sys.exit('profiles must be listed on same grid as .prf')
+                        raise ValueError('profiles must be listed on same grid as .prf')
                     clen = float(tmp[1])
                     pref = np.zeros([nlevel])
                     ref = np.zeros([nlevel])
@@ -996,7 +996,7 @@ class Variables_0:
                     for j in range(nlevel):
                         for k in range(nlevel):
                             if pref[j] < 0.0:
-                                sys.exit('Error in read_apr_nemesis().  A priori file must be on pressure grid')
+                                raise ValueError('Error in read_apr_nemesis().  A priori file must be on pressure grid')
                         
                             delp = np.log(pref[k])-np.log(pref[j])
                             arg = abs(delp/clen)
@@ -1027,7 +1027,7 @@ class Variables_0:
                     ix = ix + 1
                     
                 else:
-                    sys.exit('error in read_apr() :: Variable ID not included in this function')
+                    raise ValueError('error in read_apr() :: Variable ID not included in this function')
 
             else:
 
@@ -1431,7 +1431,7 @@ class Variables_0:
                         lx[ix] = 1
                         inum[ix] = 1
                     else:
-                        sys.exit('error in read_apr_nemesis() :: pressure must be > 0')
+                        raise ValueError('error in read_apr_nemesis() :: pressure must be > 0')
                 
                     sx[ix,ix] = (ptanerr/ptan)**2.
                     jpre = ix
@@ -1482,14 +1482,14 @@ class Variables_0:
                         xsc[iw] = float(s[1])
                         err[iw] = float(s[2])
                         if xsc[iw]<=0.0:
-                            sys.exit('error in read_apr :: Cross-section in model 887 must be greater than 0')
+                            raise ValueError('error in read_apr :: Cross-section in model 887 must be greater than 0')
 
                     #It is important to check that the wavelengths in .apr and in .xsc are the same
                     Aero0 = Scatter_0()
                     Aero0.read_xsc(runname)
                     for iw in range(Aero0.NWAVE):
                         if (wv[iw]-Aero0.WAVE[iw])>0.01:
-                            sys.exit('error in read_apr :: Number of wavelengths in model 887 must be the same as in .xsc')
+                            raise ValueError('error in read_apr :: Number of wavelengths in model 887 must be the same as in .xsc')
 
                     #Including the parameters in state vector and covariance matrix
                     for j in range(nwv):
@@ -1561,7 +1561,7 @@ class Variables_0:
                     clen = int(s[1])    #correlation length (degress)
                     
                     if nlocs != nlocations:
-                        sys.exit('error in model 1002 :: number of locations must be the same as in Surface and Atmosphere')
+                        raise ValueError('error in model 1002 :: number of locations must be the same as in Surface and Atmosphere')
                         
                     lats = np.zeros(nlocs)
                     lons = np.zeros(nlocs)
@@ -1589,7 +1589,7 @@ class Variables_0:
                         #iparj = iparj + 1
                         
                         #if iparj==mparam:
-                        #    sys.exit('error in reading .apr :: Need to increase the mparam')
+                        #    raise ValueError('error in reading .apr :: Need to increase the mparam')
                         
                         #Including surface temperature in the state vector
                         x0[ix+iloc] = sfactor[iloc]
@@ -1630,7 +1630,7 @@ class Variables_0:
                     clen = int(s[1])    #correlation length (degress)
                     
                     if nlocs != nlocations:
-                        sys.exit('error in model 1999 :: number of locations must be the same as in Surface and Atmosphere')
+                        raise ValueError('error in model 1999 :: number of locations must be the same as in Surface and Atmosphere')
                         
                     lats = np.zeros(nlocs)
                     lons = np.zeros(nlocs)

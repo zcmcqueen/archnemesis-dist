@@ -65,7 +65,7 @@ def retrieval_nemesis(runname,legacy_files=False,NCores=1,retrieval_method=0,nem
         NestedSampling = ans.coreretNS(runname,Variables,Measurement,Atmosphere,Spectroscopy,Scatter,Stellar,Surface,CIA,Layer)
         Retrieval = NestedSampling
     else:
-        sys.exit('error in retrieval_nemesis :: Retrieval scheme has not been implemented yet')
+        raise ValueError('error in retrieval_nemesis :: Retrieval scheme has not been implemented yet')
 
 
     ######################################################

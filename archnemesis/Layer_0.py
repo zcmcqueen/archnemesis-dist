@@ -303,7 +303,7 @@ class Layer_0:
         #Checking if Surface exists
         e = "/Layer" in f
         if e==False:
-            sys.exit('error :: Layer is not defined in HDF5 file')
+            raise ValueError('error :: Layer is not defined in HDF5 file')
         else:
 
             self.NLAY = np.int32(f.get('Layer/NLAY'))
@@ -789,7 +789,7 @@ def layer_average(RADIUS, H, P, T, ID, VMR, DUST, PARAH2, BASEH, BASEP,
             PP = AMOUNT * PRESS
             AMOUNT = AMOUNT * TOTAM
             if AMFORM==0:
-                sys.exit('error :: AMFORM=0 needs to be implemented in Layer.py')
+                raise ValueError('error :: AMFORM=0 needs to be implemented in Layer.py')
             else:
                 for I in range(NLAY):
                     MOLWT[I] = Calc_mmw(VMR[I], ID)
@@ -840,7 +840,7 @@ def layer_average(RADIUS, H, P, T, ID, VMR, DUST, PARAH2, BASEH, BASEP,
                     PP[I, J] = simpson(pp[:,J]*duds,S)/TOTAM[I]
                 
                 if AMFORM==0:
-                    sys.exit('error :: AMFORM=0 needs to be implemented in Layer.py')
+                    raise ValueError('error :: AMFORM=0 needs to be implemented in Layer.py')
                 else:
                     for K in range(NPRO):
                         MOLWT[K] = Calc_mmw(VMR[K], ID)
@@ -851,7 +851,7 @@ def layer_average(RADIUS, H, P, T, ID, VMR, DUST, PARAH2, BASEH, BASEP,
                 PP[I] = simpson(pp*duds,S)/TOTAM[I]
 
                 if AMFORM==0:
-                    sys.exit('error :: AMFORM=0 needs to be implemented in Layer.py')
+                    raise ValueError('error :: AMFORM=0 needs to be implemented in Layer.py')
                 else:
                     for K in range(NPRO):
                         MOLWT[K] = Calc_mmw(VMR[K], ID)
@@ -1078,7 +1078,7 @@ def layer_averageg(RADIUS, H, P, T, ID, VMR, DUST, PARAH2, BASEH, BASEP,
             PP = AMOUNT * PRESS
             AMOUNT = AMOUNT * TOTAM
             if AMFORM==0:
-                sys.exit('error :: AMFORM=0 needs to be implemented in Layer.py')
+                raise ValueError('error :: AMFORM=0 needs to be implemented in Layer.py')
             else:
                 for I in range(NLAY):
                     MOLWT[I] = Calc_mmw(VMR[I], ID)
@@ -1145,7 +1145,7 @@ def layer_averageg(RADIUS, H, P, T, ID, VMR, DUST, PARAH2, BASEH, BASEP,
                     PP[I, J] = simpson(pp[:,J]*duds,x=S)/TOTAM[I]
                 
                 if AMFORM==0:
-                    sys.exit('error :: AMFORM=0 needs to be implemented in Layer.py')
+                    raise ValueError('error :: AMFORM=0 needs to be implemented in Layer.py')
                 else:
                     for K in range(NINT):
                         molwt[K] = Calc_mmw(amount[K,:], ID)
@@ -1157,7 +1157,7 @@ def layer_averageg(RADIUS, H, P, T, ID, VMR, DUST, PARAH2, BASEH, BASEP,
                 PP[I] = simpson(pp*duds,x=S)/TOTAM[I]
 
                 if AMFORM==0:
-                    sys.exit('error :: AMFORM=0 needs to be implemented in Layer.py')
+                    raise ValueError('error :: AMFORM=0 needs to be implemented in Layer.py')
                 else:
                     for K in range(NINT):
                         molwt[K] = Calc_mmw(amount[K], ID)
@@ -1295,7 +1295,7 @@ def layer_split(RADIUS, H, P, LAYANG=0.0, LAYHT=0.0, NLAY=20,
     elif LAYTYP == 4: # split by specifying input base pressures
         #assert P_base, 'Need input layer base pressures'
         if np.isnan(P_base) is True:
-            sys.exit('error in layer_split() :: need input layer base pressures')
+            raise ValueError('error in layer_split() :: need input layer base pressures')
         assert  (P_base[-1] >= P[-1]) and (P_base[0] <= P[0]), \
             'Input layer base pressures out of range of atmosphere profile'
         BASEP = P_base
