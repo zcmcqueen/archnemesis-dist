@@ -2,8 +2,6 @@ from archnemesis import *
 import numpy as np
 import matplotlib.pyplot as plt
 import os
-import miepython
-import ray
 
 #!/usr/local/bin/python3
 # -*- coding: utf-8 -*-
