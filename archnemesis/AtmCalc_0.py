@@ -238,7 +238,7 @@ class AtmCalc_0:
                     if Layer.BASEH[ILAY]<HTAN:
                         self.BOTLAY = ILAY
                 
-                if self.BOTLAY<NLAY-1:
+                if self.BOTLAY<Layer.NLAY-1:
                     F = (HTAN-Layer.BASEH[self.BOTLAY])/(Layer.BASEH[self.BOTLAY+1]-Layer.BASEH[self.BOTLAY])
                     if F>0.5:
                         self.BOTLAY = self.BOTLAY + 1
@@ -422,16 +422,17 @@ class AtmCalc_0:
                 #        if NPATH=NCG=NUSE you include layers 1-1, 1-2,... 1-NCG
                 #NPATH=NUSE and NCG=1 is not allowed
 
-                for i in range(NLAYIN[j]):
-                    LAYINC[i,j] = FSTCG+i-1
-                    SCALE[i,j] = 1.0
-                    EMTEMP[i,j] = EMITT[LAYINC[i,j]]
+                raise ValueError('CG paths are not yet implemented')
+                #for i in range(NLAYIN[j]):
+                #    LAYINC[i,j] = FSTCG+i-1
+                #    SCALE[i,j] = 1.0
+                #    EMTEMP[i,j] = EMITT[LAYINC[i,j]]
 
-                if self.WF==True:
-                    NLAYIN[j] = 1
-                    LAYINC[0,j] = FSTCG+j-1
-                    SCALE[0,j] = 1.0
-                    EMTEMP[0,j] = EMITT[LAYINC[0,j]]
+                #if self.WF==True:
+                #    NLAYIN[j] = 1
+                #    LAYINC[0,j] = FSTCG+j-1
+                #    SCALE[0,j] = 1.0
+                #    EMTEMP[0,j] = EMITT[LAYINC[0,j]]
 
             else:
 
