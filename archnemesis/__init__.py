@@ -13,8 +13,7 @@ from .Path_0 import *
 from .Variables_0 import *
 from .ForwardModel_0 import *
 from .OptimalEstimation_0 import *
-from .NestedSampling_0 import *
-
+#from .NestedSampling_0 import *
 from .Telluric_0 import *
 
 from .Models import *
