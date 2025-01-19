@@ -227,7 +227,7 @@ class Measurement_0:
             'IFORM must be >=0 and <=5'
             
         if self.IFORM == 5:
-            assert np.issubdtype(type(self.VNORM), np.float) == True , \
+            assert isinstance(self.VNORM, float) == True , \
                 'VNORM must be float if IFORM=5'
             
             for i in range(self.NGEOM):
@@ -414,6 +414,8 @@ class Measurement_0:
                 lunit = 'Integrated spectral power of planet / W (cm-1)-1'
             elif self.IFORM==4:
                 lunit = 'Atmospheric transmission multiplied by solar flux / W cm-2 (cm-1)-1'
+            elif self.IFORM==5:
+                lunit = 'Spectra normalised to VNORM'
 
         elif self.ISPACE==1:  #Wavelength space
             if self.IFORM==0:
@@ -426,8 +428,19 @@ class Measurement_0:
                 lunit = 'Integrated spectral power of planet / W um-1'
             elif self.IFORM==4:
                 lunit = 'Atmospheric transmission multiplied by solar flux / W cm-2 um-1'
+            elif self.IFORM==5:
+                lunit = 'Spectra normalised to VNORM'
 
         dset.attrs['units'] = lunit
+        
+        if self.IFORM==5:
+            dset = grp.create_dataset('VNORM',data=self.VNORM)
+            if self.ISPACE==0:
+                dset.attrs['title'] = "Wavenumber for normalisation"
+                dset.attrs['units'] = 'cm-1'
+            elif self.ISPACE==0:
+                dset.attrs['title'] = "Wavelength for normalisation"
+                dset.attrs['units'] = 'um'
 
         #Writing the number of geometries
         dset = grp.create_dataset('NGEOM',data=self.NGEOM)
