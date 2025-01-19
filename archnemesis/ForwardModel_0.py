@@ -315,6 +315,10 @@ class ForwardModel_0:
                 SPECONV1 = self.Measurement.lblconv(SPEC,IGEOM=IGEOM)
 
             SPECONV[0:self.Measurement.NCONV[IGEOM],IGEOM] = SPECONV1[0:self.Measurement.NCONV[IGEOM]]
+            
+            #Normalising measurement to a given wavelength if required
+            if self.Measurement.IFORM == 5:
+                SPECONV[0:self.Measurement.NCONV[IGEOM],IGEOM] /= np.interp(self.Measurement.VNORM,self.Measurement.VCONV[0:self.Measurement.NCONV[IGEOM],IGEOM],SPECONV[0:self.Measurement.NCONV[IGEOM],IGEOM])
 
         return SPECONV
 

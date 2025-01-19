@@ -51,6 +51,7 @@ class Measurement_0:
             (2) A_planet/A_star - 100.0 * A_planet/A_star (dimensionsless)
             (3) Integrated spectral power of planet - W (cm-1)-1 if ISPACE=0 ---- W um-1 if ISPACE=1
             (4) Atmospheric transmission multiplied by solar flux
+            (5) Normalised radiance to a given wavelength (VNORM)
     LATITUDE : float
         Planetocentric latitude at centre of the field of view
     LONGITUDE : float
@@ -104,6 +105,8 @@ class Measurement_0:
         Measurement uncertainty covariance matrix (assumed to be diagonal)
     SPECMOD : 2D array, float (NCONV,NGEOM)
         Modelled spectrum for each geometry
+    VNORM : float 
+        If IFORM=5, then VNORM defines the wavelength at which the spectra must be normalised
         
         
     Methods
@@ -176,6 +179,7 @@ class Measurement_0:
         self.NAV = NAV       #np.zeros(NGEOM)
         self.NCONV = NCONV   #np.zeros(NGEOM)
         self.WOFF = 0
+        self.VNORM = None    
         
         # Input the following profiles using the edit_ methods.
         self.VCONV = None # np.zeros(NCONV,NGEOM)
@@ -218,9 +222,19 @@ class Measurement_0:
         assert np.issubdtype(type(self.IFORM), np.integer) == True , \
             'IFORM must be int'
         assert self.IFORM >= 0 , \
-            'IFORM must be >=0 and <=4'
-        assert self.IFORM <= 4 , \
-            'IFORM must be >=0 and <=4'
+            'IFORM must be >=0 and <=5'
+        assert self.IFORM <= 5 , \
+            'IFORM must be >=0 and <=5'
+            
+        if self.IFORM == 5:
+            assert np.issubdtype(type(self.VNORM), np.float) == True , \
+                'VNORM must be float if IFORM=5'
+            
+            for i in range(self.NGEOM):
+                assert self.VNORM >= self.VCONV[0:self.NCONV[i]].min() , \
+                    'VNORM must be >= min(VCONV)'
+                assert self.VNORM <= self.VCONV[0:self.NCONV[i]].max() , \
+                    'VNORM must be <= max(VCONV)'
 
         assert np.issubdtype(type(self.ISPACE), np.integer) == True , \
             'ISPACE must be int'
@@ -549,6 +563,10 @@ class Measurement_0:
             self.FLON = np.array(f.get('Measurement/FLON'))
             self.WGEOM = np.array(f.get('Measurement/WGEOM'))
             self.EMISS_ANG = np.array(f.get('Measurement/EMISS_ANG'))
+            
+            if self.IFORM==5:
+                if 'Measurement/VNORM' in f:
+                    self.VNORM = np.float64(f.get('Measurement/VNORM'))
             
             #Reading Doppler shift if exists
             if 'Measurement/V_DOPPLER' in f:
