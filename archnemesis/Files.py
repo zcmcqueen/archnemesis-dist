@@ -694,25 +694,54 @@ def read_mre(runname,MakePlot=False):
     varident = np.zeros([nvar,3],dtype='int')
     varparam = np.zeros([nvar,5])
     for i in range(nvar):
-        s = f.readline().split()  #Variable number
-        tmp = np.fromfile(f,sep=' ',count=3,dtype='int')
-        varident[i,:] = tmp[:]
-        tmp = np.fromfile(f,sep=' ',count=5,dtype='float')
-        varparam[i,:] = tmp[:]
-        s = f.readline().split()
+        # 1) Read until we find the line that starts with "Variable"
+        line = f.readline()
+        while line and not line.strip().startswith('Variable'):
+            line = f.readline()
+        if not line:
+            # End of file or no more "Variable" lines
+            break
+
+        # 2) The next line is the varident (3 integers)
+        line = f.readline().strip()
+        parts = line.split()
+        if len(parts) != 3:
+            raise ValueError(f"Expected 3 integers for varident, got: {parts}")
+        varident[i, :] = np.array(parts, dtype=int)
+
+        # 3) The next line is the varparam (5 floats)
+        line = f.readline().strip()
+        parts = line.split()
+        if len(parts) != 5:
+            raise ValueError(f"Expected 5 floats for varparam, got: {parts}")
+        varparam[i, :] = np.array(parts, dtype=float)
+
+        # 4) The next line is typically the header for data lines ("i, ix, xa ...")
+        #    We just read it and ignore.
+        f.readline()
+
+        # 5) Initialize the Variables_0 object
         Var1 = Variables_0()
         Var1.NVAR = 1
-        Var1.edit_VARIDENT(varident[i,:])
-        Var1.edit_VARPARAM(varparam[i,:])
+        Var1.edit_VARIDENT(varident[i, :])
+        Var1.edit_VARPARAM(varparam[i, :])
         Var1.calc_NXVAR(Atmosphere.NP)
-        for j in range(Var1.NXVAR[0]):
-            #if j==0:
-            #    s = f.readline().split()   #Line indicating values in the following lines
-            tmp = np.fromfile(f,sep=' ',count=6,dtype='float')
-            aprprof1[j,i] = float(tmp[2])
-            aprerr1[j,i] = float(tmp[3])
-            retprof1[j,i] = float(tmp[4])
-            reterr1[j,i] = float(tmp[5])
+        nxvar = Var1.NXVAR[0]  # how many lines of data to read
+
+        # 6) Now read each profile line for this variable
+        #    We know the data lines each have 6 columns.
+        for j in range(nxvar):
+            line_pos = f.tell()
+            line = f.readline().strip()
+            parts = line.split()
+            # If something is off, backtrack and break
+            if len(parts) != 6:
+                f.seek(line_pos)
+                break
+            aprprof1[j, i] = float(parts[2])
+            aprerr1[j, i]  = float(parts[3])
+            retprof1[j, i] = float(parts[4])
+            reterr1[j, i]  = float(parts[5])
 
     Var.edit_VARIDENT(varident)
     Var.edit_VARPARAM(varparam)
