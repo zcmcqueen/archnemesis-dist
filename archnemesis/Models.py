@@ -1935,6 +1935,64 @@ def model447(Measurement,v_doppler):
     
     return Measurement
 
+def model500(k_cia, waven, icia, vlo, vhi, nbasis, amplitudes):
+    """
+        FUNCTION NAME : model500()
+        
+        DESCRIPTION :
+        
+            Function defining the model parameterisation 500.
+            This allows the retrieval of CIA opacity with a gaussian basis.
+            Assumes a constant P/T dependence.
+        
+        INPUTS :
+        
+            cia :: CIA class
+            
+            icia :: CIA pair to be modelled
+            
+            vlo :: Lower wavenumber bound
+            
+            vhi :: Upper wavenumber bound
+
+            nbasis :: Number of gaussians in the basis
+            
+            amplitudes :: Amplitudes of each gaussian
+            
+        
+        OUTPUTS :
+        
+            cia :: Updated CIA class
+            xmap :: Gradient (not implemented)
+        
+        CALLING SEQUENCE:
+        
+            cia,xmap = model500(cia, icia, nbasis, amplitudes)
+        
+        MODIFICATION HISTORY : Joe Penn (14/01/25)
+        
+    """
+    
+    ilo = np.argmin(np.abs(waven-vlo))
+    ihi = np.argmin(np.abs(waven-vhi))
+    width = (ihi - ilo)/nbasis          # Width of the Gaussian functions
+    centers = np.linspace(ilo, ihi, int(nbasis))
+    
+    def gaussian_basis(x, centers, width):
+        return np.exp(-((x[:, None] - centers[None, :])**2) / (2 * width**2))
+    
+    x = np.arange(ilo,ihi+1)
+    
+    G = gaussian_basis(x, centers, width)
+    gaussian_cia = G @ amplitudes
+    
+    k_cia = k_cia * 0
+    
+    k_cia[icia,:,:,ilo:ihi+1] = gaussian_cia
+    
+    xmap = np.zeros(1)
+    return k_cia,xmap
+
 
 ###############################################################################################
 
