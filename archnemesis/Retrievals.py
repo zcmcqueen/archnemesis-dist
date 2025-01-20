@@ -4,7 +4,7 @@ import matplotlib.pyplot as plt
 import time
 
 
-def retrieval_nemesis(runname,legacy_files=False,NCores=1,retrieval_method=0,nemesisSO=False):
+def retrieval_nemesis(runname,legacy_files=False,NCores=1,retrieval_method=0,nemesisSO=False,NS_prefix='chains/'):
     
     """
         FUNCTION NAME : retrieval_nemesis()
@@ -62,7 +62,7 @@ def retrieval_nemesis(runname,legacy_files=False,NCores=1,retrieval_method=0,nem
                                           NITER=Retrieval.NITER,PHILIMIT=Retrieval.PHILIMIT,NCores=NCores,nemesisSO=nemesisSO)
         Retrieval = OptimalEstimation
     elif retrieval_method==1:
-        NestedSampling = ans.coreretNS(runname,Variables,Measurement,Atmosphere,Spectroscopy,Scatter,Stellar,Surface,CIA,Layer)
+        NestedSampling = ans.coreretNS(runname,Variables,Measurement,Atmosphere,Spectroscopy,Scatter,Stellar,Surface,CIA,Layer,NS_prefix=NS_prefix)
         Retrieval = NestedSampling
     else:
         raise ValueError('error in retrieval_nemesis :: Retrieval scheme has not been implemented yet')

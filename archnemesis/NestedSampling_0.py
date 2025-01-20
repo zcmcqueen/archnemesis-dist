@@ -240,7 +240,7 @@ class NestedSampling_0:
 
         plt.show()
         
-def coreretNS(runname,Variables,Measurement,Atmosphere,Spectroscopy,Scatter,Stellar,Surface,CIA,Layer):
+def coreretNS(runname,Variables,Measurement,Atmosphere,Spectroscopy,Scatter,Stellar,Surface,CIA,Layer,NS_prefix):
     """
         FUNCTION NAME : coreretNS()
         
@@ -315,7 +315,7 @@ def coreretNS(runname,Variables,Measurement,Atmosphere,Spectroscopy,Scatter,Stel
             print('DISTRIBUTION ID NOT DEFINED!', flush = True)
 
     # Making the retrieval folder
-    NestedSampling.prefix = "chains/"
+    NestedSampling.prefix = NS_prefix
     if rank == 0:
         if not os.path.exists(NestedSampling.prefix):
             os.makedirs(NestedSampling.prefix)
