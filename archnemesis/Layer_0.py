@@ -861,7 +861,7 @@ def layer_average(RADIUS, H, P, T, ID, VMR, DUST, PARAH2, BASEH, BASEP,
                     dd[:,J] = interp(H, DUST[:,J], h)
                     if DUST_UNITS is not None:
                         if DUST_UNITS[J] == -1:
-                            CONT[I,J] = simpson(dd[:,J]*duds,S) * np.interp(I/NLAY,np.arange(NPRO),MOLWT) / AVOGAD
+                            CONT[I,J] = simpson(dd[:,J]*duds,S) * np.interp(I/NLAY,np.arange(NPRO)/NPRO,MOLWT) / AVOGAD
                             continue
                     CONT[I,J] = simpson(dd[:,J],S)
                     
@@ -870,7 +870,7 @@ def layer_average(RADIUS, H, P, T, ID, VMR, DUST, PARAH2, BASEH, BASEP,
                 dd = interp(H, DUST, h) 
                 if DUST_UNITS is not None:
                     if DUST_UNITS[0] == -1:
-                        CONT[I] = simpson(dd*duds,S) * np.interp(I/NLAY,np.arange(NPRO),MOLWT) / AVOGAD
+                        CONT[I] = simpson(dd*duds,S) * np.interp(I/NLAY,np.arange(NPRO)/NPRO,MOLWT) / AVOGAD
                         continue
                 CONT[I] = simpson(dd,S)
             

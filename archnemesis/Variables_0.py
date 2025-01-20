@@ -350,6 +350,8 @@ class Variables_0:
                 nxvar[i] = 1
             elif imod == 447:
                 nxvar[i] = 1
+            elif imod == 500:
+                nxvar[i] = int(ipar)
             elif imod == 666:
                 nxvar[i] = 1
             elif imod == 667:
@@ -1417,7 +1419,43 @@ class Variables_0:
                     inum[ix] = 1
                     
                     ix = ix + 1
+                
+                elif varident[i,2] == 500:
+                    
+                    s = f.readline().split()
+                    amp_f = open(s[0],'r')
+                    
+                    tmp = np.fromfile(amp_f,sep=' ',count=2,dtype='float')
+                    
+                    nbasis = int(tmp[0])
+                    clen = float(tmp[1])
+                    
+                    amp = np.zeros([nbasis])
+                    eamp = np.zeros([nbasis])
+                    
+                    for j in range(nbasis):
+                        tmp = np.fromfile(amp_f,sep=' ',count=2,dtype='float')
+                        amp[j] = float(tmp[0])
+                        eamp[j] = float(tmp[1])
+                    
+                        lx[ix+j] = 1
+                        x0[ix+j] = np.log(amp[j])
+                        sx[ix+j,ix+j] = ( eamp[j]/amp[j]  )**2.
 
+                    for j in range(nbasis):
+                        for k in range(nbasis):
+                            
+                            deli = j-k
+                            arg = abs(deli/clen)
+                            xfac = np.exp(-arg)
+                            if xfac >= sxminfac:
+                                sx[ix+j,ix+k] = np.sqrt(sx[ix+j,ix+j]*sx[ix+k,ix+k])*xfac
+                                sx[ix+k,ix+j] = sx[ix+j,ix+k]
+                                
+                    varparam[i,0] = nbasis
+                    ix = ix + nbasis
+                
+                
                 elif varident[i,2] == 666:
 #               ******** pressure at given altitude
                     tmp = np.fromfile(f,sep=' ',count=1,dtype='float')

@@ -1609,6 +1609,30 @@ class ForwardModel_0:
 
                 ipar = -1
                 ix = ix + self.Variables.NXVAR[ivar]
+                
+                
+            elif self.Variables.VARIDENT[ivar,0]==500:
+                
+                icia = self.Variables.VARIDENT[ivar,1]
+                
+                if self.Measurement.ISPACE == 1:
+                    vlo = 1e4/(self.Measurement.WAVE.max())
+                    vhi = 1e4/(self.Measurement.WAVE.min())
+                else:
+                    vlo = self.Measurement.WAVE.min()
+                    vhi = self.Measurement.WAVE.max()
+                    
+                nbasis = self.Variables.VARPARAM[ivar,0]
+                amplitudes = np.exp(self.Variables.XN[ix:ix+self.Variables.NXVAR[ivar]])*1e-40
+                
+                new_k_cia, xmap1 = model500(self.CIA.K_CIA.copy(), self.CIA.WAVEN, icia, vlo, vhi, nbasis, amplitudes)
+              
+                self.CIA.K_CIA = new_k_cia
+                self.CIAX.K_CIA = new_k_cia
+                
+                    
+                ix = ix + self.Variables.NXVAR[ivar]
+                
 
             elif self.Variables.VARIDENT[ivar,0]==666:
 #           Model 666. Retrieval of tangent pressure at given tangent height
@@ -3943,7 +3967,6 @@ class ForwardModel_0:
             ax1.grid()
             plt.tight_layout()
             plt.show()
-
         return tau_cia_layer,dtau_cia_layer
 
     ###############################################################################################
