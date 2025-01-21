@@ -28,14 +28,20 @@ If interested users are missing key points in the documentation, would appreciat
 Installation
 --------------------
 
-The latest version of code has to be downloaded from `Github <https://github.com/juanaldayparejo/archnemesis-dist.git>`_ under a GNU General Public License v3.
+The latest version of code has to be downloaded from `Github <https://github.com/juanaldayparejo/archnemesis-dist.git>`_ under a GNU General Public License v3. To do so, type in the command window::
 
-Given that archNEMESIS is a highly dynamic package were new additions are frequently introduced, we recommend installing the package 
+git clone https://github.com/juanaldayparejo/archnemesis-dist.git
+
+Then, we need to get into the package folder using::
+
+cd archnemesis-dist
+
+Finally, we need to install the library. Given that archNEMESIS is a highly dynamic package were new additions are frequently introduced, we recommend installing the package 
 but keeping it editable by typing::
 
-$ pip install --editable .
+pip install --editable .
 
-This will install archNEMESIS package, but with the ability to update any changes made to the code (e.g., when introducing new model parameterisations or methods).
+This will install archNEMESIS package, but with the ability to update any changes made to the code (e.g., when introducing new model parameterisations or methods). In addition, it will install all the required libraries archNEMESIS depends on.
 
 Citing archNEMESIS
 --------------------
