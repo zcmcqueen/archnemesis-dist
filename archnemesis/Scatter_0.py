@@ -199,8 +199,8 @@ class Scatter_0:
             'IRAY must be int'
         assert self.IRAY >= 0 , \
             'IRAY must be >=0 and <=2'
-        assert self.IRAY <= 2 , \
-            'IRAY must be >=0 and <=2. In the future more options will be available'
+        assert self.IRAY <= 4 , \
+            'IRAY must be >=0 and <=4. In the future more options will be available'
         
         assert np.issubdtype(type(self.IMIE), np.integer) == True , \
             'IMIE must be int'

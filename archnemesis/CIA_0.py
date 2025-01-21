@@ -79,6 +79,7 @@ class CIA_0:
         self.INORMALT = INORMALT
         self.NT = NT
         self.NWAVE = NWAVE
+        self.FRAC = np.array([0])
         
         if CIADATA is None:
             self.CIADATA = archnemesis_path()+'archnemesis/Data/cia/'
@@ -270,10 +271,12 @@ class CIA_0:
             IPAIRG2=[39,40]
             INORMALT=[0,0]
             
+            self.FRAC = FRAC
+            
+            
         #Reading the actual CIA file
         if NPARA==0:
             NPAIR = 9 # 9 pairs of collision induced absorption opacities
-            FRAC = np.array([0])
             TEMPS = f.read_reals( dtype='float64' )
             KCIA_list = f.read_reals( dtype='float32' )
             IPAIRG1=[39,39,39,39,39,22,22,6,39]
@@ -283,7 +286,7 @@ class CIA_0:
         NT = len(TEMPS)
         NWAVE = int(len(KCIA_list)/NT/NPAIR/max(NPARA,1))
         NU_GRID = np.linspace(0,dnu*(NWAVE-1),NWAVE)
-        K_CIA = np.zeros((NPAIR,max(NPARA,1),NT,NWAVE)) # NPAIR x NT x NWAVE
+        K_CIA = np.zeros((NPAIR,max(NPARA,1),NT,NWAVE)) # NPAIR x NPARA x NT x NWAVE
     
         index = 0
         for iwn in range(NWAVE):
@@ -306,7 +309,6 @@ class CIA_0:
         self.INORMALT = INORMALT
         self.WAVEN = NU_GRID
         self.TEMP = TEMPS
-        self.FRAC = FRAC
         self.K_CIA = K_CIA
 
     ##################################################################################

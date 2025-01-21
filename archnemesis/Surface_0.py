@@ -267,9 +267,9 @@ class Surface_0:
                     assert self.F.shape == (self.NEM,self.NLOCATIONS) , \
                         'F must have size (NEM,NLOCATIONS)'
         else:
-            assert self.LOWBC == 0 , \
-                'If GASGIANT=True then LOWBC=0 (i.e. No reflection)'
-
+#             assert self.LOWBC == 0 , \
+#                 'If GASGIANT=True then LOWBC=0 (i.e. No reflection)'
+           pass
 
     def write_hdf5(self,runname):
         """
