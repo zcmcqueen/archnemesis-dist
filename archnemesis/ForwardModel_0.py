@@ -4130,7 +4130,7 @@ class ForwardModel_0:
         return tau_cia_layer, dtau_cia_layer
 
 ###############################################################################################
-    def calc_tau_dust(self,WAVEC=None,Scatter=None,Layer=None,MakePlot=False):
+    def calc_tau_dust(self, WAVEC=None, Scatter=None, Layer=None, MakePlot=False):
         """
         Calculate the aerosol opacity in each atmospheric layer
 
@@ -4150,48 +4150,65 @@ class ForwardModel_0:
         dTAUCLSCATdq(NWAVE,NLAY,NDUST) :: Rate of change of the aerosol scattering opacity with dust abundance
         """
 
-#       Initialising variables
+        # Initialising variables
         if WAVEC is None:
             WAVEC = self.MeasurementX.WAVE
         if Scatter is None:
             Scatter = self.ScatterX
         if Layer is None:
             Layer = self.LayerX
-            
+
         from scipy import interpolate
 
-        if((WAVEC.min()<Scatter.WAVE.min()) & (WAVEC.max()>Scatter.WAVE.min())):
+        if (WAVEC.min() < Scatter.WAVE.min()) & (WAVEC.max() > Scatter.WAVE.min()):
             raise ValueError('error in Scatter_0() :: Spectral range for calculation is outside of range in which the Aerosol properties are defined')
-
-        #Calculating the opacity at each vertical layer for each dust population
+        
+        # Calculating the opacity at each vertical layer for each dust population
         NWAVEC = len(WAVEC)
-        TAUDUST = np.zeros((NWAVEC,Layer.NLAY,Scatter.NDUST))
-        TAUCLSCAT = np.zeros((NWAVEC,Layer.NLAY,Scatter.NDUST))
-        dTAUDUSTdq = np.zeros((NWAVEC,Layer.NLAY,Scatter.NDUST))
-        dTAUCLSCATdq = np.zeros((NWAVEC,Layer.NLAY,Scatter.NDUST))
+        TAUDUST = np.zeros((NWAVEC, Layer.NLAY, Scatter.NDUST))
+        TAUCLSCAT = np.zeros((NWAVEC, Layer.NLAY, Scatter.NDUST))
+        dTAUDUSTdq = np.zeros((NWAVEC, Layer.NLAY, Scatter.NDUST))
+        dTAUCLSCATdq = np.zeros((NWAVEC, Layer.NLAY, Scatter.NDUST))
+
         for i in range(Scatter.NDUST):
             if i in self.AtmosphereX.DUST_RENORMALISATION.keys():
-                Layer.CONT[:,i] = Layer.CONT[:,i]/Layer.CONT[:,i].sum() * 1e4 * self.AtmosphereX.DUST_RENORMALISATION[i]
-            if Scatter.NWAVE>2:
-                f = interpolate.interp1d(Scatter.WAVE,Scatter.KEXT[:,i],kind='cubic')
-                kext = f(WAVEC)
-                f = interpolate.interp1d(Scatter.WAVE,Scatter.KSCA[:,i],kind='cubic')
-                ksca = f(WAVEC)
-            else:
-                f = interpolate.interp1d(Scatter.WAVE,Scatter.KEXT[:,i])
-                kext = f(WAVEC)
-                f = interpolate.interp1d(Scatter.WAVE,Scatter.KSCA[:,i])
-                ksca = f(WAVEC)
+                Layer.CONT[:, i] = Layer.CONT[:, i] / Layer.CONT[:, i].sum() * 1e4 * self.AtmosphereX.DUST_RENORMALISATION[i]
 
-            #Calculating the opacity at each layer
+            if Scatter.NWAVE > 2:
+                f_kext = interpolate.interp1d(Scatter.WAVE, Scatter.KEXT[:, i], kind='cubic')
+                f_ksca = interpolate.interp1d(Scatter.WAVE, Scatter.KSCA[:, i], kind='cubic')
+            else:
+                f_kext = interpolate.interp1d(Scatter.WAVE, Scatter.KEXT[:, i])
+                f_ksca = interpolate.interp1d(Scatter.WAVE, Scatter.KSCA[:, i])
+
+            kext = f_kext(WAVEC)
+            ksca = f_ksca(WAVEC)
+
+            # Replace invalid values using original arrays
+            invalid_ksca = (ksca < 0) & (kext > 0)
+            invalid_kext = (kext < 0) & (ksca > 0)
+            invalid_both = (kext < ksca)
+
+            if np.any(invalid_ksca):
+                ksca[invalid_ksca] = interpolate.interp1d(Scatter.WAVE, Scatter.KSCA[:, i], fill_value="extrapolate")(WAVEC[invalid_ksca])
+            if np.any(invalid_kext):
+                kext[invalid_kext] = interpolate.interp1d(Scatter.WAVE, Scatter.KEXT[:, i], fill_value="extrapolate")(WAVEC[invalid_kext])
+            if np.any(invalid_both):
+                kext[invalid_both] = interpolate.interp1d(Scatter.WAVE, Scatter.KEXT[:, i], fill_value="extrapolate")(WAVEC[invalid_both])
+                ksca[invalid_both] = interpolate.interp1d(Scatter.WAVE, Scatter.KSCA[:, i], fill_value="extrapolate")(WAVEC[invalid_both])
+
+            # Calculating the opacity at each layer
             for j in range(Layer.NLAY):
-                DUSTCOLDENS = Layer.CONT[j,i]  #particles/m2
-                TAUDUST[:,j,i] =  kext * 1.0e-4 * DUSTCOLDENS
-                TAUCLSCAT[:,j,i] = ksca * 1.0e-4 * DUSTCOLDENS
-                dTAUDUSTdq[:,j,i] = kext * 1.0e-4 #dtau/dAMOUNT (m2)
-                dTAUCLSCATdq[:,j,i] = ksca * 1.0e-4 #dtau/dAMOUNT (m2)
-#         print(TAUDUST[0])
-        return TAUDUST,TAUCLSCAT,dTAUDUSTdq,dTAUCLSCATdq
+                DUSTCOLDENS = Layer.CONT[j, i]  # particles/m2
+                TAUDUST[:, j, i] = kext * 1.0e-4 * DUSTCOLDENS
+                TAUCLSCAT[:, j, i] = ksca * 1.0e-4 * DUSTCOLDENS
+                dTAUDUSTdq[:, j, i] = kext * 1.0e-4  # dtau/dAMOUNT (m2)
+                dTAUCLSCATdq[:, j, i] = ksca * 1.0e-4  # dtau/dAMOUNT (m2)
+
+        return TAUDUST, TAUCLSCAT, dTAUDUSTdq, dTAUCLSCATdq
+
+
+
 
 
 ###############################################################################################
