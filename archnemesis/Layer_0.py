@@ -135,7 +135,7 @@ class Layer_0:
         self.AMOUNT = None     #(NLAY,NVMR) Gaseous line-of-sight column density of each gas in each layer (m-2)
         self.PP = None         #(NLAY,NVMR) Effective partial pressure of each gas in each layer (Pa)
         self.CONT = None       #(NLAY,NDUST)  Line-of-sight column density of each dust population in each layer (particles/m2)
-        self.FRAC = None     #(NLAY) Fraction of para-h2 in each layer
+        self.FRAC = None       #(NLAY) Fraction of para-h2 in each layer
         
         #Matrices relating the properties at the reference input profiles wrt the properties of each layer 
         self.DTE = None        #(NLAY,NP)
@@ -773,7 +773,6 @@ def layer_average(RADIUS, H, P, T, ID, VMR, DUST, PARAH2, BASEH, BASEP,
         TEMP = interp(H,T,HEIGHT)
         FRAC = interp(H,PARAH2,HEIGHT)
         
-
         # Ideal gas law: N/(Area*Path_length) = P/(k_B*T)
         DUDS = PRESS/(k_B*TEMP)
         TOTAM = DUDS*DELS
@@ -819,25 +818,25 @@ def layer_average(RADIUS, H, P, T, ID, VMR, DUST, PARAH2, BASEH, BASEP,
             temp = interp(H,T,h)
             frac = interp(H,PARAH2,h)
             
-            duds = p/(k_B*temp)
+            duds = p/(k_B*temp) #number density in each NINT point (m-3)
 
             amount = np.zeros((NINT, NVMR))
             molwt = np.zeros(NINT)
 
-            TOTAM[I] = simpson(duds,S)
-            HEIGHT[I]  = simpson(h*duds,S)/TOTAM[I]
-            PRESS[I] = simpson(p*duds,S)/TOTAM[I]
-            TEMP[I]  = simpson(temp*duds,S)/TOTAM[I]
-            FRAC[I]  = simpson(frac*duds,S)/TOTAM[I]
+            TOTAM[I] = simpson(duds,x=S)               #integrated column density in the layer (m-2)
+            HEIGHT[I]  = simpson(h*duds,x=S)/TOTAM[I]  #effective altitude of the layer (m)
+            PRESS[I] = simpson(p*duds,x=S)/TOTAM[I]    #effective pressure of the layer (Pa)
+            TEMP[I]  = simpson(temp*duds,x=S)/TOTAM[I] #effective temperature of the layer (K)
+            FRAC[I]  = simpson(frac*duds,x=S)/TOTAM[I] #effective para-H2 fraction of the layer
 
             if VMR.ndim > 1:
                 amount = np.zeros((NINT, NVMR))
                 for J in range(NVMR):
-                    amount[:,J] = interp(H, VMR[:,J], h)
-                    AMOUNT[I,J] = simpson(amount[:,J]*p*duds,S)/PRESS[I]
-                pp = (amount.T * p).T     # gas partial pressures
+                    amount[:,J] = interp(H, VMR[:,J], h)  #volume mixing ratio in each NINT point
+                    AMOUNT[I,J] = simpson(amount[:,J]*duds,x=S)  #integrated column density of gas J in the layer (m-2)
+                pp = (amount.T * p).T     # gas partial pressures (i.e., volume mixing ratio in each NINT point * pressure in each NINT point)
                 for J in range(NVMR):
-                    PP[I, J] = simpson(pp[:,J]*duds,S)/TOTAM[I]
+                    PP[I, J] = simpson(pp[:,J]*duds,x=S)/TOTAM[I]  #effective partial pressure of gas J in the layer (Pa)
                 
                 if AMFORM==0:
                     raise ValueError('error :: AMFORM=0 needs to be implemented in Layer.py')
@@ -845,10 +844,11 @@ def layer_average(RADIUS, H, P, T, ID, VMR, DUST, PARAH2, BASEH, BASEP,
                     for K in range(NPRO):
                         MOLWT[K] = Calc_mmw(VMR[K], ID)
             else:
-                amount = interp(H, VMR, h)
-                pp = amount * p
-                AMOUNT[I] = simpson(amount*p*duds,S)/PRESS[I]
-                PP[I] = simpson(pp*duds,S)/TOTAM[I]
+                amount = interp(H, VMR, h)  #volume mixing ratio in each NINT point
+                pp = amount * p   # gas partial pressures (i.e., volume mixing ratio in each NINT point * pressure in each NINT point)
+                #AMOUNT[I] = simpson(amount*p*duds,x=S)/PRESS[I]
+                AMOUNT[I] = simpson(amount*duds,x=S)  #integrated column density of gas J in the layer (m-2)
+                PP[I] = simpson(pp*duds,x=S)/TOTAM[I] #effective partial pressure of gas J in the layer (Pa)
 
                 if AMFORM==0:
                     raise ValueError('error :: AMFORM=0 needs to be implemented in Layer.py')
@@ -856,23 +856,28 @@ def layer_average(RADIUS, H, P, T, ID, VMR, DUST, PARAH2, BASEH, BASEP,
                     for K in range(NPRO):
                         MOLWT[K] = Calc_mmw(VMR[K], ID)
             if DUST.ndim > 1:
+                
                 dd = np.zeros((NINT,NDUST))
                 for J in range(NDUST):
-                    dd[:,J] = interp(H, DUST[:,J], h)
+                    dd[:,J] = interp(H, DUST[:,J], h)   #dust density in each NINT point (m-3 or particles per gram of atm)
                     if DUST_UNITS is not None:
                         if DUST_UNITS[J] == -1:
                             CONT[I,J] = simpson(dd[:,J]*duds,S) * np.interp(I/NLAY,np.arange(NPRO)/NPRO,MOLWT) / AVOGAD
-                            continue
-                    CONT[I,J] = simpson(dd[:,J],S)
-                    
+                        elif DUST_UNITS[J] == 0: #dd in m-3
+                            CONT[I,J] = simpson(dd[:,J],S)  #integrated column density of dust J in the layer (m-2)  
+                    else:
+                        CONT[I,J] = simpson(dd[:,J],S)  #integrated column density of dust J in the layer (m-2)                   
                             
             else:
-                dd = interp(H, DUST, h) 
+                
+                dd = interp(H, DUST, h)  #dust density in each NINT point (m-3 or particles per gram of atm)
                 if DUST_UNITS is not None:
                     if DUST_UNITS[0] == -1:
                         CONT[I] = simpson(dd*duds,S) * np.interp(I/NLAY,np.arange(NPRO)/NPRO,MOLWT) / AVOGAD
-                        continue
-                CONT[I] = simpson(dd,S)
+                    elif DUST_UNITS[0] == 0: #dd in m-3
+                        CONT[I] = simpson(dd,S)  #integrated column density of dust J in the layer (m-2)  
+                else:
+                    CONT[I] = simpson(dd,S)  #integrated column density of dust J in the layer (m-2)    
             
     # Scale back to vertical layers
     TOTAM = TOTAM / LAYSF
@@ -885,6 +890,7 @@ def layer_average(RADIUS, H, P, T, ID, VMR, DUST, PARAH2, BASEH, BASEP,
         CONT = (CONT.T * LAYSF**-1 ).T
     else:
         CONT = CONT/LAYSF
+        
     return HEIGHT,PRESS,TEMP,TOTAM,AMOUNT,PP,CONT,FRAC,DELH,BASET,LAYSF
 
 #########################################################################################
