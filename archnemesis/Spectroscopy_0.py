@@ -1198,7 +1198,7 @@ class Spectroscopy_0:
         return kret,dkretdT
 
     ######################################################################################################
-    def calc_k(self,npoints,press,temp,WAVECALC=[12345678.],MakePlot=False):
+    def calc_k(self,npoints,press,temp,WAVECALC=[12345678.],MakePlot=False,linear=False):
         """
         Calculate the k-coefficients at a given pressure and temperature
         looking at pre-tabulated k-tables (assumed to be already stored in this class)
@@ -1214,13 +1214,12 @@ class Spectroscopy_0:
 
         Optional parameters
         ---------------------
-        @param wavemin: real
-            Minimum wavenumber (cm-1) or wavelength (um)
-        @param wavemax: real
-            Maximum wavenumber (cm-1) or wavelength (um)
+        @param WAVECALC: 1D array
+            Wavenumbers or wavelengths at which to calculate the k-coefficients
+        @param linear: bool
+            If True, the interpolation is done linearly. If False, it is done in log-space
         """
 
-        from NemesisPy.Utils import find_nearest
         from scipy import interpolate
 
         #Interpolating the k-coefficients to the correct pressure and temperature
@@ -1295,9 +1294,15 @@ class Spectroscopy_0:
             u = (temp1-tlo)/(thi-tlo)
 
             igood = np.where( (klo1>0.0) & (klo2>0.0) & (khi1>0.0) & (khi2>0.0) )
-            kgood[igood[0],igood[1],ipoint,igood[2]] = (1.0-v)*(1.0-u)*(klo1[igood[0],igood[1],igood[2]]) + v*(1.0-u)*(khi1[igood[0],igood[1],igood[2]]) + v*u*(khi2[igood[0],igood[1],igood[2]]) + (1.0-v)*u*(klo2[igood[0],igood[1],igood[2]])
             
-#             kgood[igood[0],igood[1],ipoint,igood[2]] = np.exp(kgood[igood[0],igood[1],ipoint,igood[2]])
+            
+            if linear is True:
+                #Linear interpolation
+                kgood[igood[0],igood[1],ipoint,igood[2]] = (1.0-v)*(1.0-u)*(klo1[igood[0],igood[1],igood[2]]) + v*(1.0-u)*(khi1[igood[0],igood[1],igood[2]]) + v*u*(khi2[igood[0],igood[1],igood[2]]) + (1.0-v)*u*(klo2[igood[0],igood[1],igood[2]])
+            else:
+                #Logarithmic interpolation
+                kgood[igood[0],igood[1],ipoint,igood[2]] = (1.0-v)*(1.0-u)*(np.log(klo1[igood[0],igood[1],igood[2]])) + v*(1.0-u)*(np.log(khi1[igood[0],igood[1],igood[2]])) + v*u*(np.log(khi2[igood[0],igood[1],igood[2]])) + (1.0-v)*u*(np.log(klo2[igood[0],igood[1],igood[2]]))
+                kgood[igood[0],igood[1],ipoint,igood[2]] = np.exp(kgood[igood[0],igood[1],ipoint,igood[2]])
             
             ibad = np.where( (klo1<=0.0) & (klo2<=0.0) & (khi1<=0.0) & (khi2<=0.0) )
             kgood[ibad[0],ibad[1],ipoint,ibad[2]] = (1.0-v)*(1.0-u)*klo1[ibad[0],ibad[1],ibad[2]] + v*(1.0-u)*khi1[ibad[0],ibad[1],ibad[2]] + v*u*khi2[ibad[0],ibad[1],ibad[2]] + (1.0-v)*u*klo2[ibad[0],ibad[1],ibad[2]]
