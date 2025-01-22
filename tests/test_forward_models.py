@@ -8,7 +8,7 @@ def test_thermal_emission_cirs():
     Jupiter thermal emission test against NEMESIS
     '''
     
-    os.chdir('files/Jupiter_CIRS_nadir_thermal_emission/') #Changing directory to read files
+    os.chdir('tests/files/Jupiter_CIRS_nadir_thermal_emission/') #Changing directory to read files
     runname = 'cirstest'
     
     #Reading the input files
