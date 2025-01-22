@@ -19,7 +19,7 @@ Collision-Induced Absorption Class.
 
 class CIA_0:
 
-    def __init__(self, runname='', INORMAL=0, NPAIR=9, NT=25, CIADATA=None, CIATABLE='CO2-CO2_HITRAN.h5', NWAVE=1501, IPAIRG1=[39,39,39,39,39,22,22,6,39], IPAIRG2=[39,40,39,40,22,6,22,6,6], INORMALT=[0,0,1,1,0,0,0,0,0]):
+    def __init__(self, runname='', INORMAL=0, NPAIR=9, NT=25, CIADATA=None, CIATABLE='CO2-CO2_HITRAN.h5', NWAVE=1501, NPARA=0, IPAIRG1=[39,39,39,39,39,22,22,6,39], IPAIRG2=[39,40,39,40,22,6,22,6,6], INORMALT=[0,0,1,1,0,0,0,0,0]):
 
         """
         Inputs
@@ -35,6 +35,10 @@ class CIA_0:
             Number of temperature levels over which the CIA data is defined 
         @param NWAVE: int,
             Number of spectral points over which the CIA data is defined
+        @param NPARA: int,
+            Number of para-H2 fractions listed in the CIA table
+        @param FRAC: 1D array (NPARA),
+            Fraction of para-H2 in the CIA table (only valid for H2-H2 and H2-He pairs)
         @param IPAIRG1: 1D array (NPAIR),
             First gas of each of the listed pairs (e.g., H2-He ; IPAIRG1 = H2 = 39)
         @param IPAIRG2: 1D array (NPAIR),
@@ -74,6 +78,7 @@ class CIA_0:
         self.runname = runname
         self.INORMAL = INORMAL
         self.NPAIR = NPAIR
+        self.NPARA = NPARA
         self.IPAIRG1 = IPAIRG1
         self.IPAIRG2 = IPAIRG2
         self.INORMALT = INORMALT
@@ -91,7 +96,7 @@ class CIA_0:
         # Input the following profiles using the edit_ methods.
         self.WAVEN = None # np.zeros(NWAVE)
         self.TEMP = None # np.zeros(NT)
-        self.K_CIA = None #np.zeros(NPAIR,NT,NWAVE)
+        self.K_CIA = None #np.zeros(NPAIR,NPARA,NT,NWAVE)
 
         
     ##################################################################################
@@ -123,6 +128,13 @@ class CIA_0:
         assert ((self.INORMAL == 0) or (self.INORMAL == 1) ), \
             'INORMAL must be either 0 or 1'
             
+        assert np.issubdtype(type(self.NPARA), np.integer) == True , \
+            'NPARA must be int'
+        assert self.NPARA >= 0 , \
+            'NPARA must be >= 0'
+            
+        assert len(self.FRAC) == max(self.NPARA,1) , \
+            'FRAC must have size (NPARA) or (1)'
             
         assert len(self.IPAIRG1) == self.NPAIR , \
             'IPAIRG1 must have size (NPAIR)'
@@ -464,7 +476,11 @@ class CIA_0:
         
         self.WAVEN = np.array(f.get('WAVEN'))
         self.TEMP = np.array(f.get('TEMP'))
-        self.K_CIA = np.array(f.get('K_CIA'))
+        
+        K_CIA = np.zeros((self.NPAIR,max(self.NPARA,1),self.NT,self.NWAVE)) # NPAIR x NPARA x NT x NWAVE
+        K_CIA[:,0,:,:] = np.array(f.get('K_CIA'))
+        
+        self.K_CIA = K_CIA
         
         self.assess
             
