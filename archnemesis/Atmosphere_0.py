@@ -69,6 +69,7 @@ class Atmosphere_0:
         @attribute PARAH2: 1D array
             Verical profile of para-H2 fraction (para-H2/total amount of H2). 
             The value 1-PARAH2 would be the ortho-H2 fraction.
+
         
         Methods
         -------
