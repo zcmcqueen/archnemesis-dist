@@ -824,20 +824,20 @@ def layer_average(RADIUS, H, P, T, ID, VMR, DUST, PARAH2, BASEH, BASEP,
             amount = np.zeros((NINT, NVMR))
             molwt = np.zeros(NINT)
 
-            TOTAM[I] = simpson(duds,S)
-            HEIGHT[I]  = simpson(h*duds,S)/TOTAM[I]
-            PRESS[I] = simpson(p*duds,S)/TOTAM[I]
-            TEMP[I]  = simpson(temp*duds,S)/TOTAM[I]
-            FRAC[I]  = simpson(frac*duds,S)/TOTAM[I]
+            TOTAM[I] = simpson(duds,x=S)
+            HEIGHT[I]  = simpson(h*duds,x=S)/TOTAM[I]
+            PRESS[I] = simpson(p*duds,x=S)/TOTAM[I]
+            TEMP[I]  = simpson(temp*duds,x=S)/TOTAM[I]
+            FRAC[I]  = simpson(frac*duds,x=S)/TOTAM[I]
 
             if VMR.ndim > 1:
                 amount = np.zeros((NINT, NVMR))
                 for J in range(NVMR):
                     amount[:,J] = interp(H, VMR[:,J], h)
-                    AMOUNT[I,J] = simpson(amount[:,J]*duds,S)
+                    AMOUNT[I,J] = simpson(amount[:,J]*duds,x=S)
                 pp = (amount.T * p).T     # gas partial pressures
                 for J in range(NVMR):
-                    PP[I, J] = simpson(pp[:,J]*duds,S)/TOTAM[I]
+                    PP[I, J] = simpson(pp[:,J]*duds,x=S)/TOTAM[I]
                 
                 if AMFORM==0:
                     raise ValueError('error :: AMFORM=0 needs to be implemented in Layer.py')
@@ -847,8 +847,8 @@ def layer_average(RADIUS, H, P, T, ID, VMR, DUST, PARAH2, BASEH, BASEP,
             else:
                 amount = interp(H, VMR, h)
                 pp = amount * p
-                AMOUNT[I] = simpson(amount*duds,S)
-                PP[I] = simpson(pp*duds,S)/TOTAM[I]
+                AMOUNT[I] = simpson(amount*duds,x=S)
+                PP[I] = simpson(pp*duds,x=S)/TOTAM[I]
 
                 if AMFORM==0:
                     raise ValueError('error :: AMFORM=0 needs to be implemented in Layer.py')
@@ -861,18 +861,18 @@ def layer_average(RADIUS, H, P, T, ID, VMR, DUST, PARAH2, BASEH, BASEP,
                     dd[:,J] = interp(H, DUST[:,J], h)
                     if DUST_UNITS is not None:
                         if DUST_UNITS[J] == -1:
-                            CONT[I,J] = simpson(dd[:,J]*duds,S) * np.interp(I/NLAY,np.arange(NPRO)/NPRO,MOLWT) / AVOGAD
+                            CONT[I,J] = simpson(dd[:,J]*duds,x=S) * np.interp(I/NLAY,np.arange(NPRO)/NPRO,MOLWT) / AVOGAD
                             continue
-                    CONT[I,J] = simpson(dd[:,J],S)
+                    CONT[I,J] = simpson(dd[:,J],x=S)
                     
                             
             else:
                 dd = interp(H, DUST, h) 
                 if DUST_UNITS is not None:
                     if DUST_UNITS[0] == -1:
-                        CONT[I] = simpson(dd*duds,S) * np.interp(I/NLAY,np.arange(NPRO)/NPRO,MOLWT) / AVOGAD
+                        CONT[I] = simpson(dd*duds,x=S) * np.interp(I/NLAY,np.arange(NPRO)/NPRO,MOLWT) / AVOGAD
                         continue
-                CONT[I] = simpson(dd,S)
+                CONT[I] = simpson(dd,x=S)
             
     # Scale back to vertical layers
     TOTAM = TOTAM / LAYSF
@@ -1064,7 +1064,7 @@ def layer_averageg(RADIUS, H, P, T, ID, VMR, DUST, PARAH2, BASEH, BASEP,
             DPH[ilay,J[ilay]+1] = DPH[ilay,J[ilay]+1] + (F[ilay])
             
         # Ideal gas law: N/(Area*Path_length) = P/(k_B*T)
-        DUDS = PRESS/(k_B*TEMP)
+        DUDS = PRESS/(k_B*TEMP) 
         TOTAM = DUDS*DELS
         # Use the volume mixing ratio information
         if VMR.ndim > 1:
@@ -1112,20 +1112,20 @@ def layer_averageg(RADIUS, H, P, T, ID, VMR, DUST, PARAH2, BASEH, BASEP,
                 S1 = SMAX
             # sub-divide each layer into NINT layers
             S = np.linspace(S0, S1, NINT)
-            h = np.sqrt(S**2+z0**2+2*S*z0*cos)-RADIUS
-            p = interp(H,P,h)
-            temp,JJ,F = interpg(H,T,h)
-            frac,JJP,FP = interpg(H,PARAH2,h)
-            duds = p/(k_B*temp)
+            h = np.sqrt(S**2+z0**2+2*S*z0*cos)-RADIUS   #altitude of the NINT points (m)
+            p = interp(H,P,h)                           #pressure at the NINT points (Pa)
+            temp,JJ,F = interpg(H,T,h)                  #temperature at the NINT points (K)
+            frac,JJP,FP = interpg(H,PARAH2,h)           #fraction of para-H2 at the NINT points 
+            duds = p/(k_B*temp)                         #number density at the NINT points (m-3)
 
             amount = np.zeros((NINT, NVMR))
             molwt = np.zeros(NINT)
 
-            TOTAM[I] = simpson(duds,x=S)
-            HEIGHT[I]  = simpson(h*duds,x=S)/TOTAM[I]
-            PRESS[I] = simpson(p*duds,x=S)/TOTAM[I]
-            TEMP[I]  = simpson(temp*duds,x=S)/TOTAM[I]
-            FRAC[I]  = simpson(frac*duds,x=S)/TOTAM[I]
+            TOTAM[I] = simpson(duds,x=S)                #column density (m-2)
+            HEIGHT[I]  = simpson(h*duds,x=S)/TOTAM[I]   #effective altitude of the layer (m)
+            PRESS[I] = simpson(p*duds,x=S)/TOTAM[I]     #effective pressure of the layer (Pa)
+            TEMP[I]  = simpson(temp*duds,x=S)/TOTAM[I]  #effective temperature of the layer (K)
+            FRAC[I]  = simpson(frac*duds,x=S)/TOTAM[I]  #effective fraction of para-H2 in the layer
 
             for iint in range(NINT):
                 DTE[I,JJ[iint]] = DTE[I,JJ[iint]] + (1.-F[iint])*w[iint]*duds[iint]
@@ -1138,20 +1138,20 @@ def layer_averageg(RADIUS, H, P, T, ID, VMR, DUST, PARAH2, BASEH, BASEP,
             if VMR.ndim > 1:
                 amount = np.zeros((NINT, NVMR))
                 for J in range(NVMR):
-                    amount[:,J],JJ,F = interpg(H, VMR[:,J], h)
-                    AMOUNT[I,J] = simpson(amount[:,J]*duds,x=S)
-                pp = (amount.T * p).T     # gas partial pressures
+                    amount[:,J],JJ,F = interpg(H, VMR[:,J], h)    #VMR of gas J at the NINT points
+                    AMOUNT[I,J] = simpson(amount[:,J]*duds,x=S)   #column density of gas J in the layer (m-2)
+                pp = (amount.T * p).T     # gas partial pressures at the NINT points
                 for J in range(NVMR):
-                    PP[I, J] = simpson(pp[:,J]*duds,x=S)/TOTAM[I]
+                    PP[I, J] = simpson(pp[:,J]*duds,x=S)/TOTAM[I]   #effective partial pressure of gas J in the layer
                 
                 if AMFORM==0:
                     raise ValueError('error :: AMFORM=0 needs to be implemented in Layer.py')
                 else:
                     for K in range(NINT):
                         molwt[K] = Calc_mmw(amount[K,:], ID)
-                    MOLWT[I] = simpson(molwt*duds,x=S)/TOTAM[I]
+                    MOLWT[I] = simpson(molwt*duds,x=S)/TOTAM[I]  #effective mean molecular weight of the layer
             else:
-                amount,JJ,F = interpg(H, VMR, h)
+                amount,JJ,F = interpg(H, VMR, h)   
                 pp = amount * p
                 AMOUNT[I] = simpson(amount*duds,x=S)
                 PP[I] = simpson(pp*duds,x=S)/TOTAM[I]
@@ -1170,8 +1170,8 @@ def layer_averageg(RADIUS, H, P, T, ID, VMR, DUST, PARAH2, BASEH, BASEP,
             if DUST.ndim > 1:
                 dd = np.zeros((NINT,NDUST))
                 for J in range(NDUST):
-                    dd[:,J],JJ,F = interpg(H, DUST[:,J], h)
-                    CONT[I,J] = simpson(dd[:,J],x=S)
+                    dd[:,J],JJ,F = interpg(H, DUST[:,J], h)   #dust density (m-3) of dust population J at the NINT points
+                    CONT[I,J] = simpson(dd[:,J],x=S)          #column density of dust population J in the layer (m-2)
             else:
                 dd,JJ,F = interpg(H, DUST, h) 
                 CONT[I] = simpson(dd,x=S)
