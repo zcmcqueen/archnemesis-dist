@@ -3262,6 +3262,7 @@ class ForwardModel_0:
                 NLAYIN = self.PathX.NLAYIN[ipath]
                 EMTEMP = self.PathX.EMTEMP[0:NLAYIN,ipath]
                 EMPRESS = self.LayerX.PRESS[self.PathX.LAYINC[0:NLAYIN,ipath]]
+                
                 SPECOUT[:,:,ipath] = calc_thermal_emission_spectrum(self.MeasurementX.ISPACE,self.MeasurementX.WAVE,TAUTOT_LAYINC[:,:,0:NLAYIN,ipath],EMTEMP,EMPRESS,self.SurfaceX.TSURF,EMISSIVITY,SOLFLUX,REFLECTANCE,self.PathX.SOL_ANG[ipath],self.PathX.EMISS_ANG[ipath])
         
                 #Changing the units of the spectra
@@ -3290,9 +3291,6 @@ class ForwardModel_0:
                 xfac = xfac / solpspec
             elif self.MeasurementX.IFORM==3:
                 xfac=np.pi*4.*np.pi*((self.AtmosphereX.RADIUS)*1.0e2)**2.
-
-            #Calculating spectrum
-            #SPECOUT = np.zeros((self.MeasurementX.NWAVE,self.SpectroscopyX.NG,self.PathX.NPATH))
             
             #Calculating the radiance
             SPECOUT = self.scloud11wave(self.ScatterX,self.SurfaceX,self.LayerX,self.MeasurementX,self.PathX, solar)
@@ -3342,6 +3340,7 @@ class ForwardModel_0:
 
         #Now integrate over g-ordinates
         SPECOUT = np.tensordot(SPECOUT, self.SpectroscopyX.DELG, axes=([1],[0])) #NWAVE,NPATH
+        
         return SPECOUT
 
 
@@ -3525,15 +3524,11 @@ class ForwardModel_0:
             f_gas = np.zeros([Spectroscopy.NGAS,Layer.NLAY])
             utotl = np.zeros(Layer.NLAY)
             for i in range(Spectroscopy.NGAS):
-                IGAS = np.where( (Atmosphere.ID==Spectroscopy.ID[i]) & (Atmosphere.ISO==Spectroscopy.ISO[i]) )
-                IGAS = IGAS[0]
-
-                #When using gradients
-                f_gas[i,:] = Layer.AMOUNT[:,IGAS[0]] * 1.0e-4 * 1.0e-20  #Vertical column density of the radiatively active gases in cm-2
+                IGAS = np.where( (Atmosphere.ID==Spectroscopy.ID[i]) & (Atmosphere.ISO==Spectroscopy.ISO[i]) )[0][0]
+                f_gas[i,:] = Layer.AMOUNT[:,IGAS] * 1.0e-4 * 1.0e-20  #Vertical column density of the radiatively active gases in cm-2
 
             #Combining the k-distributions of the different gases in each layer, as well as their gradients
-            k_layer,dk_layer = k_overlapg(self.SpectroscopyX.DELG,k_gas,dkgasdT,f_gas)
-#             k_layer,dk_layer = nemesisf.spectroscopy.k_overlapg(Spectroscopy.DELG,k_gas,dkgasdT,f_gas) #Fortran version
+            k_layer,dk_layer = k_overlapg(Spectroscopy.DELG,k_gas,dkgasdT,f_gas)
 
             #Calculating the opacity of each layer
             TAUGAS = k_layer #(NWAVE,NG,NLAY)
@@ -3545,7 +3540,6 @@ class ForwardModel_0:
                 dTAUGAS[:,:,IGAS[0],:] = dk_layer[:,:,:,i] * 1.0e-4 * 1.0e-20  #dTAU/dAMOUNT (m2)
 
             dTAUGAS[:,:,Atmosphere.NVMR,:] = dk_layer[:,:,:,Spectroscopy.NGAS] #dTAU/dT
-
 
         else:
             raise ValueError('error in CIRSrad :: ILBL must be either 0 or 2')
@@ -3568,7 +3562,6 @@ class ForwardModel_0:
         print('CIRSradg :: Calculating TOTAL line-of-sight opacity')
         TAUTOT_LAYINC = TAUTOT[:,:,Path.LAYINC[:,:]] * Path.SCALE[:,:]  #(NWAVE,NG,NLAYIN,NPATH)
         dTAUTOT_LAYINC = dTAUTOT[:,:,:,Path.LAYINC[:,:]] * Path.SCALE[:,:] #(NWAVE,NG,NGAS+2+NDUST,NLAYIN,NPATH)
-
 
         #Step through the different number of paths and calculate output spectrum
         ############################################################################
@@ -3670,6 +3663,7 @@ class ForwardModel_0:
                 NLAYIN = Path.NLAYIN[ipath]
                 EMTEMP = Path.EMTEMP[0:NLAYIN,ipath]
                 EMPRESS = Layer.PRESS[Path.LAYINC[0:NLAYIN,ipath]]
+                
                 SPECOUT[:,:,ipath],dSPECOUT[:,:,:,:,ipath],dTSURF[:,:,ipath] = calc_thermal_emission_spectrumg(Measurement.ISPACE,Measurement.WAVE,TAUTOT_LAYINC[:,:,0:NLAYIN,ipath],dTAUTOT_LAYINC[:,:,:,0:NLAYIN,ipath],Atmosphere.NVMR,EMTEMP,EMPRESS,Surface.TSURF,EMISSIVITY)
         
                 #Changing the units of the spectra and gradients
@@ -3682,8 +3676,6 @@ class ForwardModel_0:
         SPECOUT = np.tensordot(SPECOUT, Spectroscopy.DELG, axes=([1],[0])) #NWAVE,NPATH
         dSPECOUT = np.tensordot(dSPECOUT, Spectroscopy.DELG, axes=([1],[0])) #(WAVE,NGAS+2+NDUST,NLAYIN,NPATH)
         dTSURF = np.tensordot(dTSURF, Spectroscopy.DELG, axes=([1],[0])) #NWAVE,NPATH
-        
-#         print(dSPECOUT)
         
         return SPECOUT,np.nan_to_num(dSPECOUT),dTSURF
 
@@ -7024,8 +7016,8 @@ def calc_thermal_emission_spectrumg(ISPACE,WAVE,TAUTOT_PATH,dTAUTOT_PATH,NVMR,TE
             #Looping through the layers along the path
             for j in range(NLAYIN):
                 
-                tlayer = np.exp(-TAUTOT_PATH[iwave,ig,j])
                 taud += TAUTOT_PATH[iwave,ig,j]
+                tlayer = np.exp(-TAUTOT_PATH[iwave,ig,j])
                 tr = trold * tlayer
 
                 #Calculating the spectrum
@@ -7056,7 +7048,6 @@ def calc_thermal_emission_spectrumg(ISPACE,WAVE,TAUTOT_PATH,dTAUTOT_PATH,NVMR,TE
                     j1 += 1
                 dtolddq[:,j1] = dtrdq[:,j1]
 
-
             #Calculating surface contribution
             p1 = PRESS[int(NLAYIN/2)-1]
             p2 = PRESS[int(NLAYIN-1)]
@@ -7072,8 +7063,8 @@ def calc_thermal_emission_spectrumg(ISPACE,WAVE,TAUTOT_PATH,dTAUTOT_PATH,NVMR,TE
                     radground = bbsurf * EMISSIVITY[iwave]
                     dradgrounddT = dbsurfdT * EMISSIVITY[iwave]
 
-                    specg += trold*radground
-                    tempgtsurf = trold * dradgrounddT
+                specg += trold*radground
+                tempgtsurf = trold * dradgrounddT
 
                 for j in range(NLAYIN):
                     for k in range(NPAR):
