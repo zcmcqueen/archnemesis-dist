@@ -139,7 +139,7 @@ class Atmosphere_0:
         self.DUST_RENORMALISATION = {} # flags for normalising clouds to specific opacity
         self.PARAH2 = None # np.zeros(NP) 
         
-        self.SVP = {}
+        self.SVP = {} # Flags for limiting gas profiles to saturated profiles (from .vpf file)
     ##################################################################################
 
     def assess(self):
@@ -1474,6 +1474,22 @@ class Atmosphere_0:
     
     ##################################################################################
     
+    def write_vpf(self):
+        """
+        Writes the saturation vapour pressures to runname.vpf.
+        """
+        try:
+            with open(self.runname + '.vpf', 'w') as file:
+                # Write the number of gases
+                file.write(f"{len(self.SVP)}\n")
+                # Write each gas data line
+                for (gas_id, iso_id), (vp, svpflag) in self.SVP.items():
+                    file.write(f"{gas_id} {iso_id} {vp:.6g} {svpflag}\n")
+        except Exception as e:
+            print(f"Error writing to {self.runname}.vpf: {e}")
+
+    
+    ##################################################################################
     
     def calc_coldens(self):
         """

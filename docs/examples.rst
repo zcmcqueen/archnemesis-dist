@@ -36,3 +36,5 @@ This sections includes Jupyter notebookes with examples showing how archNEMESIS 
 .. nbgallery::
 
    examples/retrieval_Jupiter_Tprofile/Jupiter_CIRS_retrieval.ipynb
+   examples/Neptune_JWST_nested_sampling/Neptune_JWST.ipynb
+   

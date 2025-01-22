@@ -5,10 +5,13 @@ try:
     import pymultinest
     from pymultinest.solve import solve
 except ImportError:
+    print('PyMultiNest is not installed. Please download this before attempting to run retrievals with nested sampling. Instructions on installation can be found here: http://johannesbuchner.github.io/PyMultiNest/install.html')
     pymultinest = None
     solve = None
 import os
 import corner
+import matplotlib.pyplot as plt
+from matplotlib.lines import Line2D
 
 class NestedSampling_0:
     
@@ -173,10 +176,8 @@ class NestedSampling_0:
         Parameters
         ----------
         """
-        lat,lon,ngeom,ny,wave,specret,specmeas,specerrmeas,nx,Var,aprprof,aprerr,retprof,reterr = ans.Files.read_mre(self.ForwardModel.runname)
-        
-        
-        
+        lat, lon, ngeom, ny, wave, specret, specmeas, specerrmeas, nx, Var, aprprof, aprerr, retprof, reterr = ans.Files.read_mre(self.ForwardModel.runname)
+
         # Load posterior samples from the current run
         analyzer = pymultinest.Analyzer(n_params=len(self.parameters), outputfiles_basename=self.prefix)
         data_array = analyzer.get_data()
@@ -188,16 +189,32 @@ class NestedSampling_0:
         samples_masked = samples[mask, :]
         weights_masked = weights[mask]
 
-        # Generate Gaussian samples from retprof and reterr
+        # Load the covariance matrix for optimal estimation
+        full_covariance_matrix = read_cov(self.ForwardModel.runname)[9]
+
+        # Extract indices for the parameters of interest
+        parameter_indices = [int(ip) for ip in self.parameters]
+
+        # Extract the relevant submatrix corresponding to the parameters
+        covariance_matrix = full_covariance_matrix[np.ix_(parameter_indices, parameter_indices)]
+
+        # Compute the mean vector in log-space
+        mean_vector = np.log(retprof[parameter_indices, 0])
+
+        try:
+            # Attempt Cholesky decomposition to check positive definiteness
+            np.linalg.cholesky(covariance_matrix)
+        except np.linalg.LinAlgError:
+            # If not positive definite, add a small value to the diagonal
+            epsilon = 1e-10
+            covariance_matrix += epsilon * np.eye(len(self.parameters))
+            print("Covariance matrix was not positive definite. Added small epsilon to diagonal.")
+
+        # Generate Gaussian samples using the covariance matrix
         num_gaussian_samples = 100000
-        gaussian_samples = np.zeros((num_gaussian_samples, len(self.parameters)))
+        gaussian_samples = np.random.multivariate_normal(mean=mean_vector, cov=covariance_matrix, size=num_gaussian_samples)
 
-        for i,ip in enumerate(self.parameters):
-            gaussian_samples[:, i] = np.random.normal(loc=np.log(retprof[int(ip),0]), 
-                                                      scale=reterr[int(ip),0]/retprof[int(ip),0], 
-                                                      size=num_gaussian_samples)
-
-        # Create a corner plot
+        # Create a corner plot for the nested sampling posterior
         figure = corner.corner(
             samples_masked,
             weights=weights_masked,
@@ -210,10 +227,10 @@ class NestedSampling_0:
             fill_contours=False,
             contour_colors=["blue"],
             title_fmt=".2f",
-            smooth = 1.0
+            smooth=1.0
         )
 
-        # Overlay the Gaussian distributions
+        # Overlay the Gaussian distributions from optimal estimation
         corner.corner(
             gaussian_samples,
             labels=self.parameters,
@@ -223,15 +240,13 @@ class NestedSampling_0:
             show_titles=False,
             plot_contours=True,
             fill_contours=False,
-            plot_datapoints=False,  # Adjust transparency
+            plot_datapoints=False,  # Hide individual points for clarity
             contour_colors=["red"],
             fig=figure,
-            smooth = 1.0
+            smooth=1.0
         )
 
-        # Add legend to the plot
-        from matplotlib.lines import Line2D
-
+        # Add a legend to differentiate between the two posteriors
         legend_elements = [
             Line2D([0], [0], color="blue", lw=2, label="Nested Sampling Posterior"),
             Line2D([0], [0], color="red", lw=2, label="Optimal Estimation Result"),
@@ -240,7 +255,7 @@ class NestedSampling_0:
 
         plt.show()
         
-def coreretNS(runname,Variables,Measurement,Atmosphere,Spectroscopy,Scatter,Stellar,Surface,CIA,Layer,NS_prefix):
+def coreretNS(runname,Variables,Measurement,Atmosphere,Spectroscopy,Scatter,Stellar,Surface,CIA,Layer,NS_prefix='chains/'):
     """
         FUNCTION NAME : coreretNS()
         
@@ -275,8 +290,8 @@ def coreretNS(runname,Variables,Measurement,Atmosphere,Spectroscopy,Scatter,Stel
     """
     
     
-    from archnemesis import ForwardModel_0
-    from archnemesis import NestedSampling_0
+    from archnemesis.ForwardModel_0 import ForwardModel_0
+    from archnemesis.NestedSampling_0 import NestedSampling_0
     from mpi4py import MPI
 
     # This function should be launched in parallel. We set up the MPI environment.
