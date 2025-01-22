@@ -1708,7 +1708,7 @@ class Measurement_0:
                     SPECONV[:,IG] = np.interp(self.VCONV[:,IG],wavecorr,ModSpec[:,IG])
             else:
                 IG = IGEOM
-                SPECONV = np.interp(self.VCONV[:,IG],wavecorr,ModSpec[:,IG])
+                SPECONV = np.interp(self.VCONV[:,IG],wavecorr,ModSpec)
 
         return SPECONV
 
