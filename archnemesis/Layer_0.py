@@ -862,22 +862,22 @@ def layer_average(RADIUS, H, P, T, ID, VMR, DUST, PARAH2, BASEH, BASEP,
                     dd[:,J] = interp(H, DUST[:,J], h)   #dust density in each NINT point (m-3 or particles per gram of atm)
                     if DUST_UNITS is not None:
                         if DUST_UNITS[J] == -1:
-                            CONT[I,J] = simpson(dd[:,J]*duds,S) * np.interp(I/NLAY,np.arange(NPRO)/NPRO,MOLWT) / AVOGAD
+                            CONT[I,J] = simpson(dd[:,J]*duds,x=S) * np.interp(I/NLAY,np.arange(NPRO)/NPRO,MOLWT) / AVOGAD
                         elif DUST_UNITS[J] == 0: #dd in m-3
-                            CONT[I,J] = simpson(dd[:,J],S)  #integrated column density of dust J in the layer (m-2)  
+                            CONT[I,J] = simpson(dd[:,J],x=S)  #integrated column density of dust J in the layer (m-2)  
                     else:
-                        CONT[I,J] = simpson(dd[:,J],S)  #integrated column density of dust J in the layer (m-2)                   
+                        CONT[I,J] = simpson(dd[:,J],x=S)  #integrated column density of dust J in the layer (m-2)                   
                             
             else:
                 
                 dd = interp(H, DUST, h)  #dust density in each NINT point (m-3 or particles per gram of atm)
                 if DUST_UNITS is not None:
                     if DUST_UNITS[0] == -1:
-                        CONT[I] = simpson(dd*duds,S) * np.interp(I/NLAY,np.arange(NPRO)/NPRO,MOLWT) / AVOGAD
+                        CONT[I] = simpson(dd*duds,x=S) * np.interp(I/NLAY,np.arange(NPRO)/NPRO,MOLWT) / AVOGAD
                     elif DUST_UNITS[0] == 0: #dd in m-3
-                        CONT[I] = simpson(dd,S)  #integrated column density of dust J in the layer (m-2)  
+                        CONT[I] = simpson(dd,x=S)  #integrated column density of dust J in the layer (m-2)  
                 else:
-                    CONT[I] = simpson(dd,S)  #integrated column density of dust J in the layer (m-2)    
+                    CONT[I] = simpson(dd,x=S)  #integrated column density of dust J in the layer (m-2)    
             
     # Scale back to vertical layers
     TOTAM = TOTAM / LAYSF
