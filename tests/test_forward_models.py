@@ -175,7 +175,7 @@ def test_multiple_scattering_cirs():
     Jupiter multiple scattering test against NEMESIS
     '''
     
-    os.chdir('tests/files/Jupiter_CIRS_angled_thermal_emission_scattering/') #Changing directory to read files
+    os.chdir('../Jupiter_CIRS_angled_thermal_emission_scattering/') #Changing directory to read files
     runname = 'cirstest'
     
     #Reading the input files
