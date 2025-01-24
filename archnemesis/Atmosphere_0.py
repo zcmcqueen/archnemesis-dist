@@ -1502,7 +1502,7 @@ class Atmosphere_0:
         
         """
         
-        from scipy.integrate import simps
+        from scipy import integrate
         
         #Calculate the number density at each layer (m-3)
         numdens = self.calc_numdens()
@@ -1514,13 +1514,13 @@ class Atmosphere_0:
             #Integrate the number density as a function of altitude (m-2)
             par_coldens = np.zeros((self.NVMR,self.NLOCATIONS))
             for iLOCATION in range(self.NLOCATIONS):
-                par_coldens[:,iLOCATION] = simps(par_numdens[:,:,iLOCATION],self.H[:,iLOCATION],axis=0)
+                par_coldens[:,iLOCATION] = integrate.simpson(par_numdens[:,:,iLOCATION],x=self.H[:,iLOCATION],axis=0)
                 
         else:
             par_numdens = self.VMR * numdens[:, np.newaxis]
             
             #Integrate the number density as a function of altitude (m-2)
-            par_coldens = simps(par_numdens[:,:],self.H[:],axis=0)
+            par_coldens = integrate.simpson(par_numdens[:,:],x=self.H[:],axis=0)
             
         
         return par_coldens
