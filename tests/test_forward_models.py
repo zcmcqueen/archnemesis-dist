@@ -2,6 +2,7 @@ import pytest
 import archnemesis as ans
 import numpy as np
 import os
+curr = os.getcwd()
 
 def test_thermal_emission_cirs():  
     '''
@@ -13,6 +14,7 @@ def test_thermal_emission_cirs():
     
     #Reading the input files
     Atmosphere,Measurement,Spectroscopy,Scatter,Stellar,Surface,CIA,Layer,Variables,Retrieval = ans.Files.read_input_files(runname,Fortran=False)
+    os.chdir(curr) #Changing directory back to the original
     
     #Calculating forward model with CIRSrad
     ForwardModel = ans.ForwardModel_0(runname=runname, Atmosphere=Atmosphere,Surface=Surface,Measurement=Measurement,Spectroscopy=Spectroscopy,Stellar=Stellar,Scatter=Scatter,CIA=CIA,Layer=Layer,Variables=Variables)
@@ -175,11 +177,12 @@ def test_multiple_scattering_cirs():
     Jupiter multiple scattering test against NEMESIS
     '''
     
-    os.chdir('../Jupiter_CIRS_angled_thermal_emission_scattering/') #Changing directory to read files
+    os.chdir('tests/files/Jupiter_CIRS_angled_thermal_emission_scattering/') #Changing directory to read files
     runname = 'cirstest'
     
     #Reading the input files
     Atmosphere,Measurement,Spectroscopy,Scatter,Stellar,Surface,CIA,Layer,Variables,Retrieval = ans.Files.read_input_files(runname,Fortran=False)
+    os.chdir(curr) #Changing directory back to the original
     
     #Calculating forward model with CIRSrad
     ForwardModel = ans.ForwardModel_0(runname=runname, Atmosphere=Atmosphere,Surface=Surface,Measurement=Measurement,Spectroscopy=Spectroscopy,Stellar=Stellar,Scatter=Scatter,CIA=CIA,Layer=Layer,Variables=Variables)
@@ -337,4 +340,5 @@ def test_multiple_scattering_cirs():
                            4.80410576e-10, 3.91136682e-10, 1.94781929e-10, 3.15028059e-10,
                            1.13109403e-10, 2.85760887e-10, 1.57417775e-10, 9.16895863e-11,
                            9.61232342e-11, 1.80943924e-10, 2.78555559e-10, 1.36275909e-10])
+    
     assert np.allclose(calculation_cirsrad, expected_nemesis, rtol=5.0e-2)

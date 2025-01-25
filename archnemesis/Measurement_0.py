@@ -608,12 +608,14 @@ class Measurement_0:
                 self.VFIL = np.array(f.get('Measurement/VFIL'))
                 self.AFIL = np.array(f.get('Measurement/AFIL'))
 
+            
         f.close()
 
         self.assess()
-
-        #self.calc_MeasurementVector()
-            
+        
+        self.build_ils() 
+        self.calc_MeasurementVector()
+             
     #################################################################################################################
             
     def read_spx(self):
@@ -1477,6 +1479,67 @@ class Measurement_0:
 
         self.assess()
 
+
+    def build_ils(self,IGEOM=0):
+        """
+        Subroutine to calculate the instrument lineshape kernel
+
+        Parameters
+        ----------
+        FWHM : float
+            Full-width at half-maximum of the instrument lineshape (if negative the the lineshape is explicitly defined)
+        ISHAPE : int
+            Flag defining the instrument lineshape (in case it FWHM>0)
+        """
+        
+        if self.FWHM>0.0:
+
+            #Calculating the limits defining the ILS
+            if self.ISHAPE==0:   #Square lineshape
+                dv = 0.5*self.FWHM
+            elif self.ISHAPE==1: #Triangular
+                dv = self.FWHM
+            elif self.ISHAPE==2: #Gaussian
+                dv = 3.* 0.5 * self.FWHM / np.sqrt(np.log(2.0))
+            else: 
+                raise ValueError('error in build_ils :: ishape not included yet in function')
+                
+            #Defining the x-array for the definition of the ILS
+            vwave = np.linspace(-dv,dv,101)
+            nwave = len(vwave)
+            ils = np.zeros(nwave)
+            
+            #Defining the ILS
+            if self.ISHAPE==0:   #Square lineshape
+                ils[:] = 1.0    
+            elif self.ISHAPE==1: #Triangular
+                ils[:] = 1.0 - np.abs(vwave)/self.FWHM
+            elif self.ISHAPE==2: #Gaussian
+                sig = 0.5 * self.FWHM / np.sqrt(np.log(2.0))
+                ils[:] = np.exp(-((vwave)/sig)**2)
+                
+            # Normalize kernel area to 1
+            ils_sum = ils.sum()
+            if ils_sum > 0:
+                ils /= ils_sum
+                
+            #Construct the NFIL,VFIL,AFIL arrays in the class
+            nfil = np.zeros(self.NCONV[IGEOM],dtype='int32') + nwave
+            vfil = np.zeros((nwave,self.NCONV[IGEOM]))
+            afil = np.zeros((nwave,self.NCONV[IGEOM]))
+            for i in range(self.NCONV[IGEOM]):
+                vfil[:,i] = self.VCONV[i,IGEOM] + vwave
+                afil[:,i] = ils[:]
+                
+            self.NFIL = nfil
+            self.VFIL = vfil
+            self.AFIL = afil
+    
+        elif self.FWHM<0.0:
+            dv = 0.0 #This is not used in this case since the lineshape is already defined
+            
+
+
     #################################################################################################################
 
     def wavesetc(self,Spectroscopy,IGEOM=0):
@@ -1681,11 +1744,13 @@ class Measurement_0:
                 if ModSpec.ndim!=2:
                     raise ValueError('error in lblconvg :: ModSpec must have 2 dimensions (NWAVE,NGEOM)')
                 SPECONV = lblconv_ngeom(self.NWAVE,wavecorr,ModSpec,self.NCONV[IG],self.VCONV[:,IG],self.ISHAPE,self.FWHM)
+                #SPECONV = lblconv_fil_ngeom(self.NWAVE,wavecorr,ModSpec,self.NCONV[IG],self.VCONV[:,IG],self.NFIL,self.VFIL,self.AFIL)
             else:
                 if ModSpec.ndim!=1:
                     raise ValueError('error in lblconvg :: ModSpec must have 1 dimensions (NWAVE)')
                 IG = IGEOM
                 SPECONV = lblconv(self.NWAVE,wavecorr,ModSpec,self.NCONV[IG],self.VCONV[:,IG],self.ISHAPE,self.FWHM)
+                #SPECONV = lblconv_fil(self.NWAVE,wavecorr,ModSpec,self.NCONV[IG],self.VCONV[:,IG],self.NFIL,self.VFIL,self.AFIL)
             
         elif self.FWHM<0.0:  #Convolution with VFIL,AFIL
             if IGEOM=='All':
@@ -1752,6 +1817,7 @@ class Measurement_0:
                 if ModGrad.ndim!=3:
                     raise ValueError('error in lblconvg :: ModGrad must have 3 dimensions (NWAVE,NGEOM,NX)')
                 SPECONV,dSPECONV = lblconvg_ngeom(self.NWAVE,wavecorr,ModSpec,ModGrad,self.NCONV[IG],self.VCONV[:,IG],self.ISHAPE,self.FWHM)
+                #SPECONV,dSPECONV = lblconvg_fil_ngeom(self.NWAVE,wavecorr,ModSpec,ModGrad,self.NCONV[IG],self.VCONV[:,IG],self.NFIL,self.VFIL,self.AFIL)
             else:
                 if ModSpec.ndim!=1:
                     raise ValueError('error in lblconvg :: ModSpec must have 1 dimensions (NWAVE)')
@@ -1759,6 +1825,7 @@ class Measurement_0:
                     raise ValueError('error in lblconvg :: ModGrad must have 2 dimensions (NWAVE,NX)')
                 IG = IGEOM
                 SPECONV,dSPECONV = lblconvg(self.NWAVE,wavecorr,ModSpec,ModGrad,self.NCONV[IG],self.VCONV[:,IG],self.ISHAPE,self.FWHM)
+                #SPECONV,dSPECONV = lblconvg_fil(self.NWAVE,wavecorr,ModSpec,ModGrad,self.NCONV[IG],self.VCONV[:,IG],self.NFIL,self.VFIL,self.AFIL)
             
         elif self.FWHM<0.0:  #Convolution with VFIL, AFIL
 
@@ -2206,7 +2273,7 @@ class Measurement_0:
                     gradout[ICONV,:] = gradout[ICONV,:]/gradnorm[ICONV,:]
                 
         return yout,gradout
-    
+        
     #################################################################################################################
 
     def calc_doppler_shift(self,wave):
@@ -2286,6 +2353,42 @@ class Measurement_0:
             wave = wave_0 * (1.0+self.V_DOPPLER*1.0e3 / c)
         
         return wave
+    
+    #################################################################################################################
+    
+    def plot_ils(self):
+        """
+        Subroutine to make a summary plot of the instrument lineshape
+        """
+
+        fig,ax1 = plt.subplots(1,1,figsize=(10,4))
+
+        if self.ISPACE==0:
+            xlabel='Wavenumber (cm$^{-1}$)'
+            xsymbol = r'$\nu$'
+            xunit = 'cm$^{-1}$'
+        elif self.ISPACE==1:
+            xlabel='Wavelength ($\mu$m)'
+            xsymbol = '$\lambda$'
+            xunit = '$\mu$m'
+
+        iconv = 0
+        ax1.plot(self.VFIL[0:self.NFIL[iconv],iconv]-self.VCONV[iconv,0],self.AFIL[0:self.NFIL[iconv],iconv],label=xsymbol+' = '+str(np.round(self.VCONV[iconv,0],1))+' '+xunit)
+        
+        iconv = int(self.NCONV[0] / 2) - 1
+        ax1.plot(self.VFIL[0:self.NFIL[iconv],iconv]-self.VCONV[iconv,0],self.AFIL[0:self.NFIL[iconv],iconv],label=xsymbol+' = '+str(np.round(self.VCONV[iconv,0],1))+' '+xunit)
+        
+        iconv = self.NCONV[0] - 1
+        ax1.plot(self.VFIL[0:self.NFIL[iconv],iconv]-self.VCONV[iconv,0],self.AFIL[0:self.NFIL[iconv],iconv],label=xsymbol+' = '+str(np.round(self.VCONV[iconv,0],1))+' '+xunit)
+                
+        
+        ax1.set_facecolor('lightgray')
+        ax1.grid()
+        ax1.legend()
+        ax1.set_xlabel(xlabel)
+        ax1.set_ylabel('Instrument lineshape')
+        plt.tight_layout()
+        plt.show()
     
     #################################################################################################################
     
