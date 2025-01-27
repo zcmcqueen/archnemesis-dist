@@ -15,7 +15,7 @@ This section includes Jupyter notebooks with examples showing how to use the dif
    examples/create_UV_lta/create_UV_lta.ipynb
    examples/lookup_tables/lookup_tables.ipynb
    examples/cia_archnemesis/convert_cia_nemesis.ipynb
-   examples/Mars_DISORT/archnemesis_disort_comparisons.ipynb
+
 
 
 Forward models
@@ -28,7 +28,8 @@ This sections includes Jupyter notebookes with examples showing how archNEMESIS 
    examples/mars_solocc/mars_SO.ipynb
    examples/Jupiter_CIRS_nadir_thermal_emission/Jupiter_CIRS.ipynb
    examples/mars_groundbased/mars_groundbased.ipynb
-
+   examples/Mars_DISORT/archnemesis_disort_comparisons.ipynb
+   
 Retrievals
 ------------------
 
