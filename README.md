@@ -1,6 +1,67 @@
 # archNEMESIS
-Python version of the NEMESIS radiative transfer and retrieval tool.
+
+[![Documentation](https://img.shields.io/badge/readthedocs-latest-blue)](https://archnemesis.readthedocs.io)
+[![GitHub](https://img.shields.io/badge/github-code-green)](https://github.com/juanaldayparejo/archnemesis-dist)
+[![NEMESIS](https://img.shields.io/badge/NEMESIS-reference-yellow)](https://doi.org/10.1016/j.jqsrt.2007.11.006)
+__________
+
+ArchNEMESIS is an open-source Python package developed for the analysis of remote sensing spectroscopic observations of planetary atmospheres. 
+It is based on the widely used NEMESIS (Non-linear Optimal Estimator for MultivariatE Spectral analySIS) radiative transfer and retrieval tool, 
+which has been extensively used for the investigation of a wide variety of planetary environments.
+
+ArchNEMESIS is currently maintained by [Juan Alday](https://research.open.ac.uk/people/ja22256) and [Joseph Penn](https://www.physics.ox.ac.uk/our-people/penn).
+The [NEMESIS](https://nemesiscode.github.io/index.html) algorithm, code archNEMESIS is based on, was originally developed by [Patrick Irwin](https://www.physics.ox.ac.uk/our-people/irwin).
+
+If interested users are missing key points in the documentation, would appreciate seeing jupyter notebooks for certain purposes, or want to report issues, please do so by contacting us or joining our [Discord](https://discord.gg/Te43qbrVFK) channel.
 
 
-## License
-This project is licensed under the [GNU General Public License v3](LICENSE).
+## Documentation
+For full documentation, visit [archnemesis.readthedocs.io](https://archnemesis.readthedocs.io/en/latest/).
+
+
+## Installation
+
+The latest version of code has to be downloaded from [Github](https://github.com/juanaldayparejo/archnemesis-dist.git) under a [GNU General Public License v3](LICENSE). To do so, type in the command window:
+
+```bash
+   git clone https://github.com/juanaldayparejo/archnemesis-dist.git
+```
+
+Then, we need to get into the package folder using:
+
+```bash
+   cd archnemesis-dist
+```
+
+Finally, we need to install the library. Given that archNEMESIS is a highly dynamic package were new additions are frequently introduced, we recommend installing the package but keeping it editable by typing:
+
+```bash
+   pip install --editable .
+```
+
+This will install archNEMESIS, but with the ability to update any changes made to the code (e.g., when introducing new model parameterisations or methods). In addition, it will install all the required libraries archNEMESIS depends on.
+
+## Citing archNEMESIS
+
+If archNEMESIS has been significant in your research, we suggest citing the following articles:
+
+- ArchNEMESIS reference publication:
+   - *In preparation*.
+
+- NEMESIS reference publication:
+   - Irwin, P. G. J., Teanby, N. A., De Kok, R., Fletcher, L. N., Howett, C. J. A., Tsang, C. C. C., ... & Parrish, P. D. (2008). The NEMESIS planetary atmosphere radiative transfer and retrieval tool. *Journal of Quantitative Spectroscopy and Radiative Transfer*, 109(6), 1136-1150. doi: [10.1016/j.jqsrt.2007.11.006](https://doi.org/10.1016/j.jqsrt.2007.11.006).
+
+## Revision history
+
+- 1.0.0 (27 January, 2025)
+    - First release for publication at Journal of Open Research Software.
+
+## Dependencies
+
+- Numerical calculations: [numpy](https://numpy.org/); [scipy](https://scipy.org/)
+- Visualisations: [matplotlib](https://matplotlib.org/)
+- File handling: [h5py](https://www.h5py.org/)
+- Optimisation: [numba](https://numba.pydata.org/); [joblib](https://joblib.readthedocs.io/en/stable/)
+- Nested sampling: [pymultinest](https://johannesbuchner.github.io/PyMultiNest/)
+- Extraction of ERA-5 model profiles: [cdsapi](https://pypi.org/project/cdsapi/); [pygrib](https://jswhit.github.io/pygrib/)  
+
