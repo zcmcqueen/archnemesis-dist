@@ -44,7 +44,7 @@ This will install archNEMESIS, but with the ability to update any changes made t
 
 ## Contributing to archNEMESIS
 
-If you want to contribute to the development of archNEMESIS, please follow our [Contribution Guidelines](CONTRIBUTING).
+If you want to contribute to the development of archNEMESIS, please follow our [Contribution Guidelines](CONTRIBUTING.md).
 
 ## Citing archNEMESIS
 
