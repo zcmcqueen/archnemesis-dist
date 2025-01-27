@@ -42,6 +42,10 @@ Finally, we need to install the library. Given that archNEMESIS is a highly dyna
 
 This will install archNEMESIS, but with the ability to update any changes made to the code (e.g., when introducing new model parameterisations or methods). In addition, it will install all the required libraries archNEMESIS depends on.
 
+## Contributing to archNEMESIS
+
+If you want to contribute to the development of archNEMESIS, please follow our [Contribution Guidelines](CONTRIBUTING).
+
 ## Citing archNEMESIS
 
 If archNEMESIS has been significant in your research, we suggest citing the following articles:
