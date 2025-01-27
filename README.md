@@ -1,5 +1,6 @@
 # archNEMESIS
 
+[![DOI](https://zenodo.org/badge/DOI/10.5281/zenodo.14746548.svg)](https://doi.org/10.5281/zenodo.14746548)
 [![Documentation](https://img.shields.io/badge/readthedocs-latest-blue)](https://archnemesis.readthedocs.io)
 [![GitHub](https://img.shields.io/badge/github-code-green)](https://github.com/juanaldayparejo/archnemesis-dist)
 [![NEMESIS](https://img.shields.io/badge/NEMESIS-reference-yellow)](https://doi.org/10.1016/j.jqsrt.2007.11.006)
@@ -53,7 +54,7 @@ If archNEMESIS has been significant in your research, we suggest citing the foll
 
 ## Revision history
 
-- 1.0.0 (27 January, 2025)
+- [1.0.0](https://doi.org/10.5281/zenodo.14746548) (27 January, 2025)
     - First release for publication at Journal of Open Research Software.
 
 ## Dependencies

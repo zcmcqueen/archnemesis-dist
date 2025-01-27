@@ -1,6 +1,9 @@
 archNEMESIS
 ===========
 
+.. image:: https://zenodo.org/badge/DOI/10.5281/zenodo.14746548.svg
+  :target: https://doi.org/10.5281/zenodo.14746548
+
 .. image:: https://img.shields.io/badge/readthedocs-latest-blue
    :target: https://archnemesis.readthedocs.io
 
