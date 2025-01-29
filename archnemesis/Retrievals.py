@@ -47,9 +47,10 @@ def retrieval_nemesis(runname,legacy_files=False,NCores=1,retrieval_method=0,nem
     ######################################################
 
     if legacy_files is False:
-        Atmosphere,Measurement,Spectroscopy,Scatter,Stellar,Surface,CIA,Layer,Variables,Retrieval = ans.Files.read_input_files_hdf5(runname)
+        Atmosphere,Measurement,Spectroscopy,Scatter,Stellar,Surface,CIA,Layer,Variables,Retrieval,Telluric = ans.Files.read_input_files_hdf5(runname)
     else:
         Atmosphere,Measurement,Spectroscopy,Scatter,Stellar,Surface,CIA,Layer,Variables,Retrieval = ans.Files.read_input_files(runname)
+        Telluric = None
 
     ######################################################
     ######################################################
@@ -58,13 +59,13 @@ def retrieval_nemesis(runname,legacy_files=False,NCores=1,retrieval_method=0,nem
     ######################################################
 
     if retrieval_method==0:
-        OptimalEstimation = ans.coreretOE(runname,Variables,Measurement,Atmosphere,Spectroscopy,Scatter,Stellar,Surface,CIA,Layer,\
+        OptimalEstimation = ans.coreretOE(runname,Variables,Measurement,Atmosphere,Spectroscopy,Scatter,Stellar,Surface,CIA,Layer,Telluric,\
                                           NITER=Retrieval.NITER,PHILIMIT=Retrieval.PHILIMIT,NCores=NCores,nemesisSO=nemesisSO)
         Retrieval = OptimalEstimation
     elif retrieval_method==1:
         from archnemesis.NestedSampling_0 import coreretNS
         
-        NestedSampling = coreretNS(runname,Variables,Measurement,Atmosphere,Spectroscopy,Scatter,Stellar,Surface,CIA,Layer,NS_prefix=NS_prefix)
+        NestedSampling = coreretNS(runname,Variables,Measurement,Atmosphere,Spectroscopy,Scatter,Stellar,Surface,CIA,Layer,Telluric,NS_prefix=NS_prefix)
         Retrieval = NestedSampling
     else:
         raise ValueError('error in retrieval_nemesis :: Retrieval scheme has not been implemented yet')

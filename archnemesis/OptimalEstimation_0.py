@@ -951,7 +951,7 @@ class OptimalEstimation_0:
 ###############################################################################################
 ###############################################################################################
 
-def coreretOE(runname,Variables,Measurement,Atmosphere,Spectroscopy,Scatter,Stellar,Surface,CIA,Layer,\
+def coreretOE(runname,Variables,Measurement,Atmosphere,Spectroscopy,Scatter,Stellar,Surface,CIA,Layer,Telluric,\
                  NITER=10,PHILIMIT=0.1,NCores=1,nemesisSO=False,write_itr=True):
 
 
@@ -976,6 +976,7 @@ def coreretOE(runname,Variables,Measurement,Atmosphere,Spectroscopy,Scatter,Stel
             Surface :: Python class defining the surface
             CIA :: Python class defining the Collision-Induced-Absorption cross-sections
             Layer :: Python class defining the layering scheme to be applied in the calculations
+            Telluric :: Python class defining the parameters to calculate the telluric absorption
 
         OPTIONAL INPUTS:
 
@@ -993,7 +994,7 @@ def coreretOE(runname,Variables,Measurement,Atmosphere,Spectroscopy,Scatter,Stel
  
         CALLING SEQUENCE:
         
-            OptimalEstimation = coreretOE(runname,Variables,Measurement,Atmosphere,Spectroscopy,Scatter,Stellar,Surface,Layer)
+            OptimalEstimation = coreretOE(runname,Variables,Measurement,Atmosphere,Spectroscopy,Scatter,Stellar,Surface,Layer,Telluric)
  
         MODIFICATION HISTORY : Juan Alday (06/08/2021)
 
@@ -1028,7 +1029,7 @@ def coreretOE(runname,Variables,Measurement,Atmosphere,Spectroscopy,Scatter,Stel
     #Calculate the first measurement vector and jacobian matrix
     #################################################################
 
-    ForwardModel = ForwardModel_0(runname=runname, Atmosphere=Atmosphere,Surface=Surface,Measurement=Measurement,Spectroscopy=Spectroscopy,Stellar=Stellar,Scatter=Scatter,CIA=CIA,Layer=Layer,Variables=Variables)
+    ForwardModel = ForwardModel_0(runname=runname, Atmosphere=Atmosphere,Surface=Surface,Measurement=Measurement,Spectroscopy=Spectroscopy,Stellar=Stellar,Scatter=Scatter,CIA=CIA,Layer=Layer,Variables=Variables,Telluric=Telluric)
     print('nemesis :: Calculating Jacobian matrix KK')
     YN,KK = ForwardModel.jacobian_nemesis(NCores=NCores,nemesisSO=nemesisSO)
     
@@ -1123,7 +1124,7 @@ def coreretOE(runname,Variables,Measurement,Atmosphere,Spectroscopy,Scatter,Stel
             Variables1 = deepcopy(Variables)
             Variables1.XN = XN1
 
-            ForwardModel1 = ForwardModel_0(runname=runname, Atmosphere=Atmosphere,Surface=Surface,Measurement=Measurement,Spectroscopy=Spectroscopy,Stellar=Stellar,Scatter=Scatter,CIA=CIA,Layer=Layer,Variables=Variables1)
+            ForwardModel1 = ForwardModel_0(runname=runname, Atmosphere=Atmosphere,Surface=Surface,Measurement=Measurement,Spectroscopy=Spectroscopy,Stellar=Stellar,Scatter=Scatter,CIA=CIA,Layer=Layer,Telluric=Telluric,Variables=Variables1)
             #Variables1 = copy(Variables)
             #Variables1.XN = XN1
             #Measurement1 = copy(Measurement)
@@ -1158,7 +1159,7 @@ def coreretOE(runname,Variables,Measurement,Atmosphere,Spectroscopy,Scatter,Stel
         Variables.edit_XN(XN1)
         print('nemesis :: Calculating Jacobian matrix KK')
 
-        ForwardModel = ForwardModel_0(runname=runname, Atmosphere=Atmosphere,Surface=Surface,Measurement=Measurement,Spectroscopy=Spectroscopy,Stellar=Stellar,Scatter=Scatter,CIA=CIA,Layer=Layer,Variables=Variables)
+        ForwardModel = ForwardModel_0(runname=runname, Atmosphere=Atmosphere,Surface=Surface,Measurement=Measurement,Spectroscopy=Spectroscopy,Stellar=Stellar,Scatter=Scatter,CIA=CIA,Layer=Layer,Telluric=Telluric,Variables=Variables)
         YN1,KK1 = ForwardModel.jacobian_nemesis(NCores=NCores,nemesisSO=nemesisSO)
 
         OptimalEstimation1 = deepcopy(OptimalEstimation)

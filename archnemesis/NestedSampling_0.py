@@ -255,7 +255,7 @@ class NestedSampling_0:
 
         plt.show()
         
-def coreretNS(runname,Variables,Measurement,Atmosphere,Spectroscopy,Scatter,Stellar,Surface,CIA,Layer,NS_prefix='chains/'):
+def coreretNS(runname,Variables,Measurement,Atmosphere,Spectroscopy,Scatter,Stellar,Surface,CIA,Layer,Telluric,NS_prefix='chains/'):
     """
         FUNCTION NAME : coreretNS()
         
@@ -276,6 +276,7 @@ def coreretNS(runname,Variables,Measurement,Atmosphere,Spectroscopy,Scatter,Stel
             Surface :: Python class defining the surface
             CIA :: Python class defining the Collision-Induced-Absorption cross-sections
             Layer :: Python class defining the layering scheme to be applied in the calculations
+            Telluric :: Python class defining the parameters to calculate the Telluric absorption
 
         OUTPUTS :
 
@@ -283,7 +284,7 @@ def coreretNS(runname,Variables,Measurement,Atmosphere,Spectroscopy,Scatter,Stel
  
         CALLING SEQUENCE:
         
-            NestedSampling = coreretNS(runname,Variables,Measurement,Atmosphere,Spectroscopy,Scatter,Stellar,Surface,CIA,Layer)
+            NestedSampling = coreretNS(runname,Variables,Measurement,Atmosphere,Spectroscopy,Scatter,Stellar,Surface,CIA,Layer,Telluric)
  
         MODIFICATION HISTORY : Joe Penn (09/10/24)
 
@@ -303,7 +304,7 @@ def coreretNS(runname,Variables,Measurement,Atmosphere,Spectroscopy,Scatter,Stel
     NestedSampling = NestedSampling_0()
     
     NestedSampling.ForwardModel = ForwardModel_0(runname=runname, Atmosphere=Atmosphere,Surface=Surface,
-                                  Measurement=Measurement,Spectroscopy=Spectroscopy,
+                                  Measurement=Measurement,Spectroscopy=Spectroscopy,Telluric=Telluric,
                                   Stellar=Stellar,Scatter=Scatter,CIA=CIA,Layer=Layer,Variables=Variables)
 
     NestedSampling.XA = Variables.XA
