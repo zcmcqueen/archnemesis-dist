@@ -551,7 +551,7 @@ class Measurement_0:
 
     #################################################################################################################
 
-    def read_hdf5(self,runname):
+    def read_hdf5(self,runname,calc_MeasurementVector=True):
         """
         Read the Measurement properties from an HDF5 file
         """
@@ -614,7 +614,8 @@ class Measurement_0:
         self.assess()
         
         self.build_ils() 
-        self.calc_MeasurementVector()
+        if calc_MeasurementVector==True:
+            self.calc_MeasurementVector()
              
     #################################################################################################################
             
