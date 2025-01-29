@@ -1,9 +1,12 @@
 # archNEMESIS
 
-[![DOI](https://zenodo.org/badge/DOI/10.5281/zenodo.14746548.svg)](https://doi.org/10.5281/zenodo.14746548)
+[![DOI](https://img.shields.io/badge/version-v1.0.0-red)](https://doi.org/10.5281/zenodo.14746548)
 [![Documentation](https://img.shields.io/badge/readthedocs-latest-blue)](https://archnemesis.readthedocs.io)
 [![GitHub](https://img.shields.io/badge/github-code-green)](https://github.com/juanaldayparejo/archnemesis-dist)
+[![archNEMESIS](https://img.shields.io/badge/archNEMESIS-reference-yellow)](https://doi.org/10.48550/arXiv.2501.16452)
 [![NEMESIS](https://img.shields.io/badge/NEMESIS-reference-yellow)](https://doi.org/10.1016/j.jqsrt.2007.11.006)
+[![Discord](https://img.shields.io/badge/discord-join-pink)](https://discord.gg/Te43qbrVFK)
+
 __________
 
 ArchNEMESIS is an open-source Python package developed for the analysis of remote sensing spectroscopic observations of planetary atmospheres. 
@@ -50,8 +53,8 @@ If you want to contribute to the development of archNEMESIS, please follow our [
 
 If archNEMESIS has been significant in your research, we suggest citing the following articles:
 
-- ArchNEMESIS reference publication:
-   - *In preparation*.
+- archNEMESIS reference publication:
+   - Alday, J., Penn, J., Irwin, P. G. J., Mason, J. P., Yang, J., 2025. archNEMESIS: an open-source Python package for analysis of planetary atmospheric spectra. *Preprint in arXiv*. doi: [10.48550/ARXIV.2501.16452](https://doi.org/10.48550/ARXIV.2501.16452).
 
 - NEMESIS reference publication:
    - Irwin, P. G. J., Teanby, N. A., De Kok, R., Fletcher, L. N., Howett, C. J. A., Tsang, C. C. C., ... & Parrish, P. D. (2008). The NEMESIS planetary atmosphere radiative transfer and retrieval tool. *Journal of Quantitative Spectroscopy and Radiative Transfer*, 109(6), 1136-1150. doi: [10.1016/j.jqsrt.2007.11.006](https://doi.org/10.1016/j.jqsrt.2007.11.006).

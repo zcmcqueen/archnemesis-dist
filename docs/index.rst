@@ -1,19 +1,23 @@
 archNEMESIS
 ===========
 
-.. image:: https://zenodo.org/badge/DOI/10.5281/zenodo.14746548.svg
+.. image:: https://img.shields.io/badge/version-v1.0.0-red
   :target: https://doi.org/10.5281/zenodo.14746548
 
-.. image:: https://img.shields.io/badge/readthedocs-latest-blue
+.. image:: https://img.shields.io/badge/readthedocs-lates-blue
    :target: https://archnemesis.readthedocs.io
 
 .. image:: https://img.shields.io/badge/github-code-green
    :target: https://github.com/juanaldayparejo/archnemesis-dist
 
+.. image:: https://img.shields.io/badge/archNEMESIS-reference-yellow
+   :target: https://doi.org/10.48550/arXiv.2501.16452
+
 .. image:: https://img.shields.io/badge/NEMESIS-reference-yellow
    :target: https://doi.org/10.1016/j.jqsrt.2007.11.006
 
-
+.. image:: https://img.shields.io/badge/discord-join-pink
+   :target: https://discord.gg/Te43qbrVFK
 __________
 
 ArchNEMESIS is an open source Python package developed for the analysis of remote sensing spectroscopic observations of planetary atmospheres. 
@@ -57,8 +61,8 @@ Citing archNEMESIS
 
 If archNEMESIS has been significant in your research, we suggest citing the following articles:
 
-- ArchNEMESIS reference publication:
-   - *In preparation*.
+- archNEMESIS reference publication:
+   - Alday, J., Penn, J., Irwin, P. G. J., Mason, J. P., Yang, J. (2025). archNEMESIS: an open-source Python package for analysis of planetary atmospheric spectra. *Preprint in arXiv*. doi: `10.48550/ARXIV.2501.16452 <https://doi.org/10.48550/ARXIV.2501.16452>`_
 
 - NEMESIS reference publication:
    - Irwin, P. G. J., Teanby, N. A., De Kok, R., Fletcher, L. N., Howett, C. J. A., Tsang, C. C. C., ... & Parrish, P. D. (2008). The NEMESIS planetary atmosphere radiative transfer and retrieval tool. *Journal of Quantitative Spectroscopy and Radiative Transfer*, 109(6), 1136-1150. doi: `10.1016/j.jqsrt.2007.11.006 <https://doi.org/10.1016/j.jqsrt.2007.11.006>`_
@@ -66,14 +70,14 @@ If archNEMESIS has been significant in your research, we suggest citing the foll
 Revision history
 -----------------------------
 
-- 1.0.0 (1 February, 2025)
+- `1.0.0 <https://doi.org/10.5281/zenodo.14746548>`_ (27 January, 2025)
     - First release for publication at Journal of Open Research Software.
 
 Dependencies
 -----------------------------
 
 - Numerical calculations: `numpy <https://numpy.org/>`_; `scipy <https://scipy.org/>`_
-- Visualisations: `matplotlib <https://matplotlib.org/>`_
+- Visualisations: `matplotlib <https://matplotlib.org/>`_; `basemap <https://matplotlib.org/basemap/stable/>`_
 - File handling: `h5py <https://www.h5py.org/>`_
 - Optimisation: `numba <https://numba.pydata.org/>`_; `joblib <https://joblib.readthedocs.io/en/stable/>`_
 - Nested sampling: `pymultinest <https://johannesbuchner.github.io/PyMultiNest/>`_ 
