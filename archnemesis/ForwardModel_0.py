@@ -223,6 +223,7 @@ class ForwardModel_0:
             if self.Spectroscopy.ILBL==0:
                 self.Measurement.wavesetb(self.Spectroscopy,IGEOM=IGEOM)
             if self.Spectroscopy.ILBL==2:
+                self.Measurement.build_ils(IGEOM=IGEOM)
                 self.Measurement.wavesetc(self.Spectroscopy,IGEOM=IGEOM)
 
             #Initialise array for averaging spectra (if required by NAV>1)
@@ -252,6 +253,7 @@ class ForwardModel_0:
                 if self.SpectroscopyX.ILBL==0:
                     self.MeasurementX.wavesetb(self.SpectroscopyX,IGEOM=0)
                 if self.SpectroscopyX.ILBL==2:
+                    self.MeasurementX.build_ils(IGEOM=IGEOM)
                     self.MeasurementX.wavesetc(self.SpectroscopyX,IGEOM=0)
 
                 #Changing the different classes taking into account the parameterisations in the state vector
@@ -1461,6 +1463,16 @@ class ForwardModel_0:
                 
                 ix = ix + self.Variables.NXVAR[ivar]
                 
+                
+            elif self.Variables.VARIDENT[ivar,2]==110:
+#           Model 110. Venus cloud model from Haus et al. (2016) with altitude offset
+#           ************************************************************************************  
+              
+                offset = self.Variables.XN[ix]   #altitude offset in km
+                idust0 = np.abs(self.Variables.VARIDENT[ivar,0])  #Index of the first cloud mode                
+                self.AtmosphereX = model110(self.AtmosphereX,idust0,offset)
+                
+                ix = ix + self.Variables.NXVAR[ivar]
 
             elif self.Variables.VARIDENT[ivar,0]==228:
 #           Model 228. Retrieval of instrument line shape for ACS-MIR and wavelength calibration

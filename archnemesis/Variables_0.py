@@ -325,6 +325,8 @@ class Variables_0:
                 nxvar[i] = NPRO
             elif imod==51:
                 nxvar[i] = 1
+            elif imod==110:
+                nxvar[i] = 1
             elif imod == 228:
                 nxvar[i] = 8
             elif imod == 229:
@@ -1033,7 +1035,17 @@ class Variables_0:
 
             else:
 
-                if varident[i,2] == 228:
+                if varident[i,2] == 110:
+#               ******** model for Venus cloud following Haus et al. (2016) with altitude offset
+                
+                    tmp = np.fromfile(f,sep=' ',count=2,dtype='float')   #z_offset
+                    x0[ix] = float(tmp[0])
+                    sx[ix,ix] = float(tmp[1])**2.
+                    lx[ix] = 0
+                    inum[ix] = 1
+                    ix = ix + 1
+
+                elif varident[i,2] == 228:
 #               ******** model for retrieving the ILS and Wavelength calibration in ACS MIR solar occultation observations
                 
                     tmp = np.fromfile(f,sep=' ',count=2,dtype='float')   #V0
