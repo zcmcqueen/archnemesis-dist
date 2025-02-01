@@ -1469,7 +1469,7 @@ class ForwardModel_0:
 #           ************************************************************************************  
               
                 offset = self.Variables.XN[ix]   #altitude offset in km
-                idust0 = np.abs(self.Variables.VARIDENT[ivar,0])  #Index of the first cloud mode                
+                idust0 = np.abs(self.Variables.VARIDENT[ivar,0])-1  #Index of the first cloud mode                
                 self.AtmosphereX = model110(self.AtmosphereX,idust0,offset)
                 
                 ix = ix + self.Variables.NXVAR[ivar]

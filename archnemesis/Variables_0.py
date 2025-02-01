@@ -1038,6 +1038,9 @@ class Variables_0:
                 if varident[i,2] == 110:
 #               ******** model for Venus cloud following Haus et al. (2016) with altitude offset
                 
+                    if varident[i,0]>0:
+                        raise ValueError('error in read_apr model 110 :: VARIDENT[0] must be negative to be associated with the aerosols')
+                
                     tmp = np.fromfile(f,sep=' ',count=2,dtype='float')   #z_offset
                     x0[ix] = float(tmp[0])
                     sx[ix,ix] = float(tmp[1])**2.
