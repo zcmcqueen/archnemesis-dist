@@ -3004,23 +3004,10 @@ class ForwardModel_0:
 
         #import matplotlib as matplotlib
         from scipy import interpolate
-        #from NemesisPy import nemesisf
         from copy import copy
 
         #Initialise some arrays
         ###################################
-
-        #Initialise the inputs
-        #Measurement=self.MeasurementX
-        #Atmosphere=self.AtmosphereX
-        #Spectroscopy=self.SpectroscopyX
-        #Scatter=self.ScatterX
-        #Stellar=self.StellarX
-        #Surface=self.SurfaceX
-        #CIA=self.CIAX
-        #Layer=self.LayerX
-        #Path=self.PathX
-        
 
         #Calculating the vertical opacity of each layer
         ######################################################
@@ -3105,11 +3092,12 @@ class ForwardModel_0:
             #dTAUCIA = np.zeros((self.MeasurementX.NWAVE,self.LayerX.NLAY,7))
             print('CIRSrad :: CIA not included in calculations')
         else:
-            TAUCIA,dTAUCIA = self.calc_tau_cia_new() #(NWAVE,NLAY);(NWAVE,NLAY,7)
+            TAUCIA,dTAUCIA = self.calc_tau_cia() #(NWAVE,NLAY);(NWAVE,NLAY,7)
             self.LayerX.TAUCIA = TAUCIA
             
             #Removing CIA since it is no longer needed 
             self.CIAX = None
+            
         #Calculating the vertical opacity by Rayleigh scattering
         #################################################################################################################
 
@@ -3143,9 +3131,6 @@ class ForwardModel_0:
         #Adding the opacity by the different dust populations
         TAUDUST = np.sum(TAUDUST1,2)  #(NWAVE,NLAYER) Absorption + Scattering
         TAUSCAT = np.sum(TAUCLSCAT,2)  #(NWAVE,NLAYER) Scattering
-        #for i in range(Measurement.NWAVE):
-        #    print(Measurement.WAVE[i],np.sum(TAUDUST,axis=1)[i])
-        #input()
 
         self.LayerX.TAUDUST = TAUDUST
         self.LayerX.TAUSCAT = TAUSCAT
@@ -3447,7 +3432,7 @@ class ForwardModel_0:
             print('CIRSrad :: CIA not included in calculations')
         else:
             print('CIRSradg :: Calculating CIA opacity')
-            TAUCIA,dTAUCIA = self.calc_tau_cia_new() #(NWAVE,NLAY);(NWAVE,NLAY,NVMR+2)
+            TAUCIA,dTAUCIA = self.calc_tau_cia() #(NWAVE,NLAY);(NWAVE,NLAY,NVMR+2)
             Layer.TAUCIA = TAUCIA
 
             dTAUCON[:,0:Atmosphere.NVMR,:] = dTAUCON[:,0:Atmosphere.NVMR,:] + np.transpose(np.transpose(dTAUCIA[:,:,0:Atmosphere.NVMR],axes=(2,0,1)) / (Layer.TOTAM.T),axes=(1,0,2)) #dTAUCIA/dAMOUNT (m2)
@@ -3468,23 +3453,6 @@ class ForwardModel_0:
 
         #Calculating the vertical opacity by aerosols from the extinction coefficient and single scattering albedo
         #################################################################################################################
-
-        """
-        #Obtaining the phase function of each aerosol at the scattering angle
-        if Path.SINGLE==True:
-            sol_ang = Scatter.SOL_ANG
-            emiss_ang = Scatter.EMISS_ANG
-            azi_ang = Scatter.AZI_ANG   
-
-            phasef = np.zeros(Scatter.NDUST+1)   #Phase angle for each aerosol type and for Rayleigh scattering
-
-            #Calculating cos(alpha), where alpha is the scattering angle
-            calpha = np.sin(sol_ang / 180. * np.pi) * np.sin(emiss_ang / 180. * np.pi) * np.cos( azi_ang/180.*np.pi - np.pi ) - \
-                    np.cos(emiss_ang / 180. * np.pi) * np.cos(sol_ang / 180. * np.pi)
-
-
-            phasef[Scatter.NDUST] = 0.75 * (1. + calpha**2.)  #Phase function for Rayleigh scattering (Hansen and Travis, 1974)
-        """
 
         print('CIRSradg :: Calculating DUST opacity')
         TAUDUST1,TAUCLSCAT,dTAUDUST1,dTAUCLSCAT = self.calc_tau_dust() #(NWAVE,NLAYER,NDUST)
@@ -3637,10 +3605,6 @@ class ForwardModel_0:
 
             print('CIRSradg :: Calculating GRADIENTS')
             dSPECOUT = np.transpose(-SPECOUT * np.transpose(dTAUTOT_LAYINC,axes=[2,3,0,1,4]),axes=[2,3,0,1,4])
-            #for iwave in range(Measurement.NWAVE):
-            #    for ig in range(Spectroscopy.NG):
-            #        for ipath in range(Path.NPATH):
-            #            dSPECOUT[iwave,ig,:,:,ipath] = -SPECOUT[iwave,ig,ipath] * dTAUTOT_LAYINC[iwave,ig,:,:,ipath]
             del dTAUTOT_LAYINC
             del TAUTOT_PATH
 
@@ -3694,7 +3658,7 @@ class ForwardModel_0:
 
 
 ###############################################################################################
-    def calc_tau_cia_new(self,ISPACE=None,WAVEC=None,CIA=None,Atmosphere=None,Layer=None,MakePlot=False):
+    def calc_tau_cia(self,ISPACE=None,WAVEC=None,CIA=None,Atmosphere=None,Layer=None,MakePlot=False):
         """
         Calculate the CIA opacity in each atmospheric layer
         This is the new version developed for archNEMESIS (more versatile in terms of CIA pairs included)
@@ -3972,167 +3936,8 @@ class ForwardModel_0:
             ax1.grid()
             plt.tight_layout()
             plt.show()
+            
         return tau_cia_layer,dtau_cia_layer
-
-    ###############################################################################################
-    def calc_tau_cia(self, ISPACE=None, WAVEC=None, CIA=None, Atmosphere=None, Layer=None, MakePlot=False):
-        """
-        Calculate the CIA opacity in each atmospheric layer
-        This is the old version following the Fortran NEMESIS units and scheme
-
-        @param ISPACE: int
-            Flag indicating whether the calculation must be performed in wavenumbers (0) or wavelength (1)
-        @param WAVEC: int
-            Wavenumber (cm-1) or wavelength array (um)
-        @param CIA: class
-            Python class defining the CIA cross sections
-        @param Atmosphere: class
-            Python class defining the reference atmosphere
-        @param Layer: class
-            Layer :: Python class defining the layering scheme to be applied in the calculations
-
-        Outputs
-        ________
-
-        TAUCIA(NWAVE,NLAY) :: CIA optical depth in each atmospheric layer
-        dTAUCIA(NWAVE,NLAY,7) :: Rate of change of CIA optical depth with:
-                                 (1) H2 vmr
-                                 (2) He vmr
-                                 (3) N2 vmr
-                                 (4) CH4 vmr
-                                 (5) CO2 vmr
-                                 (6) Temperature
-                                 (7) para-H2 fraction
-        IABSORB(5) :: Flag set to gas number in reference atmosphere for the species whose gradient is calculated
-        """
-
-        from scipy import interpolate
-        from archnemesis.CIA_0 import co2cia, n2h2cia, n2n2cia
-
-        # Initializing variables
-        if ISPACE is None:
-            ISPACE = self.MeasurementX.ISPACE
-        if WAVEC is None:
-            WAVEC = self.MeasurementX.WAVE
-        if CIA is None:
-            CIA = self.CIAX
-        if Atmosphere is None:
-            Atmosphere = self.AtmosphereX
-        if Layer is None:
-            Layer = self.LayerX
-
-        # the mixing ratios of the species contributing to CIA
-        qh2 = np.zeros(Layer.NLAY)
-        qhe = np.zeros(Layer.NLAY)
-        qn2 = np.zeros(Layer.NLAY)
-        qch4 = np.zeros(Layer.NLAY)
-        qco2 = np.zeros(Layer.NLAY)
-        IABSORB = np.ones(5, dtype='int32') * -1
-        for i in range(Atmosphere.NVMR):
-            if Atmosphere.ID[i] == 39:
-                if ((Atmosphere.ISO[i] == 0) or (Atmosphere.ISO[i] == 1)):
-                    qh2[:] = Layer.PP[:, i] / Layer.PRESS[:]
-                    IABSORB[0] = i
-
-            if Atmosphere.ID[i] == 40:
-                qhe[:] = Layer.PP[:, i] / Layer.PRESS[:]
-                IABSORB[1] = i
-
-            if Atmosphere.ID[i] == 22:
-                qn2[:] = Layer.PP[:, i] / Layer.PRESS[:]
-                IABSORB[2] = i
-
-            if Atmosphere.ID[i] == 6:
-                if ((Atmosphere.ISO[i] == 0) or (Atmosphere.ISO[i] == 1)):
-                    qch4[:] = Layer.PP[:, i] / Layer.PRESS[:]
-                    IABSORB[3] = i
-
-            if Atmosphere.ID[i] == 2:
-                qco2[:] = Layer.PP[:, i] / Layer.PRESS[:]
-                IABSORB[4] = i
-        # Calculating the opacity
-        XLEN = Layer.DELH * 1.0e2  # cm
-        TOTAM = Layer.TOTAM * 1.0e-4  # cm-2
-        AMAGAT = 2.68675E19  # mol cm-3
-        amag1 = (Layer.TOTAM * 1.0e-4 / XLEN)  # Number density in AMAGAT units
-        tau = XLEN * amag1 ** 2
-
-        # Defining the calculation wavenumbers
-        if ISPACE == 0:
-            WAVEN = WAVEC
-        elif ISPACE == 1:
-            WAVEN = 1.e4 / WAVEC
-            isort = np.argsort(WAVEN)
-            WAVEN = WAVEN[isort]
-
-        if ((WAVEN.min() < CIA.WAVEN.min()) or (WAVEN.max() > CIA.WAVEN.max())):
-            print('warning in CIA :: Calculation wavelengths expand a larger range than in .cia file')
-
-        # Calculating the CIA opacity at the correct temperature and wavenumber
-        NWAVEC = len(WAVEC)  # Number of calculation wavelengths
-        tau_cia_layer = np.zeros((NWAVEC, Layer.NLAY))
-        dtau_cia_layer = np.zeros((NWAVEC, Layer.NLAY, 7))
-
-        NPAIR = CIA.K_CIA.shape[0]
-        K_CIA = CIA.K_CIA
-        FRACS = np.array([0]) #CIA.FRACS - placeholder for para-h2
-        TEMPS = CIA.TEMP
-        cia_nu_grid = CIA.WAVEN
-        PARA_layer = np.zeros_like(Layer.TEMP) #Layer.PARA - placeholder for para-h2
-        T_layer = Layer.TEMP
-        k_cia = np.zeros((NWAVEC, NPAIR, Layer.NLAY))
-        K_CIA = K_CIA[:,None,:,:]
-        for ipair in range(NPAIR):
-            k_cia[:, ipair, :] = trilinear_interpolation(K_CIA[ipair], FRACS, TEMPS, cia_nu_grid, PARA_layer, T_layer, WAVEN)
-#         print(k_cia[0]*AMAGAT**2)
-        for ilay in range(Layer.NLAY):
-            if len(FRACS) == 1:
-                # Combining the CIA absorption of the different pairs (included in .cia file)
-                sum1 = np.zeros(NWAVEC)
-                if CIA.INORMAL == 0:  # equilibrium hydrogen (1:1)
-                    sum1[:] = sum1[:] + k_cia[:, 0, ilay] * qh2[ilay] * qh2[ilay] \
-                        + k_cia[:, 1, ilay] * qhe[ilay] * qh2[ilay]
-                elif CIA.INORMAL == 1:  # normal hydrogen (3:1)
-                    sum1[:] = sum1[:] + k_cia[:, 2, ilay] * qh2[ilay] * qh2[ilay] \
-                        + k_cia[:, 3, ilay] * qhe[ilay] * qh2[ilay]
-
-                sum1[:] = sum1[:] + k_cia[:, 4, ilay] * qh2[ilay] * qn2[ilay]
-                sum1[:] = sum1[:] + k_cia[:, 5, ilay] * qn2[ilay] * qch4[ilay]
-                sum1[:] = sum1[:] + k_cia[:, 6, ilay] * qn2[ilay] * qn2[ilay]
-                sum1[:] = sum1[:] + k_cia[:, 7, ilay] * qch4[ilay] * qch4[ilay]
-                sum1[:] = sum1[:] + k_cia[:, 8, ilay] * qh2[ilay] * qch4[ilay]
-
-                # Look up CO2-CO2 CIA coefficients (external)
-                k_co2 = co2cia(WAVEN)
-                sum1[:] = sum1[:] + k_co2[:] * qco2[ilay] * qco2[ilay]
-
-                # Look up N2-N2 NIR CIA coefficients (external)
-                k_n2n2 = n2n2cia(WAVEN)
-                sum1[:] = sum1[:] + k_n2n2[:] * qn2[ilay] * qn2[ilay]
-
-                # Look up N2-H2 NIR CIA coefficients (external)
-                k_n2h2 = n2h2cia(WAVEN)
-                sum1[:] = sum1[:] + k_n2h2[:] * qn2[ilay] * qh2[ilay]
-
-            else:
-                sum1 = np.zeros(NWAVEC)
-                sum1[:] = sum1[:] + k_cia[:, 0, ilay] * qh2[ilay] * qh2[ilay]
-                sum1[:] = sum1[:] + k_cia[:, 1, ilay] * qh2[ilay] * qhe[ilay]
-
-            tau_cia_layer[:, ilay] = sum1[:] * tau[ilay]
-
-        if ISPACE == 1:
-            tau_cia_layer[:, :] = tau_cia_layer[isort, :]
-
-        if MakePlot:
-            fig, ax1 = plt.subplots(1, 1, figsize=(10, 3))
-            for ilay in range(Layer.NLAY):
-                ax1.plot(WAVEC, tau_cia_layer[:, ilay])
-            ax1.grid()
-            plt.tight_layout()
-            plt.show()
-
-        return tau_cia_layer, dtau_cia_layer
 
 ###############################################################################################
     def calc_tau_dust(self, WAVEC=None, Scatter=None, Layer=None, MakePlot=False):
@@ -4466,7 +4271,6 @@ class ForwardModel_0:
             )
 
         # Phase function
-        
         PHASE_ARRAY = np.zeros((Scatter.NDUST, Measurement.NWAVE, 2, NTHETA))
         if Scatter.IMIE == 0:
             for i in range(Scatter.NDUST):
