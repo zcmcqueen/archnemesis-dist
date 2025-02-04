@@ -1331,10 +1331,10 @@ def model110(atm, idust0, z_offset):
     new_dust = np.zeros((atm.NP,atm.NDUST))
     
     new_dust[:,:] = atm.DUST[:,:]
-    new_dust[idust0,:] = n1[:] * 1.0e6 #Converting from cm-3 to m-3
-    new_dust[idust0+1,:] = n2[:] * 1.0e6
-    new_dust[idust0+2,:] = n2p[:] * 1.0e6
-    new_dust[idust0+3,:] = n3[:] * 1.0e6
+    new_dust[:,idust0] = n1[:] * 1.0e6 #Converting from cm-3 to m-3
+    new_dust[:,idust0+1] = n2[:] * 1.0e6
+    new_dust[:,idust0+2] = n2p[:] * 1.0e6
+    new_dust[:,idust0+3] = n3[:] * 1.0e6
     
     atm.edit_DUST(new_dust)
     
