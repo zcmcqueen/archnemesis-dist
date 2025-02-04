@@ -3687,7 +3687,6 @@ class ForwardModel_0:
         from scipy import interpolate
         from archnemesis.CIA_0 import co2cia,n2h2cia,n2n2cia
 
-
 #       Initialising variables
         if ISPACE is None:
             ISPACE = self.MeasurementX.ISPACE
@@ -4174,7 +4173,6 @@ class ForwardModel_0:
     ###############################################################################################
     ###############################################################################################
     
-    
     def scloud11wave(self, Scatter, Surface, Layer, Measurement, Path, SOLAR):
         """
 
@@ -4241,9 +4239,11 @@ class ForwardModel_0:
             for imu in range(Scatter.NMU):
                 RADGROUND[:,imu] = bbsurf * EMISSIVITY
 
-            ALBEDO[:] = 1.0 - EMISSIVITY[:] if Surface.GALB < 0.0 else Surface.GALB
+        if Surface.LOWBC > 0:
+            BRDF_matrix = self.calc_brdf_matrix(WAVEC=Measurement.WAVE, Surface=Surface, Scatter=Scatter)  #(NWAVE,NMU,NMU,NF+1)
+        else:
+            BRDF_matrix = np.zeros((Measurement.NWAVE, Scatter.NMU, Scatter.NMU, Scatter.NF+1))
 
-            
         # Layers
         BB = np.zeros(Layer.TAURAY.shape)  #Blackbody in each layer
         for ilay in range(Layer.NLAY):
@@ -4292,7 +4292,7 @@ class ForwardModel_0:
             solar=SOLAR,
             aphis=AZI_ANGS,
             lowbc=LOWBC,
-            galb=ALBEDO,
+            brdf_matrix=BRDF_matrix,
             mu1=MU,
             wt1=WTMU,
             nf=NF,
@@ -4309,9 +4309,6 @@ class ForwardModel_0:
 
         SPEC = np.transpose(SPEC, (2, 1, 0))
         return SPEC
-
-            
-
 
 ###############################################################################################
     def scloud11flux(self,Scatter,Surface,Layer,Measurement,SOLAR,diffuse=True):
@@ -4812,6 +4809,9 @@ class ForwardModel_0:
 
         return fup,fdown
 
+
+
+
 ###############################################################################################
     def calc_phase_matrix_v2(self,Scatter,WAVE,normalise=True):
         """
@@ -5136,15 +5136,10 @@ class ForwardModel_0:
             OMEGA[:,:,:] = 0.0  #No scattering if diffuse component is turned off
 
 ###############################################################################################
-    def calc_hapke_reflectivity(self,Scatter,Surface,WAVE):
+    def calc_brdf_matrix(self,WAVEC=None,Scatter=None,Surface=None):
         """
-        Calculate the surface reflectivity modelled using the Hapke reflectance model.
-        The azimuth-dependence of the reflectivity is expanded using the Fourier components.
-        The reflection matrix can then be calculated integrating the reflectivity over the zenith angle:
-
-            int_0^1 r(mu,phi) * mu * dmu
-
-        where mu represents the cosine of the solar zenith angle
+        Calculate the Bidirectional Reflectance Distribution Function (BRDF) of the surface
+        in the matrix form required by the multiple scattering doubling method
  
         Inputs
         ________
@@ -5156,61 +5151,72 @@ class ForwardModel_0:
         Outputs
         ________
 
-        Reflectivity(NWAVE,NF+1,NMU,NMU) :: Surface reflection matrix
+        Reflectivity(NWAVE,NMU,NMU,NF+1) :: Surface BRDF matrix
         """
+
+#       Initialising variables
+        if WAVEC is None:
+            WAVEC = self.MeasurementX.WAVE
+        if Scatter is None:
+            Scatter = self.ScatterX
+        if Surface is None:
+            Surface = self.SurfaceX
 
         #Calculating the bidirectional reflectance at the required angles
         #######################################################################
 
-        NWAVE = len(WAVE)
+        NWAVE = len(WAVEC)
         dphi = 2.0*np.pi/Scatter.NPHI
+        
+        #Reversing the quadrature angles (that's how it is done in the doubling method)
+        mu = np.zeros(Scatter.NMU)
+        mu[:] = Scatter.MU[::-1]
+        
+        BRDF_mat = np.zeros((NWAVE,Scatter.NMU,Scatter.NMU,Scatter.NF+1))
+        if Surface.LOWBC == 1: #Lambertian reflection (isotropic)
+            
+            #We only need to calculate the BRDF in one angle since it will be the same everywhere
+            BRDFx = Surface.calc_BRDF(WAVEC,[0.],[0.],[0.])[:,0] #(NWAVE)
+            BRDF_mat[:,:,:,0] = BRDFx[:,None,None]
 
-        #Defining the angles at which the reflectance must be calculated
-        EMISS_ANG = np.zeros(Scatter.NMU*Scatter.NMU*(Scatter.NPHI+1))
-        SOL_ANG = np.zeros(Scatter.NMU*Scatter.NMU*(Scatter.NPHI+1))
-        AZI_ANG = np.zeros(Scatter.NMU*Scatter.NMU*(Scatter.NPHI+1))
-        ix = 0
-        for j in range(Scatter.NMU):   #SOL_ANG
-            for i in range(Scatter.NMU):   #EMISS_ANG
-                for k in range(Scatter.NPHI+1):  #AZI_ANG
-                    phi = k*dphi
-                    EMISS_ANG[ix] = np.arccos(Scatter.MU[i])/np.pi*180.
-                    SOL_ANG[ix] = np.arccos(Scatter.MU[j])/np.pi*180.
-                    AZI_ANG[ix] = phi/np.pi*180.
-                    ix = ix + 1
+        elif Surface.LOWBC > 1:  #Anisotropic reflection
 
+            # Create indices for broadcasting
+            j, i, k = np.meshgrid(np.arange(Scatter.NMU), np.arange(Scatter.NMU), np.arange(Scatter.NPHI+1), indexing="ij")
 
-        BRDF = Surface.calc_Hapke_BRDF(EMISS_ANG,SOL_ANG,AZI_ANG,WAVE=WAVE) #(NWAVE,NTHETA)
+            # Compute angles
+            EMISS_ANG = (np.arccos(mu[i]) * 180.0 / np.pi).ravel()
+            SOL_ANG = (np.arccos(mu[j]) * 180.0 / np.pi).ravel()
+            AZI_ANG = ((k * dphi) * 180.0 / np.pi).ravel()
 
-        #Integrating the reflectance over the azimuth direction
-        #####################################################################################
+            BRDF = Surface.calc_BRDF(WAVEC,SOL_ANG,EMISS_ANG,AZI_ANG) #(NWAVE,NTHETA)
 
-        Reflectivity = np.zeros((NWAVE,Scatter.NF+1,Scatter.NMU,Scatter.NMU)) #Integrated phase function coefficients in + direction (i.e. downwards)
-        ix = 0
-        for j in range(Scatter.NMU):   #SOL_ANG
-            for i in range(Scatter.NMU):  #EMISS_ANG
-                for k in range(Scatter.NPHI+1):  #AZI_ANG
-                    phi = k*dphi
-                    for kl in range(Scatter.NF+1):
+            #Integrating the reflectance over the azimuth direction
+            #####################################################################################
+        
+            ix = 0
+            for j in range(Scatter.NMU):   #SOL_ANG
+                for i in range(Scatter.NMU):  #EMISS_ANG
+                    for k in range(Scatter.NPHI+1):  #AZI_ANG
+                        phi = k*dphi
+                        for ic in range(Scatter.NF+1):
 
-                        BRDFx = BRDF[:,ix] * np.pi * np.cos(kl*phi)
+                            wphi = 1.0*dphi
+                            if k==0:
+                                wphi = 0.5*dphi
+                            elif k==Scatter.NPHI:
+                                wphi = 0.5*dphi
 
-                        wphi = 1.0*dphi
-                        if k==0:
-                            wphi = 0.5*dphi
-                        elif k==Scatter.NPHI:
-                            wphi = 0.5*dphi
+                            if ic==0:
+                                wphi = wphi/(2.0*np.pi)
+                            else:
+                                wphi = wphi/np.pi
 
-                        if kl==0:
-                            wphi = wphi/(2.0*np.pi)
-                        else:
-                            wphi = wphi/np.pi
+                            BRDF_mat[:,i,j,ic] += wphi * BRDF[:,ix] * np.cos(ic*phi)
 
-                        Reflectivity[:,kl,i,j] = Reflectivity[:,kl,i,j] + wphi*BRDFx[:]
+                        ix += 1
 
-                    ix = ix + 1
-
-        return Reflectivity
+        return BRDF_mat
 
 #END OF FORWARD MODEL CLASS
 

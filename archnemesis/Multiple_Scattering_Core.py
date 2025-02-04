@@ -154,9 +154,6 @@ def phasint2(nphi, ic, nmu, mu, iscat, cons, ncons, icont, ncont, pfunc, xmu):
         pm = f1 * hg11 / np.sqrt(hg12 - 2.0 * pfunc[1] * cmi) ** 3 + f2 * hg21 / np.sqrt(hg22 - 2.0 * pfunc[2] * cmi) ** 3
         pl /= 4*np.pi
         pm /= 4*np.pi
-        
-        
-        
     else:
         pl = np.interp(cpl, xmu, pfunc) #phase1(cpl, iscat, cons, ncons, icont, ncont, vwave, pfunc, xmu)
         pm = np.interp(cmi, xmu, pfunc) #phase1(cmi, iscat, cons, ncons, icont, ncont, vwave, pfunc, xmu)        
@@ -633,7 +630,7 @@ def calc_rtj_matrix(ic,mu,wtmu,bb,tautot,tauscat,tauray,frac,ppln,pmin,pplr,pmir
 
 
 @njit(fastmath = True,parallel=False, cache = True, error_model='numpy')
-def scloud11wave_core(phasarr, radg, sol_angs, emiss_angs, solar, aphis, lowbc, galb, mu1, wt1, nf,
+def scloud11wave_core(phasarr, radg, sol_angs, emiss_angs, solar, aphis, lowbc, brdf_matrix, mu1, wt1, nf,
                 vwaves, bnu, taus, tauray,omegas_s, nphi,iray,imie, lfrac):
     
     """
@@ -655,8 +652,8 @@ def scloud11wave_core(phasarr, radg, sol_angs, emiss_angs, solar, aphis, lowbc, 
         Azimuth angle between Sun and observer
     lowbc:
         Lower boundary condition: 0 = thermal (no surface), 1 = Lambert reflection (surface)
-    galb(NWAVE):
-        Ground albedo at the bottom
+    brdf_matrix(NWAVE,NMU,NMU,NF+1):
+        Decomposed BRDF matrix of the surface
     mu1(NMU):  
         Zenith angle point quadrature
     wt1(NMU):  
@@ -802,21 +799,17 @@ def scloud11wave_core(phasarr, radg, sol_angs, emiss_angs, solar, aphis, lowbc, 
                     # Transfer matrices to storage
                     pplr[:,:] = pplpl
                     pmir[:,:] = pplmi
-
-
+                    
                 #Computing RTJ matrices for the surface
                 surface_defined = False
-                if(lowbc == 1):
-                    js[:,0,ic] = (1-galb[widx])*radg[widx]
-                    if ic == 0:
-                        ts[:,:,ic].fill(0.0)
-                        for j in range(nmu):
-                            rs[:,j,ic] = 2*galb[widx]*mu[j]*wtmu[j] 
-                        rs[:,:,ic]*= xfac
-                    else:
-                        ts[:,:,ic].fill(0.0)
-                        rs[:,:,ic].fill(0.0)
-                        
+                if(lowbc > 0):
+                    
+                    js[:,0,ic] = radg[widx]   #Emissivity is already accounted for in radg
+                    for j in range(nmu):
+                        rs[:,j,ic] = 2. * (brdf_matrix[widx,:,j,ic] * np.pi) * mu[j] * wtmu[j]
+                    rs[:,:,ic]*= xfac
+                    ts[:,:,ic].fill(0.0)
+    
                     if lookdown == True:
                         surface_defined = True
                         jcomb[:,:,ic] = js[:,:,ic]

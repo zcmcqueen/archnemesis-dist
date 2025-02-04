@@ -747,41 +747,63 @@ class Surface_0:
 
     ##################################################################################################################
     ##################################################################################################################
-    #                                               LAMBERT REFLECTANCE
+    #                            BIDIRECTIONAL REFLECTANCE DISTRIBUTION FUNCTION (BRDF)
     ##################################################################################################################
     ##################################################################################################################
 
-
-    def calc_Lambert_BRDF(self,ALBEDO,SOL_ANG):
+    def calc_BRDF(self,WAVE,SOL_ANG,EMISS_ANG,AZI_ANG):
         """
-        Calculate the reflectance distribution function for a Lambertian surface.
-
-        @param ALBEDO: 1D array (NWAVE)
-            Lambert albedo
-        @param SOL_ANG: 1D array (NTHETA)
+        Calculate the BRDF of the surface based on the type of surface defined
+        
+        Inputs
+        ------
+        @param WAVE(NWAVE): 1D array
+            Wavelengths (microns) or Wavenumbers (cm-1)
+        @param SOL_ANG(NTHETA): 1D array
             Solar zenith angle (degrees)
-
-        @param BRDF: 2D array (NWAVE,NTHETA)
-            Bidirectional reflectance
+        @param EMISS_ANG(NTHETA): 1D array
+            Emission angle (degrees)
+        @param AZI_ANG(NTHETA): 1D array    
+            Azimuth angle (degrees)
+            
+        Outputs
+        -------
+        @param BRDF(NWAVE,NTHETA): 2D array
+            Bidirectional reflectance distribution function (BRDF)
         """
-
-        #Inserting angles into array if they are a scalar
-        if np.isscalar(SOL_ANG)==True:
-            SOL_ANG = np.array([SOL_ANG])
-        else:
-            SOL_ANG = np.array(SOL_ANG)
-
-        if np.isscalar(ALBEDO)==True:
-            ALBEDO = np.array([ALBEDO])
-        else:
-            ALBEDO = np.array(ALBEDO)
-
-        NTHETA = len(SOL_ANG)
-        NWAVE = len(ALBEDO)
-
-        BRDF = np.repeat(ALBEDO[:,np.newaxis],NTHETA,axis=1) / np.pi * np.cos(SOL_ANG/180.*np.pi)
+        
+        NWAVE = len(WAVE)
+        NTHETA = len(EMISS_ANG)
+        
+        BRDF = np.zeros((NWAVE,NTHETA))
+        if self.LOWBC==1: #Lambertian reflection
+            
+            ALBEDO = self.calc_albedo()                 #Calculating albedo based on flags in class
+            galbx = np.interp(WAVE,self.VEM,ALBEDO)  #Interpolating albedo to desired spectral array
+            
+            # Broadcasting to avoid loop
+            BRDF[:,:] = (galbx[:, None] / np.pi)  # Shape (NWAVE, 1) broadcasted to (NWAVE, NTHETA)
+            
+        elif self.LOWBC==2: #Hapke reflection
+            
+            #Interpolating Hapke parameters to the desired spectral array
+            SGLALB = np.interp(WAVE,self.VEM,self.SGLALB)
+            K = np.interp(WAVE,self.VEM,self.K)
+            BS0 = np.interp(WAVE,self.VEM,self.BS0)
+            hs = np.interp(WAVE,self.VEM,self.hs)
+            BC0 = np.interp(WAVE,self.VEM,self.BC0)
+            hc = np.interp(WAVE,self.VEM,self.hc)
+            ROUGHNESS = np.interp(WAVE,self.VEM,self.ROUGHNESS)
+            G1 = np.interp(WAVE,self.VEM,self.G1)
+            G2 = np.interp(WAVE,self.VEM,self.G2)
+            F = np.interp(WAVE,self.VEM,self.F)
+            
+            #Calling the fortran module to calculate Hapke's BRDF
+            BRDF[:,:] = calc_Hapke_BRDF(SGLALB,K,BS0,hs,BC0,hc,ROUGHNESS,G1,G2,F,\
+                                    SOL_ANG,EMISS_ANG,AZI_ANG)
 
         return BRDF
+
 
     ##################################################################################################################
 
@@ -880,74 +902,6 @@ class Surface_0:
             f.write('%7.4e \t %7.4e \t %7.4e \t %7.4e \t %7.4e \t %7.4e \t %7.4e \t %7.4e \t %7.4e \t %7.4e \t %7.4e \n' % \
                 (self.VEM[i],self.SGLALB[i],self.K[i],self.BS0[i],self.hs[i],self.BC0[i],self.hc[i],self.ROUGHNESS[i],self.G1[i],self.G2[i],self.F[i]))
         f.close()
-
-    ##################################################################################################################
-
-    def calc_Hapke_BRDF(self,EMISS_ANG,SOL_ANG,AZI_ANG,WAVE=None):
-        """
-        Calculate the bidirectional-reflectance distribution function for a Hapke surface.
-        The method used here is described in Hapke (2012): Theory of Reflectance and Emittance
-        Spectroscopy, in chapter 12.3.1 (disk-resolved photometry)
-
-        @param EMISS_ANG: float
-            Emission angle (degrees)
-        @param SOL_ANG: float
-            Solar zenith angle (degrees)
-        @param AZI_ANG: float
-            Azimuth angle (degrees)
-        """
-
-        #Inserting angles into array if they are a scalar
-        if np.isscalar(EMISS_ANG)==True:
-            EMISS_ANG = np.array([EMISS_ANG])
-            SOL_ANG = np.array([SOL_ANG])
-            AZI_ANG = np.array([AZI_ANG])
-        else:
-            EMISS_ANG = np.array(EMISS_ANG)
-            SOL_ANG = np.array(SOL_ANG)
-            AZI_ANG = np.array(AZI_ANG)
-
-        NTHETA = len(EMISS_ANG)
-
-        #Interpolating surface values if wavelength array is specified
-        if WAVE is not None:
-            s = interp1d(self.VEM,self.SGLALB)
-            SGLALB = s(WAVE)
-            s = interp1d(self.VEM,self.K)
-            K = s(WAVE)
-            s = interp1d(self.VEM,self.BS0)
-            BS0 = s(WAVE)
-            s = interp1d(self.VEM,self.hs)
-            hs = s(WAVE)
-            s = interp1d(self.VEM,self.BC0)
-            BC0 = s(WAVE)
-            s = interp1d(self.VEM,self.hc)
-            hc = s(WAVE)
-            s = interp1d(self.VEM,self.ROUGHNESS)
-            ROUGHNESS = s(WAVE)
-            s = interp1d(self.VEM,self.G1)
-            G1 = s(WAVE)
-            s = interp1d(self.VEM,self.G2)
-            G2 = s(WAVE)
-            s = interp1d(self.VEM,self.F)
-            F = s(WAVE)
-        else:
-            SGLALB = self.SGLALB
-            K = self.K
-            BS0 = self.BS0
-            hs = self.hs
-            BC0 = self.BC0
-            hc = self.hc
-            ROUGHNESS = self.ROUGHNESS
-            G1 = self.G1
-            G2 = self.G2
-            F = self.F
-
-        #Calling the fortran module to calculate Hapke's BRDF
-        BRDF = calc_Hapke_BRDF(SGLALB,K,BS0,hs,BC0,hc,ROUGHNESS,G1,G2,F,\
-                                SOL_ANG,EMISS_ANG,AZI_ANG)
-
-        return BRDF
 
 
     ##################################################################################################################
@@ -1596,3 +1550,9 @@ def calc_Hapke_hgphase(Theta,G1,G2,F):
     phase = F * t1 + (1.0 - F) * t2
 
     return phase
+
+
+##################################################################################################################
+#Oren & Nayar BDRF calculations
+##################################################################################################################
+
