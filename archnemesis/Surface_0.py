@@ -115,6 +115,18 @@ class Surface_0:
             Parameter defining the relative contribution of G1 and G2 of the double Henyey-Greenstein phase function
 
 
+        Attributes for Oren-Nayar surface reflection:
+        ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+        The method implemented here is described in Oren & Nayar (1998). This method is a generalisation of 
+        the Lambertian reflection model to account for the roughness of the surface. In the case that the
+        roughness is zero, this model converges to a Lambertian surface.
+
+        @attribute ALBEDO : 1D array or 2D array (depending on number of locations)
+            Lambert albedo
+            
+        @attribute ROUGHNESS : 1D array or 2D array (depending on number of locations)
+            Roughness mean slope angle (degrees)
 
         Methods
         -------
@@ -233,6 +245,13 @@ class Surface_0:
                         'G2 must have size (NEM)'
                     assert len(self.F) == self.NEM , \
                         'F must have size (NEM)'
+                        
+                elif self.LOWBC==3:
+                    assert len(self.ALBEDO) == self.NEM , \
+                        'ALBEDO must have size (NEM)'
+                    assert len(self.ROUGHNESS) == self.NEM , \
+                        'ROUGHNESS must have size (NEM)'
+                        
             else:
                 assert len(self.TSURF) == self.NLOCATIONS , \
                     'TSURF must have size (NLOCATIONS)'
@@ -266,6 +285,14 @@ class Surface_0:
                         'G2 must have size (NEM,NLOCATIONS)'
                     assert self.F.shape == (self.NEM,self.NLOCATIONS) , \
                         'F must have size (NEM,NLOCATIONS)'
+                        
+                #Special case for Oren-Nayar reflection
+                elif self.LOWBC==3:
+                    assert self.ALBEDO.shape == (self.NEM,self.NLOCATIONS) , \
+                        'ALBEDO must have size (NEM,NLOCATIONS)'
+                    assert self.ROUGHNESS.shape == (self.NEM,self.NLOCATIONS) , \
+                        'ROUGHNESS must have size (NEM,NLOCATIONS)'
+
         else:
 #             assert self.LOWBC == 0 , \
 #                 'If GASGIANT=True then LOWBC=0 (i.e. No reflection)'
@@ -299,6 +326,8 @@ class Surface_0:
                 dset.attrs['type'] = 'Isotropic thermal emission and Lambert reflection'
             elif self.LOWBC==2:
                 dset.attrs['type'] = 'Isotropic thermal emission and Hapke reflection'
+            elif self.LOWBC==3:
+                dset.attrs['type'] = 'Isotropic thermal emission and Oren-Nayar reflection'
 
             #Writing the spectral units
             dset = grp.create_dataset('ISPACE',data=self.ISPACE)
@@ -388,6 +417,16 @@ class Surface_0:
                 dset.attrs['title'] = "Parameter defining the relative contribution of G1 and G2 of the double Henyey-Greenstein phase function"
                 dset.attrs['units'] = ''
 
+            elif self.LOWBC==3:
+
+                dset = grp.create_dataset('ALBEDO',data=self.ALBEDO)
+                dset.attrs['title'] = "Surface albedo"
+                dset.attrs['units'] = ''
+                
+                dset = grp.create_dataset('ROUGHNESS',data=self.ROUGHNESS)
+                dset.attrs['title'] = "Roughness mean slope angle"
+                dset.attrs['units'] = 'degrees'
+
         f.close()
 
     def read_hdf5(self,runname):
@@ -438,6 +477,10 @@ class Surface_0:
                 self.G1 = np.array(f.get('Surface/G1'))
                 self.G2 = np.array(f.get('Surface/G2'))
                 self.F = np.array(f.get('Surface/F'))
+                
+            if self.LOWBC==3:
+                self.ALBEDO = np.array(f.get('Surface/ALBEDO'))
+                self.ROUGHNESS = np.array(f.get('Surface/ROUGHNESS'))
 
         self.assess()
 
@@ -667,6 +710,11 @@ class Surface_0:
             self.edit_G2(self.G2[:,iLOCATION])
             self.edit_F(self.F[:,iLOCATION])
             
+        if self.LOWBC==3: #Oren-Nayar case
+            
+            self.edit_ALBEDO(self.ALBEDO[:,iLOCATION])
+            self.edit_ROUGHNESS(self.ROUGHNESS[:,iLOCATION])
+            
         #Checking that everything went well
         self.assess()
             
@@ -751,6 +799,52 @@ class Surface_0:
     ##################################################################################################################
     ##################################################################################################################
 
+    def calc_reflectance(self,WAVE,SOL_ANG,EMISS_ANG,AZI_ANG,E0=None):
+        """
+        Calculate the reflected radiance from the surface based on the type of surface defined
+        
+        Inputs
+        ------
+        @param WAVE(NWAVE): 1D array
+            Wavelengths (microns) or Wavenumbers (cm-1)
+        @param SOL_ANG(NTHETA): 1D array
+            Solar zenith angle (degrees)
+        @param EMISS_ANG(NTHETA): 1D array
+            Emission angle (degrees)
+        @param AZI_ANG(NTHETA): 1D array    
+            Azimuth angle (degrees)
+            
+        Optional inputs
+        ---------------
+        @param E0(NWAVE): 1D array
+            Solar spectral irradiance (W/m2/cm-1) or (W/m2/um)
+            
+        Outputs
+        -------
+        @param R(NWAVE,NTHETA): 2D array
+            Reflected radiance (W/m2/cm-1/sr or W/m2/um/sr) 
+        """
+        
+        NWAVE = len(WAVE)
+        NTHETA = len(EMISS_ANG)
+        
+        if E0 is None:
+            E0 = np.ones(NWAVE)
+        else:
+            if len(E0) != NWAVE:
+                raise ValueError('error in calc_reflectance :: E0 must have the same size as WAVE')
+            
+        BRDF = self.calc_BRDF(WAVE,SOL_ANG,EMISS_ANG,AZI_ANG)  #Bidirectional reflectance distribution function
+        
+        R = BRDF * np.cos(SOL_ANG/180.*np.pi)
+        R *= E0[:,None]
+        
+        # Set R to 0 where SOL_ANG > 90
+        R[:, SOL_ANG > 90] = 0
+        
+        return R
+
+
     def calc_BRDF(self,WAVE,SOL_ANG,EMISS_ANG,AZI_ANG):
         """
         Calculate the BRDF of the surface based on the type of surface defined
@@ -801,6 +895,15 @@ class Surface_0:
             #Calling the fortran module to calculate Hapke's BRDF
             BRDF[:,:] = calc_Hapke_BRDF(SGLALB,K,BS0,hs,BC0,hc,ROUGHNESS,G1,G2,F,\
                                     SOL_ANG,EMISS_ANG,AZI_ANG)
+            
+        elif self.LOWBC == 3: #Oren & Nayar reflection model
+            
+            #Interpolating Hapke parameters to the desired spectral array
+            ALBEDO = np.interp(WAVE,self.VEM,self.ALBEDO)
+            ROUGHNESS = np.interp(WAVE,self.VEM,self.ROUGHNESS)
+            
+            #Calling the fortran module to calculate Oren-Nayar's BRDF
+            BRDF[:,:] = calc_OrenNayar_BRDF(ALBEDO,ROUGHNESS,SOL_ANG,EMISS_ANG,AZI_ANG)
 
         return BRDF
 
@@ -1115,8 +1218,8 @@ def planckg(ispace,wave,temp):
 ##################################################################################################################
 #Hapke BDRF calculations
 ##################################################################################################################
-
-#njit(fastmath=True)
+ 
+#@njit(fastmath=True)
 @conditional_jit(nopython=True)
 def calc_Hapke_BRDF(w,K,BS0,hs,BC0,hc,ROUGHNESS,G1,G2,F,i,e,phi):
     """
@@ -1556,3 +1659,86 @@ def calc_Hapke_hgphase(Theta,G1,G2,F):
 #Oren & Nayar BDRF calculations
 ##################################################################################################################
 
+@jit(nopython=True)
+def calc_OrenNayar_BRDF(A,ROUGHNESS,i,e,phi):
+    """
+    Calculate the bidirectional-reflectance distribution function for a surface following the
+    method described by Oren & Nayar (1994). This method is a generalisation of the Lambertian model
+    for rough surfaces.
+
+    Inputs
+    ______
+
+    A(nwave) :: Lambertian albedo
+    ROUGHNESS(nwave) :: Roughness parameter (degrees)
+    i(ntheta),e(ntheta),phi(ntheta) :: Incident, reflection and azimuth angle (degrees)
+    
+    Outputs
+    _______
+    
+    BRDF(nwave,ntheta) :: Bidirectional reflectance
+    
+    """
+    
+    nwave = len(A)
+    ntheta = len(i)
+    
+    BRDF = np.zeros((nwave,ntheta))
+    
+    for iwave in range(nwave):
+        for itheta in range(ntheta):
+            
+            BRDF[iwave,itheta] = calc_OrenNayar_BRDFx(A[iwave],ROUGHNESS[iwave],i[itheta],e[itheta],phi[itheta])
+            
+    return BRDF
+
+
+@jit(nopython=True)
+def calc_OrenNayar_BRDFx(A,ROUGHNESS,i,e,phi):
+    """
+    Calculate the bidirectional-reflectance distribution function for a surface following the
+    method described by Oren & Nayar (1994). This method is a generalisation of the Lambertian model
+    for surface with roughness
+
+    Inputs
+    ______
+
+    A :: Lambertian albedo
+    ROUGHNESS :: Roughness parameter (degrees)
+    i,e,phi :: Incident, reflection and azimuth angle (degrees)
+    
+    Outputs
+    _______
+    
+    BRDF :: Bidirectional reflectance
+    
+    """
+    
+    #Converting angles and roughness to radians
+    irad = i / 180. * np.pi
+    erad = e / 180. * np.pi
+    phirad = phi / 180. * np.pi
+    sigma = ROUGHNESS / 180. * np.pi
+    
+    #Calculating initial parameters
+    alpha = max([irad,erad])
+    beta = min([irad,erad])
+    
+    #Calculating the C parameters
+    C1 = 1.0 - 0.5 * (sigma)**2. / ( (sigma)**2. + 0.33 )
+    
+    C2 = 0.45 * (sigma)**2. / ( (sigma)**2. + 0.09 )
+    if np.cos(phirad)>=0:
+        C2 *= np.sin(alpha)
+    else:
+        C2 *= (np.sin(alpha) - (2. * beta/ np.pi)**3. )
+    
+    C3 = 0.125 * sigma**2. / ( sigma**2. + 0.09 ) * (4.*alpha*beta/np.pi**2.)**2.
+    
+    #Calculating the L terms
+    BRDF1 = A/np.pi * ( C1 + np.cos(phirad) * C2 * np.tan(beta) + (1. - np.abs(np.cos(phirad))) * C3 * np.tan((alpha+beta)/2.) )
+    BRDF2 = 0.17 * A**2. /np.pi * sigma**2. /  ( sigma**2. + 0.13 ) * (1.0 - np.cos(phirad) * (2.*beta/np.pi)**2. )
+
+    BRDF = BRDF1 + BRDF2
+    
+    return BRDF
