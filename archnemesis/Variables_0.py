@@ -327,6 +327,8 @@ class Variables_0:
                 nxvar[i] = 1
             elif imod==110:
                 nxvar[i] = 1
+            elif imod==111:
+                nxvar[i] = 3
             elif imod == 228:
                 nxvar[i] = 8
             elif imod == 229:
@@ -1045,6 +1047,37 @@ class Variables_0:
                     x0[ix] = float(tmp[0])
                     sx[ix,ix] = float(tmp[1])**2.
                     lx[ix] = 0
+                    inum[ix] = 1
+                    ix = ix + 1
+                    
+                if varident[i,2] == 111:
+#               ******** model for Venus cloud and SO2 vmr profile with altitude offset
+                
+                    if varident[i,0]>0:
+                        raise ValueError('error in read_apr model 111 :: VARIDENT[0] must be negative to be associated with the aerosols')
+                
+                    tmp = np.fromfile(f,sep=' ',count=2,dtype='float')   #z_offset
+                    x0[ix] = float(tmp[0])
+                    sx[ix,ix] = float(tmp[1])**2.
+                    lx[ix] = 0
+                    inum[ix] = 1
+                    ix = ix + 1
+                    
+                    tmp = np.fromfile(f,sep=' ',count=2,dtype='float')   #SO2_deep
+                    so2_deep = float(tmp[0])
+                    so2_deep_err = float(tmp[1])
+                    x0[ix] = np.log(so2_deep)
+                    sx[ix,ix] = (so2_deep_err/so2_deep)**2.
+                    lx[ix] = 1
+                    inum[ix] = 1
+                    ix = ix + 1
+                    
+                    tmp = np.fromfile(f,sep=' ',count=2,dtype='float')   #SO2_top
+                    so2_top = float(tmp[0])
+                    so2_top_err = float(tmp[1])
+                    x0[ix] = np.log(so2_top)
+                    sx[ix,ix] = (so2_top_err/so2_top)**2.
+                    lx[ix] = 1
                     inum[ix] = 1
                     ix = ix + 1
 

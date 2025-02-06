@@ -1473,6 +1473,19 @@ class ForwardModel_0:
                 self.AtmosphereX = model110(self.AtmosphereX,idust0,offset)
                 
                 ix = ix + self.Variables.NXVAR[ivar]
+                
+            elif self.Variables.VARIDENT[ivar,2]==111:
+#           Model 110. Venus cloud model and SO2 vmr profile with altitude offset
+#           ************************************************************************************  
+              
+                offset = self.Variables.XN[ix]   #altitude offset in km
+                so2_deep = np.exp(self.Variables.XN[ix+1])   #SO2 vmr below the cloud
+                so2_top = np.exp(self.Variables.XN[ix+2])   #SO2 vmr above the cloud
+                
+                idust0 = np.abs(self.Variables.VARIDENT[ivar,0])-1  #Index of the first cloud mode                
+                self.AtmosphereX = model111(self.AtmosphereX,idust0,so2_deep,so2_top,offset)
+                
+                ix = ix + self.Variables.NXVAR[ivar]
 
             elif self.Variables.VARIDENT[ivar,0]==228:
 #           Model 228. Retrieval of instrument line shape for ACS-MIR and wavelength calibration

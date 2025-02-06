@@ -1341,6 +1341,194 @@ def model110(atm, idust0, z_offset):
     return atm
 
 
+#################################################################################################################################
+
+def model111(atm, idust0, so2_deep, so2_top, z_offset):
+    """
+        FUNCTION NAME : model111()
+        
+        DESCRIPTION :
+        
+            Function defining the model parameterisation 111.
+            
+            This is a parametersiation for the Venus cloud following the model of Haus et al. (2016) (same as model 110),
+            but also includes a parametersiation for the SO2 profiles, whose mixing ratio is tightly linked to the
+            altitude of the cloud.
+            
+            In this model, the cloud is made of a mixture of H2SO2+H2O droplets, with four different modes, and we allow the 
+            variation of the cloud altitude. The units of the aerosol density are in m-3, so the extinction coefficients must 
+            not be normalised.
+            
+            In the case of the SO2 profile, it is tightly linked to the altitude of the cloud, as the mixing ratio
+            of these species greatly decreases within the cloud due to condensation and photolysis. This molecule is
+            modelled by defining its mixing ratio below and above the cloud, and the mixing ratio is linearly interpolated in
+            log-scale within the cloud.
+        
+        INPUTS :
+        
+            atm :: Python class defining the atmosphere
+
+            idust0 :: Index of the first aerosol population in the atmosphere class to be changed,
+                      but it will indeed affect four aerosol populations.
+                      Thus atm.NDUST must be at least 4.
+                      
+            so2_deep :: SO2 volume mixing ratio below the cloud
+            so2_top :: SO2 volume mixing ratio above the cloud
+                        
+            z_offset :: Offset in altitude (km) of the cloud with respect to the Haus et al. (2016) model.
+        
+        OUTPUTS :
+        
+            atm :: Updated atmospheric class
+            xmap(1,ngas+2+ncont,npro) :: Matrix of relating derivatives to 
+                                             elements in state vector
+        
+        CALLING SEQUENCE:
+        
+            atm,xmap = model111(atm,idust0,so2_deep,so2_top,z_offset)
+        
+        MODIFICATION HISTORY : Juan Alday (29/03/2021)
+        
+    """
+
+    h = atm.H/1.0e3
+    nh = len(h)
+    
+    if atm.NDUST<idust0+4:
+        raise ValueError('error in model 111 :: The cloud model requires at least 4 modes')
+
+    iSO2 = np.where( (atm.ID==9) & (atm.ISO==0) )[0]
+    if len(iSO2)==0:
+        raise ValueError('error in model 111 :: SO2 must be defined in atmosphere class')
+    else:
+        iSO2 = iSO2[0]
+
+    #Cloud mode 1
+    ###################################################
+    
+    zb1 = 49. + z_offset #Lower base of peak altitude (km)
+    zc1 = 16.            #Layer thickness of constant peak particle (km)
+    Hup1 = 3.5           #Upper scale height (km)
+    Hlo1 = 1.            #Lower scale height (km)
+    n01 = 193.5          #Particle number density at zb (cm-3)
+    
+    N1 = 3982.04e5       #Total column particle density (cm-2)
+    tau1 = 3.88          #Total column optical depth at 1 um
+    
+    n1 = np.zeros(nh)
+    
+    ialt1 = np.where(h<zb1)
+    ialt2 = np.where((h<=(zb1+zc1)) & (h>=zb1))
+    ialt3 = np.where(h>(zb1+zc1))
+    
+    n1[ialt1] = n01 * np.exp( -(zb1-h[ialt1])/Hlo1 )
+    n1[ialt2] = n01
+    n1[ialt3] = n01 * np.exp( -(h[ialt3]-(zb1+zc1))/Hup1 )
+    
+    #Cloud mode 2
+    ###################################################
+    
+    zb2 = 65. + z_offset  #Lower base of peak altitude (km)
+    zc2 = 1.0             #Layer thickness of constant peak particle (km)
+    Hup2 = 3.5            #Upper scale height (km)
+    Hlo2 = 3.             #Lower scale height (km)
+    n02 = 100.            #Particle number density at zb (cm-3)
+    
+    N2 = 748.54e5         #Total column particle density (cm-2)
+    tau2 = 7.62           #Total column optical depth at 1 um
+    
+    n2 = np.zeros(nh)
+    
+    ialt1 = np.where(h<zb2)
+    ialt2 = np.where((h<=(zb2+zc2)) & (h>=zb2))
+    ialt3 = np.where(h>(zb2+zc2))
+    
+    n2[ialt1] = n02 * np.exp( -(zb2-h[ialt1])/Hlo2 )
+    n2[ialt2] = n02
+    n2[ialt3] = n02 * np.exp( -(h[ialt3]-(zb2+zc2))/Hup2 )
+    
+    #Cloud mode 2'
+    ###################################################
+    
+    zb2p = 49. + z_offset   #Lower base of peak altitude (km)
+    zc2p = 11.              #Layer thickness of constant peak particle (km)
+    Hup2p = 1.0             #Upper scale height (km)
+    Hlo2p = 0.1             #Lower scale height (km)
+    n02p = 50.              #Particle number density at zb (cm-3)
+    
+    N2p = 613.71e5          #Total column particle density (cm-2)
+    tau2p = 9.35            #Total column optical depth at 1 um
+    
+    n2p = np.zeros(nh)
+    
+    ialt1 = np.where(h<zb2p)
+    ialt2 = np.where((h<=(zb2p+zc2p)) & (h>=zb2p))
+    ialt3 = np.where(h>(zb2p+zc2p))
+    
+    n2p[ialt1] = n02p * np.exp( -(zb2p-h[ialt1])/Hlo2p )
+    n2p[ialt2] = n02p
+    n2p[ialt3] = n02p * np.exp( -(h[ialt3]-(zb2p+zc2p))/Hup2p )
+    
+    #Cloud mode 3
+    ###################################################
+    
+    zb3 = 49. + z_offset    #Lower base of peak altitude (km)
+    zc3 = 8.                #Layer thickness of constant peak particle (km)
+    Hup3 = 1.0              #Upper scale height (km)
+    Hlo3 = 0.5              #Lower scale height (km)
+    n03 = 14.               #Particle number density at zb (cm-3)
+    
+    N3 = 133.86e5           #Total column particle density (cm-2)
+    tau3 = 14.14            #Total column optical depth at 1 um
+    
+    n3 = np.zeros(nh)
+    
+    ialt1 = np.where(h<zb3)
+    ialt2 = np.where((h<=(zb3+zc3)) & (h>=zb3))
+    ialt3 = np.where(h>(zb3+zc3))
+    
+    n3[ialt1] = n03 * np.exp( -(zb3-h[ialt1])/Hlo3 )
+    n3[ialt2] = n03
+    n3[ialt3] = n03 * np.exp( -(h[ialt3]-(zb3+zc3))/Hup3 )
+    
+    
+    new_dust = np.zeros((atm.NP,atm.NDUST))
+    
+    new_dust[:,:] = atm.DUST[:,:]
+    new_dust[:,idust0] = n1[:] * 1.0e6 #Converting from cm-3 to m-3
+    new_dust[:,idust0+1] = n2[:] * 1.0e6
+    new_dust[:,idust0+2] = n2p[:] * 1.0e6
+    new_dust[:,idust0+3] = n3[:] * 1.0e6
+    
+    atm.edit_DUST(new_dust)
+    
+    
+    #SO2 vmr profile
+    ####################################################
+    
+    cloud_bottom = zb1
+    cloud_top = zb1 + 20. #Assuming the cloud extends 20 km above the base
+    SO2grad = (np.log(so2_top)-np.log(so2_deep))/(cloud_top-cloud_bottom)  #dVMR/dz (km-1)
+    
+    #Calculating SO2 profile
+    so2 = np.zeros(nh)
+    ibelow = np.where(h<cloud_bottom)[0]
+    iabove = np.where(h>cloud_top)[0]
+    icloud = np.where((h>=cloud_bottom) & (h<=cloud_top))[0]
+    
+    so2[ibelow] = so2_deep
+    so2[iabove] = so2_top
+    so2[icloud] = np.exp(np.log(so2_deep) + SO2grad*(h[icloud]-cloud_bottom))
+    
+    #Updating SO2 profile in atmosphere class
+    atm.update_gas(9,0,so2)
+    
+    return atm
+
+
+
+
+
 ###############################################################################################
 
 def model228(Measurement,Spectroscopy,V0,C0,C1,C2,P0,P1,P2,P3,MakePlot=False):
