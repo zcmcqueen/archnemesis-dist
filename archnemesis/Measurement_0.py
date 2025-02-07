@@ -3315,10 +3315,10 @@ def lblconvg_fil_ngeom(nwave,vwave,y,dydx,nconv,vconv,nfil,vfil,afil):
 
 ###############################################################################################
 @jit(nopython=True)
-def lblconvg_fill(nwave,vwave,y,dydx,nconv,vconv,nfil,vfil,afil):
+def lblconvg_fil(nwave,vwave,y,dydx,nconv,vconv,nfil,vfil,afil):
 
     """
-        FUNCTION NAME : lblconvg_fill()
+        FUNCTION NAME : lblconvg_fil()
         
         DESCRIPTION : Convolve the modelled spectrum and gradients with a given instrument line shape.
                       In this case, the line shape is defined by ISHAPE and FWHM.
@@ -3347,7 +3347,7 @@ def lblconvg_fill(nwave,vwave,y,dydx,nconv,vconv,nfil,vfil,afil):
 
         CALLING SEQUENCE:
         
-            yout,dyoutdx = lblconvg_fill(nwave,vwave,y,dydx,nconv,vconv,ishape,fwhm)
+            yout,dyoutdx = lblconvg_fil(nwave,vwave,y,dydx,nconv,vconv,ishape,fwhm)
         
         MODIFICATION HISTORY : Juan Alday (29/04/2021)
         
@@ -3372,7 +3372,7 @@ def lblconvg_fill(nwave,vwave,y,dydx,nconv,vconv,nfil,vfil,afil):
         #Line shape for each convolution number in each case is read from .fil file
         for j in range(nconv):
             v1 = vfil[0,j]
-            v2 = vfil[self.NFIL[j]-1,j]
+            v2 = vfil[nfil[j]-1,j]
             #Find relevant points in tabulated files
             inwave1 = np.where( (vwave>=v1) & (vwave<=v2) )
             inwave = inwave1[0]
