@@ -210,17 +210,15 @@ class ForwardModel_0:
 
         from copy import copy, deepcopy
         
+        #Errors and checks
         if self.Atmosphere.NLOCATIONS!=1:
             raise ValueError('error in nemesisfm :: archNEMESIS has not been setup for dealing with multiple locations yet')
             
         if self.Surface.NLOCATIONS!=1:
             raise ValueError('error in nemesisfm :: archNEMESIS has not been setup for dealing with multiple locations yet')
 
-        #Estimating the number of calculations that will need to be computed to model the spectra
-        #included in the Measurement class (taking into account al geometries and averaging points)
-        NCALC = np.sum(self.Measurement.NAV)
-        
-        
+        self.check_gas_spec_atm()
+
         
         SPECONV = np.zeros(self.Measurement.MEAS.shape) #Initalise the array where the spectra will be stored (NWAVE,NGEOM)
         for IGEOM in range(self.Measurement.NGEOM):
@@ -371,11 +369,16 @@ class ForwardModel_0:
 
         from copy import deepcopy
         
+        #Errors and checks
         if self.Atmosphere.NLOCATIONS!=1:
             raise ValueError('error in nemesisfm :: archNEMESIS has not been setup for dealing with multiple locations yet')
             
         if self.Surface.NLOCATIONS!=1:
             raise ValueError('error in nemesisfm :: archNEMESIS has not been setup for dealing with multiple locations yet')
+
+        self.check_gas_spec_atm()
+        
+        
 
         #Estimating the number of calculations that will need to be computed to model the spectra
         #included in the Measurement class (taking into account al geometries and averaging points)
@@ -542,6 +545,9 @@ class ForwardModel_0:
         self.CIAX = deepcopy(self.CIA)
         flagh2p = False
 
+        #Errors and checks
+        self.check_gas_spec_atm()
+
         #Setting up flag not to re-compute levels based on hydrostatic equilibrium (unless pressure or tangent altitude are retrieved)
         self.adjust_hydrostat = False
 
@@ -660,6 +666,9 @@ class ForwardModel_0:
         self.SpectroscopyX = deepcopy(self.Spectroscopy)
         self.CIAX = deepcopy(self.CIA)
         flagh2p = False
+
+        #Errors and checks
+        self.check_gas_spec_atm()
 
         #Setting up flag not to re-compute levels based on hydrostatic equilibrium (unless pressure or tangent altitude are retrieved)
         self.adjust_hydrostat = False
@@ -803,6 +812,9 @@ class ForwardModel_0:
         self.CIAX = deepcopy(self.CIA)
         flagh2p = False
 
+        #Errors and checks
+        self.check_gas_spec_atm()
+
         #Setting up flag not to re-compute levels based on hydrostatic equilibrium (unless pressure or tangent altitude are retrieved)
         self.adjust_hydrostat = True
 
@@ -879,6 +891,9 @@ class ForwardModel_0:
 
         from copy import copy
         
+        #Errors and checkcs
+        self.check_gas_spec_atm()
+        
         #Checking that all FLAT and FLON points exist in the Atmosphere and Surface
         for iGEOM in range(self.Measurement.NGEOM):
             for iAV in range(self.Measurement.NAV[iGEOM]):
@@ -891,8 +906,6 @@ class ForwardModel_0:
                 
                     if len(iex)==0:
                         raise ValueError('error in nemesisMAPfm :: All FLAT/FLON points for the forward model must coincide with the locations in Atmosphere and Surface')
-                    
-                
                     
         #Calculating a forward model for each LOCATION on the planet
         SPEC = np.zeros((self.Measurement.NWAVE,self.Atmosphere.NLOCATIONS))  #Modelled spectra at each of the locations
