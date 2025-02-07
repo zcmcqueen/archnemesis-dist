@@ -93,6 +93,7 @@ class Atmosphere_0:
         Atmosphere_0.calc_radius()
         Atmosphere_0.calc_grav()
 
+        Atmosphere_0.locate_gas()
         Atmosphere_0.add_gas()
         Atmosphere_0.remove_gas()
         Atmosphere_0.update_gas()
@@ -836,7 +837,7 @@ class Atmosphere_0:
                 alt0 = self.H[ialt,iLOC]
                 if ( (alt0>htan[iLOC]) & (ialt>0)):
                     ialt = ialt -1
-
+                
                 #Calculating the gravity at each altitude level
                 self.calc_grav()
 
@@ -989,6 +990,20 @@ class Atmosphere_0:
 
                 #Re-Calculate the gravity at each altitude level
                 self.calc_grav()
+
+    ##################################################################################
+
+    def locate_gas(self,gasID,isoID):
+        """
+        Subroutine to locate a gas in the reference atmosphere
+            gasID :: Radtran ID of the gas
+            isoID :: Radtran isotopologue ID of the gas
+        """
+
+        for i, (id_val, iso_val) in enumerate(zip(self.ID, self.ISO)):
+            if id_val == gasID and iso_val == isoID:
+                return i
+        return None
 
     ##################################################################################
 
@@ -1522,7 +1537,6 @@ class Atmosphere_0:
             #Integrate the number density as a function of altitude (m-2)
             par_coldens = integrate.simpson(par_numdens[:,:],x=self.H[:],axis=0)
             
-        
         return par_coldens
         
     ##################################################################################
