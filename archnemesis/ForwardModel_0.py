@@ -128,6 +128,7 @@ class ForwardModel_0:
             ForwardModel_0.calc_tau_dust()
             ForwardModel_0.calc_tau_gas()
             ForwardModel_0.calc_tau_rayleigh()
+            ForwardModel_0.calc_brdf_matrix()
 
         Multiple scattering routines
         ###########################################
@@ -135,6 +136,11 @@ class ForwardModel_0:
             ForwardModel_0.scloud11wave()
             ForwardModel_0.scloud11flux()
             ForwardModel_0.streamflux()
+            
+        Error checks
+        ###########################################
+
+            ForwardModel_0.check_gas_spec_atm()
 
         """
 
@@ -4323,7 +4329,7 @@ class ForwardModel_0:
         SPEC = np.transpose(SPEC, (2, 1, 0))
         return SPEC
 
-###############################################################################################
+    ###############################################################################################
     def scloud11flux(self,Scatter,Surface,Layer,Measurement,SOLAR,diffuse=True):
         """
         Compute and return internal radiation fields in a scattering atmosphere
@@ -4760,7 +4766,7 @@ class ForwardModel_0:
 
         return Umifout,Uplfout
 
-###############################################################################################
+    ###############################################################################################
     def streamflux(self,NLAY,NMU,MU,WTMU,Umif,Uplf):
         """
         Subroutine to calculate the upward and downward flux in the boundaries of each layer.
@@ -4823,9 +4829,7 @@ class ForwardModel_0:
         return fup,fdown
 
 
-
-
-###############################################################################################
+    ###############################################################################################
     def calc_phase_matrix_v2(self,Scatter,WAVE,normalise=True):
         """
 
@@ -4992,7 +4996,7 @@ class ForwardModel_0:
 
         return PPLPL,PPLMI
 
-###############################################################################################
+    ###############################################################################################
     def calc_phase_matrix(self,Scatter,WAVE):
         """
 
@@ -5098,7 +5102,7 @@ class ForwardModel_0:
 
         return PPLPL,PPLMI
 
-###############################################################################################
+    ###############################################################################################
     def calc_layer_scatt_matrix(self,WAVE,Layer):
         """
 
@@ -5148,7 +5152,7 @@ class ForwardModel_0:
         if diffuse==False:
             OMEGA[:,:,:] = 0.0  #No scattering if diffuse component is turned off
 
-###############################################################################################
+    ###############################################################################################
     def calc_brdf_matrix(self,WAVEC=None,Scatter=None,Surface=None):
         """
         Calculate the Bidirectional Reflectance Distribution Function (BRDF) of the surface
@@ -5230,6 +5234,28 @@ class ForwardModel_0:
                         ix += 1
 
         return BRDF_mat
+
+
+    ###############################################################################################
+    ###############################################################################################
+    # ERROR CHECKS
+    ###############################################################################################
+    ###############################################################################################
+
+    ###############################################################################################
+
+    def check_gas_spec_atm(self):
+        """
+        Check whether the gases in the Spectroscopy class are present in the Atmosphere
+        """
+        
+        for icase in range(self.SpectroscopyX.NGAS):
+            gasID = self.SpectroscopyX.ID[icase]
+            isoID = self.SpectroscopyX.ISO[icase]
+            
+            if not any(id_val == gasID and iso_val == isoID for id_val, iso_val in zip(self.AtmosphereX.ID, self.AtmosphereX.ISO)):
+                raise ValueError(f"error in check_gas_spec_atm :: No match found for gasID={gasID} and isoID={isoID} from Spectroscopy in Atmosphere")
+
 
 #END OF FORWARD MODEL CLASS
 
