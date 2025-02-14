@@ -15,7 +15,7 @@ This section includes Jupyter notebooks with examples showing how to use the dif
    examples/create_UV_lta/create_UV_lta.ipynb
    examples/lookup_tables/lookup_tables.ipynb
    examples/cia_archnemesis/convert_cia_nemesis.ipynb
-
+   examples/stellar/noaa_solar_spectrum.ipynb
 
 
 Forward models
