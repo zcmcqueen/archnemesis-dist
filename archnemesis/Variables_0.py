@@ -18,7 +18,7 @@ Model variables Class.
 
 class Variables_0:
 
-    def __init__(self, NVAR=2, NPARAM=10, NX=10, JPRE=-1, JTAN=-1, JSURF=-1, JALB=-1, JXSC=-1, JRAD=-1, JLOGG=-1, JFRAC=-1, Fortran = False):
+    def __init__(self, NVAR=2, NPARAM=10, NX=10, JPRE=-1, JTAN=-1, JSURF=-1, JALB=-1, JXSC=-1, JRAD=-1, JLOGG=-1, JFRAC=-1):
 
         """
         Inputs
@@ -106,7 +106,6 @@ class Variables_0:
         self.JRAD = JRAD
         self.JLOGG = JLOGG
         self.JFRAC = JFRAC
-        self.Fortran = Fortran
         
         
         # Input the following profiles using the edit_ methods.
@@ -593,7 +592,6 @@ class Variables_0:
                                 sx[ix+j,ix+k] = np.sqrt(sx[ix+j,ix+j]*sx[ix+k,ix+k])*xfac
                                 sx[ix+k,ix+j] = sx[ix+j,ix+k]
                                 
-                    varparam[i,0] = self.Fortran
                     ix = ix + nlevel
 
 
@@ -638,7 +636,6 @@ class Variables_0:
                             if xfac >= sxminfac:
                                 sx[ix+j,ix+k] = np.sqrt(sx[ix+j,ix+j]*sx[ix+k,ix+k])*xfac
                                 sx[ix+k,ix+j] = sx[ix+j,ix+k]
-                    varparam[i,0] = self.Fortran
                     ix = ix + nlevel
 
                 elif varident[i,2] == 1:

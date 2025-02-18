@@ -403,7 +403,7 @@ def read_bestfit_hdf5(runname):
 
 ###############################################################################################
 
-def read_input_files(runname,Fortran=True):
+def read_input_files(runname):
 
     """
         FUNCTION NAME : read_input_files()
@@ -416,9 +416,7 @@ def read_input_files(runname,Fortran=True):
       
             runname :: Name of the NEMESIS run
 
-        OPTIONAL INPUTS:
-        
-            Fortran :: If True, it changes the units of the aerosol.ref from particles per gram to m-3
+        OPTIONAL INPUTS: None
         
         OUTPUTS : 
 
@@ -442,7 +440,7 @@ def read_input_files(runname,Fortran=True):
     #Initialise Atmosphere class and read file (.ref, aerosol.ref)
     ##############################################################
 
-    Atm = Atmosphere_0(runname=runname,Fortran=Fortran)
+    Atm = Atmosphere_0(runname=runname)
 
     #Read gaseous atmosphere
     Atm.read_ref()
@@ -455,16 +453,6 @@ def read_input_files(runname,Fortran=True):
     
     #Read .vpf
     Atm.read_vpf()
-    
-    if Fortran==True:
-        
-        #Calculating the atmospheric density (kg/m3)
-        rho = Atm.calc_rho()
-        
-        #If the aerosol.ref is written from Fortran the units are in particles per gram of atmosphere
-        #We need to change them to m-3
-        for icont in range(Atm.NDUST):
-            Atm.DUST[:,icont] = Atm.DUST[:,icont] * 1000. * rho[:]   #m-3
 
     #Reading .set file and starting Scatter, Stellar, Surface and Layer Classes
     #############################################################################
@@ -588,7 +576,7 @@ def read_input_files(runname,Fortran=True):
     #Reading .apr file and Variables Class
     #################################################################
 
-    Variables = Variables_0(Fortran=Fortran)
+    Variables = Variables_0()
     Variables.read_apr(runname,Atm.NP)
     Variables.XN = copy(Variables.XA)
     Variables.SX = copy(Variables.SA)

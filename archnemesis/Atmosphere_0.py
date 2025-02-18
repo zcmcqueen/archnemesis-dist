@@ -1331,15 +1331,6 @@ class Atmosphere_0:
         if self.NLOCATIONS!=1:
             raise ValueError('error :: read_aerosol only works if NLOCATIONS=1')
             
-            
-        #Check if the density can be calculated
-        if((self.T is not None) & (self.P is not None)):
-            rho = self.calc_rho()  #kg/m3
-            xscale = rho * 1000.
-        else:
-            xscale = 1.
-            print('warning :: reading aerosol.ref file but density is not define. Units of Atmosphere_0.DUST are in particles per gram of atmosphere')
-            
         #Checking if there are lines starting with #
         with open('aerosol.ref', 'r') as file:
             
@@ -1351,7 +1342,6 @@ class Atmosphere_0:
                 else:
                     break
                 
-
         #Opening file
         f = open('aerosol.ref','r')
 
@@ -1371,7 +1361,7 @@ class Atmosphere_0:
             tmp = np.fromfile(f,sep=' ',count=naero+1,dtype='float')
             height[i] = tmp[0]
             for j in range(naero):
-                aerodens[i,j] = tmp[j+1]
+                aerodens[i,j] = tmp[j+1]  #particle per gram of atm
 
         #Storing the results into the atmospheric class
         if self.NP==None:
@@ -1383,13 +1373,11 @@ class Atmosphere_0:
         #Filling the information into the class
         self.NP = npro
         self.NDUST = naero
-        if self.Fortran:
-            self.DUST_UNITS_FLAG = -1*np.ones(self.NDUST)
-        else:
-            self.DUST_UNITS_FLAG = np.zeros(self.NDUST)
         if self.H is None:
             self.edit_H(height*1.0e3)   #m
-        self.edit_DUST((aerodens.T*xscale).T)    #particles m-3
+
+        self.DUST_UNITS_FLAG = -1*np.ones(self.NDUST)  #if reading from the NEMESIS files units are assumed to be particles per gram of atm
+        self.edit_DUST(aerodens)    #particles per gram of atm
 
     ##################################################################################
 
