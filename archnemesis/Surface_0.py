@@ -917,7 +917,7 @@ class Surface_0:
         If GALB<0.0 then the Lambert albedo is calculated from the surface emissivity
         """
 
-        if self.GALB>0.0:
+        if self.GALB>=0.0:
             ALBEDO = np.ones(self.NEM)*self.GALB
         else:
             ALBEDO = np.zeros(self.NEM)
