@@ -1226,7 +1226,7 @@ def calc_Hapke_BRDF(w,K,BS0,hs,BC0,hc,ROUGHNESS,G1,G2,F,i,e,phi):
     Calculate the bidirectional-reflectance distribution function for a Hapke surface.
     The method used here is described in Hapke (2012): Theory of Reflectance and Emittance
     Spectroscopy, in chapter 12.3.1 (disk-resolved photometry)
-
+    
     Inputs
     ______
 
@@ -1263,11 +1263,16 @@ def calc_Hapke_BRDF(w,K,BS0,hs,BC0,hc,ROUGHNESS,G1,G2,F,i,e,phi):
     
 #@njit(fastmath=True)
 @conditional_jit(nopython=True)
-def calc_Hapke_BRDFx(w,K,BS0,hs,BC0,hc,ROUGHNESS,G1,G2,F,i,e,phi):
+def calc_Hapke_BRDFx(w,K,BS0,hs,BC0,hc,ROUGHNESS,G1,G2,F,i,e,phi_nemesis):
     """
     Calculate the bidirectional-reflectance distribution function for a Hapke surface.
     The method used here is described in Hapke (2012): Theory of Reflectance and Emittance
     Spectroscopy, in chapter 12.3.1 (disk-resolved photometry)
+    
+    Note that in the Hapke model the azimuth angle is defined opposite to NEMESIS.
+    In NEMESIS forward scattering is phi=0 and backward scattering is phi=180.
+    In Hapke forward scattering is phi=180 and backward scattering is phi=0.
+    This is why we need to change the azimuth angle in the Hapke model to be consistent with NEMESIS.
 
     Inputs
     ______
@@ -1287,6 +1292,8 @@ def calc_Hapke_BRDFx(w,K,BS0,hs,BC0,hc,ROUGHNESS,G1,G2,F,i,e,phi):
     
     """
 
+    phi = 180. - phi_nemesis  #Changing the azimuth angle to be consistent with Hapke model
+
     if( (e>=90.) or (i>=90.) ):
     
         BRDF = 0.0
@@ -1300,24 +1307,25 @@ def calc_Hapke_BRDFx(w,K,BS0,hs,BC0,hc,ROUGHNESS,G1,G2,F,i,e,phi):
         #Correcting the azimuth angle to be within 0-180 degrees
         if phi>180.:
             phix = 180. - (phi-180.)
+        elif phi<0.:
+            phix = -phi
         else:
             phix = phi
             
-        #Calculating the scattering phase angle
+        #Calculating the phase angle
         cg = mu * mu0 + np.sqrt(1. - mu**2.) * np.sqrt(1. - mu0**2.) * np.cos(phix/180.*np.pi) 
         if cg>1.0:
             cg = 1.0
         if cg<0.0:
             cg = 0.0
-        g = np.arccos(cg)/np.pi*180.   #Scattering phase angle (degrees) (NTHETA)
-        
+        g = np.arccos(cg)/np.pi*180.   #Phase angle (degrees) (NTHETA)
         
         #Calculate some of the input parameters for the Hapke formalism
         gamma = np.sqrt(1. - w)
         r0 = (1. - gamma)/(1. + gamma)
         theta_bar = ROUGHNESS * (1. - r0)
         chi = 1./np.sqrt(1. + np.pi * np.tan(theta_bar/180.*np.pi)**2.)
-        if phi==180.:
+        if np.abs(phix)==180.:
             fphi = 0.0
         else:
             fphi = np.exp(-2.*np.abs(np.tan(phix/2./180.*np.pi)))  #f(phi)
@@ -1355,7 +1363,10 @@ def calc_Hapke_BRDFx(w,K,BS0,hs,BC0,hc,ROUGHNESS,G1,G2,F,i,e,phi):
         phase = calc_Hapke_hgphase(g,G1,G2,F)
 
         #Calculating the bidirectional reflectance
-        BRDF = K * w / (4.*np.pi) * mu0eff / (mu0eff + mueff) * ( phase*(1.+Bs) + (H0e*He-1.) ) * (1.+Bc) * S
+        r = K * w / (4.*np.pi) * mu0eff / (mu0eff + mueff) * ( phase*(1.+Bs) + (H0e*He-1.) ) * (1.+Bc) * S
+        
+        #Dividing the BRDF by the cosine of the incidence angle to account for the relation r(i,e,phi) = BRDF(i,e,phi) * cos(i)
+        BRDF = r / np.cos(i/180.*np.pi)
 
     return BRDF
 

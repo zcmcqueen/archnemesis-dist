@@ -5305,10 +5305,11 @@ class ForwardModel_0:
                             elif k==Scatter.NPHI:
                                 wphi = 0.5*dphi
 
-                            if ic==0:
-                                wphi = wphi/(2.0*np.pi)
-                            else:
-                                wphi = wphi/np.pi
+                            #if ic==0:
+                            #    wphi = wphi/(2.0*np.pi)
+                            #else:
+                            #    wphi = wphi/np.pi
+                            wphi = wphi/(2.0*np.pi)
 
                             BRDF_mat[:,i,j,ic] += wphi * BRDF[:,ix] * np.cos(ic*phi)
 
@@ -7089,7 +7090,7 @@ def calc_singlescatt_plane_spectrum(ISPACE,WAVE,TAUTOT_PATH,TEMP,OMEGA,PHASE,TSU
                 tr = np.exp(-taud)
                 
                 #Scattering contribution
-                specg += (trold-tr)*ssfac*omega_lay*phase_lay*SOLFLUX[iwave]/(4.*np.pi) * (8.*np.pi)
+                specg += (trold-tr)*ssfac*omega_lay*phase_lay*SOLFLUX[iwave]/(4.*np.pi) 
                 
                 #Thermal emission contribution
                 bb = planck(ISPACE,WAVE[iwave],TEMP[j])
