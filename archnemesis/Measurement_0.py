@@ -798,8 +798,8 @@ class Measurement_0:
             fspx.write('\t %i \n' % (self.NAV[i]))
             for j in range(self.NAV[i]):
                 fspx.write('\t %7.4f \t %7.4f \t %7.4f \t %7.4f \t %7.4f \t %7.4f \t \n' % (self.FLAT[i,j],self.FLON[i,j],self.SOL_ANG[i,j],self.EMISS_ANG[i,j],self.AZI_ANG[i,j],self.WGEOM[i,j]))
-                for k in range(self.NCONV[i]):
-                    fspx.write('\t %10.5f \t %20.7f \t %20.7f \n' % (self.VCONV[k,i],self.MEAS[k,i],self.ERRMEAS[k,i]))
+            for k in range(self.NCONV[i]):
+                fspx.write('\t %10.5f \t %20.7e \t %20.7e \n' % (self.VCONV[k,i],self.MEAS[k,i],self.ERRMEAS[k,i]))
 
         fspx.close()
 
@@ -2545,8 +2545,6 @@ class Measurement_0:
 
             fig = plt.figure(figsize=(15,7))
 
-
-
             #Plotting the geometry
             ax1 = plt.subplot2grid((2,4),(0,0),rowspan=1,colspan=1)
             if((subobs_lat!=None) & (subobs_lon!=None)):
@@ -2567,8 +2565,6 @@ class Measurement_0:
             cax = divider.append_axes("bottom", size="5%", pad=0.15)
             cbar1 = plt.colorbar(im1,cax=cax,orientation='horizontal')
             cbar1.set_label('Weight')
-
-
 
 
 

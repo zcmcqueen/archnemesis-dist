@@ -469,6 +469,8 @@ def read_input_files(runname):
         Layer.H_base = hbase*1.0e3    #Base height of each layer (m)
     if Layer.LAYTYP==6:
         raise ValueError('error in read_input_files :: Need to read the press.lay file but not implemented yet')
+    
+    Layer.DUST_UNITS_FLAG = Atm.DUST_UNITS_FLAG
 
     #Reading .inp file and starting Measurement,Scatter and Spectroscopy classes
     #############################################################################

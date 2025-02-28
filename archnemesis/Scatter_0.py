@@ -191,9 +191,9 @@ class Scatter_0:
         assert np.issubdtype(type(self.ISCAT), np.integer) == True , \
             'ISCAT must be int'
         assert self.ISCAT >= 0 , \
-            'ISCAT must be >=0 and <=1'
-        assert self.ISCAT <= 1 , \
-            'ISCAT must be >=0 and <=1. In the future more options will be available'
+            'ISCAT must be >=0.'
+        assert self.ISCAT <= 3 , \
+            'ISCAT must be >=0 and <=3. In the future more options will be available'
 
         assert np.issubdtype(type(self.IRAY), np.integer) == True , \
             'IRAY must be int'
