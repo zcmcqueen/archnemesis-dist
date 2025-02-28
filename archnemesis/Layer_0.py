@@ -8,7 +8,7 @@ Object to store layering scheme settings and averaged properties of each layer.
 """
 class Layer_0:
     def __init__(self, RADIUS=None, LAYHT=0, LAYTYP=1, LAYINT=1, NLAY=20, NINT=101,
-                AMFORM=1, INTERTYP=1, LAYANG=0.0, H_base=None, P_base=None):
+                INTERTYP=1, LAYANG=0.0, H_base=None, P_base=None):
         """
         After creating a Layer object, call the method
             integrate(self, H, P, T, LAYANG, ID, VMR) to calculate
@@ -41,8 +41,6 @@ class Layer_0:
             Number of layers to split the atmosphere into. Default 20.
         @param NINT: int
             Number of integration points to be used if LAYINT=1.
-        @param AMFORM: int
-            Currently not used.
         @param INTERTYP: int
             Interger specifying interpolation scheme.  Default 1.
             1=linear, 2=quadratic spline, 3=cubic spline
@@ -82,6 +80,8 @@ class Layer_0:
             Matrix relating the gaseous abundances in each layer wrt those in the input profiles
         @param DCO: 2D array (NLAY,NP)
             Matrix relating the dust abundances in each layer wrt those in the input profiles
+        @param DPH: 2D array (NLAY,NP)
+            Matrix relating the para-H2 fractions in each layer wrt those in the input profiles
 
         @param TAURAY: 2D array (NWAVE,NLAY)
             Rayleigh scattering optical depth
@@ -118,7 +118,6 @@ class Layer_0:
         self.LAYINT = LAYINT
         self.NINT = NINT
         self.LAYHT = LAYHT
-        self.AMFORM = AMFORM
         self.INTERTYP = INTERTYP
         self.H_base = H_base
         self.P_base = P_base
@@ -141,6 +140,7 @@ class Layer_0:
         self.DTE = None        #(NLAY,NP)
         self.DAM = None        #(NLAY,NP)
         self.DCO = None        #(NLAY,NP)
+        self.DPH = None        #(NLAY,NP)
 
         #Optical depths in each layer
         self.NWAVE = None  #Number of calculation wavelengths
@@ -319,7 +319,7 @@ class Layer_0:
 
     ####################################################################################################
  
-    def calc_layering(self, H, P, T, ID, VMR, DUST, PARAH2):
+    def calc_layering(self, H, P, T, ID, VMR, DUST, PARAH2, MOLWT=None):
         """
         Function to split atmosphere into layer and calculate their effective properties.
         
@@ -334,23 +334,29 @@ class Layer_0:
             Input profile temperatures (K) 
         @param ID: 1D array (NVMR)
             Gas identifiers.
+        @param AMFORM: int
+            Flag indicating how the molecular weight should be calculated
+            AMFORM = 0: MOLWT is explicitly defined
+            AMFORM > 0: MOLWT is calculated internally based on IDs and VMRs 
         @param VMR: 2D array (NP,NVMR)
             VMR[i,j] is Volume Mixing Ratio of gas j at vertical point i
             the column j corresponds to the gas with RADTRANS ID ID[j].
         @param DUST: 2D array (NP,NDUST)
             DUST[i,j] is abundance of the dust population j at vertical point i
             the column j corresponds to the dust population.
+        @param MOLWT: 1D array (NP)
+            Molecular weight at each altitude level in kg mol-1 (only required if DUST_UNITS are in particles per gram of atm)
         """
         
         #Splitting the atmosphere into layers - Calculating the BASEH and BASEP of each layer
         self.layer_split(H=H, P=P, T=T, LAYANG=self.LAYANG)
         
         #Once we have the layers, we calculate the effective properties of each layer
-        self.layer_average(ID=ID, VMR=VMR, DUST=DUST, PARAH2=PARAH2)
+        self.layer_average(ID=ID, VMR=VMR, DUST=DUST, PARAH2=PARAH2, MOLWT=MOLWT)
 
     ####################################################################################################
 
-    def calc_layeringg(self, H, P, T, ID, VMR, DUST, PARAH2):
+    def calc_layeringg(self, H, P, T, ID, VMR, DUST, PARAH2, MOLWT=None):
         """
         
         Function to split atmosphere into layer and calculate their effective properties.
@@ -376,13 +382,15 @@ class Layer_0:
         @param DUST: 2D array
             DUST[i,j] is abundance of the dust population j at vertical point i
             the column j corresponds to the dust population.
+        @param MOLWT: 1D array (NP)
+            Molecular weight at each altitude level in kg mol-1 (only required if DUST_UNITS are in particles per gram of atm)
         """
         
         #Splitting the atmosphere into layers - Calculating the BASEH and BASEP of each layer
         self.layer_split(H=H, P=P, T=T, LAYANG=self.LAYANG)
         
         #Once we have the layers, we calculate the effective properties of each layer
-        self.layer_averageg(ID=ID, VMR=VMR, DUST=DUST, PARAH2=PARAH2)
+        self.layer_averageg(ID=ID, VMR=VMR, DUST=DUST, PARAH2=PARAH2, MOLWT=MOLWT)
 
     ####################################################################################################
 
@@ -415,7 +423,7 @@ class Layer_0:
 
     ####################################################################################################
 
-    def layer_average(self, ID, VMR, DUST, PARAH2):
+    def layer_average(self, ID, VMR, DUST, PARAH2, MOLWT=None):
         """
         Function to calculate the effective properties of each layer based on the
         layer boundaries, and the reference input profiles
@@ -431,14 +439,18 @@ class Layer_0:
         @param DUST: 2D array
             DUST[i,j] is abundance of the dust population j at vertical point i
             the column j corresponds to the dust population.
+        @param PARAH2: 1D array
+            Para-H2 fraction at each altitude level
+        @param MOLWT: 1D array
+            Molecular weight at each altitude level 
+            (only required if DUST_UNITS is in partcles per gram of atm)
         """
-        # get averaged layer properties
 
         HEIGHT,PRESS,TEMP,TOTAM,AMOUNT,PP,CONT,FRAC,DELH,BASET,LAYSF\
             = layer_average(RADIUS=self.RADIUS, H=self.H, P=self.P, T=self.T,
                 ID=ID, VMR=VMR, DUST=DUST, PARAH2=PARAH2, BASEH=self.BASEH, BASEP=self.BASEP,
                 LAYANG=self.LAYANG, LAYINT=self.LAYINT, LAYHT=self.LAYHT,
-                NINT=self.NINT, DUST_UNITS = self.DUST_UNITS_FLAG)
+                NINT=self.NINT, DUST_UNITS = self.DUST_UNITS_FLAG, XMOLWT=MOLWT)
         self.HEIGHT = HEIGHT
         self.PRESS = PRESS
         self.TEMP = TEMP
@@ -453,7 +465,7 @@ class Layer_0:
 
     ####################################################################################################
 
-    def layer_averageg(self, ID, VMR, DUST, PARAH2):
+    def layer_averageg(self, ID, VMR, DUST, PARAH2, MOLWT=None):
         """
         Function to calculate the effective properties of each layer based on the
         layer boundaries, and the reference input profiles. In addition, this function
@@ -471,13 +483,16 @@ class Layer_0:
         @param DUST: 2D array
             DUST[i,j] is abundance of the dust population j at vertical point i
             the column j corresponds to the dust population.
+        @param MOLWT: 1D array
+            Molecular weight at each altitude level 
+            (only required if DUST_UNITS is in partcles per gram of atm)
         """
         # get averaged layer properties
         HEIGHT,PRESS,TEMP,TOTAM,AMOUNT,PP,CONT,FRAC,DELH,BASET,LAYSF,DTE,DAM,DCO,DPH\
             = layer_averageg(RADIUS=self.RADIUS, H=self.H, P=self.P, T=self.T,
                 ID=ID, VMR=VMR, DUST=DUST, PARAH2=PARAH2, BASEH=self.BASEH, BASEP=self.BASEP,
                 LAYANG=self.LAYANG, LAYINT=self.LAYINT, LAYHT=self.LAYHT,
-                NINT=self.NINT)
+                NINT=self.NINT, DUST_UNITS = self.DUST_UNITS_FLAG, XMOLWT=MOLWT)
         self.HEIGHT = HEIGHT
         self.PRESS = PRESS
         self.TEMP = TEMP
@@ -628,7 +643,7 @@ def interpg(X_data, Y_data, X):
 #########################################################################################
 
 def layer_average(RADIUS, H, P, T, ID, VMR, DUST, PARAH2, BASEH, BASEP,
-                  LAYANG=0.0, LAYINT=0, LAYHT=0.0, NINT=101, AMFORM=1, DUST_UNITS=None):
+                  LAYANG=0.0, LAYINT=0, LAYHT=0.0, NINT=101, DUST_UNITS=None, XMOLWT=None):
     """
     Calculates average layer properties.
     Takes an atmosphere profile and a layering shceme specified by
@@ -669,11 +684,8 @@ def layer_average(RADIUS, H, P, T, ID, VMR, DUST, PARAH2, BASEH, BASEP,
         Height of the base of the lowest layer. Default 0.0.
     @param NINT: int
         Number of integration points to be used if LAYINT=1.
-    @param AMFORM: int,
-        Flag indicating how the molecular weight must be calculated:
-        0 - The mean molecular weight of the atmosphere is passed in XMOLWT
-        1 - The mean molecular weight of each layer is calculated (atmosphere previously adjusted to have sum(VMR)=1.0)
-        2 - The mean molecular weight of each layer is calculated (VMRs do not necessarily add up to 1.0)
+    @param XMOLWT: 1D array
+        Molecular weight vertical profile in kg mol-1 (only required if DUST_UNITS is activated)
 
     Returns
     -------
@@ -703,7 +715,7 @@ def layer_average(RADIUS, H, P, T, ID, VMR, DUST, PARAH2, BASEH, BASEP,
 
     from scipy.integrate import simpson
     from archnemesis.Data.gas_data import Calc_mmw
-
+    
     k_B = 1.38065e-23
 
     # Calculate layer geometric properties
@@ -738,6 +750,16 @@ def layer_average(RADIUS, H, P, T, ID, VMR, DUST, PARAH2, BASEH, BASEP,
     else:
         NDUST = len(DUST[0])
 
+    #Checking consistency of DUST_UNITS and XMOLWT
+    if DUST_UNITS is not None:
+        for j in range(NDUST):
+            if DUST_UNITS[j]==-1:
+                if XMOLWT is None:
+                    raise ValueError('error in layer_average :: if DUST_UNITS=-1 (particles per gram of atm), the XMOLWT must be defined')
+        XMOLWT *= 1000. #Converting to molecular weight in g mol-1
+    else:
+        XMOLWT = np.zeros(NPRO)
+    
     # HEIGHT = average layer height
     HEIGHT = np.zeros(NLAY)
     # PRESS = average layer pressure
@@ -753,9 +775,10 @@ def layer_average(RADIUS, H, P, T, ID, VMR, DUST, PARAH2, BASEH, BASEP,
     # PP = gas partial pressures
     PP     = np.zeros((NLAY, NVMR))
     # MOLWT = mean molecular weight
-    MOLWT  = np.zeros(NPRO)
+    MOLWT  = np.zeros(NLAY)
     # CONT = no. of particles/area for each dust population (particles/m2)
     CONT = np.zeros((NLAY,NDUST))
+    
     # FRAC = fraction of para-H2 in each layer
     FRAC   = np.zeros(NLAY)
     if PARAH2 is None:
@@ -772,8 +795,8 @@ def layer_average(RADIUS, H, P, T, ID, VMR, DUST, PARAH2, BASEH, BASEP,
         PRESS = interp(H,P,HEIGHT)
         TEMP = interp(H,T,HEIGHT)
         FRAC = interp(H,PARAH2,HEIGHT)
+        MOLWT = interp(H,XMOLWT,HEIGHT)
         
-
         # Ideal gas law: N/(Area*Path_length) = P/(k_B*T)
         DUDS = PRESS/(k_B*TEMP)
         TOTAM = DUDS*DELS
@@ -788,21 +811,27 @@ def layer_average(RADIUS, H, P, T, ID, VMR, DUST, PARAH2, BASEH, BASEP,
             AMOUNT = interp(H, VMR, HEIGHT)
             PP = AMOUNT * PRESS
             AMOUNT = AMOUNT * TOTAM
-            if AMFORM==0:
-                raise ValueError('error :: AMFORM=0 needs to be implemented in Layer.py')
-            else:
-                for I in range(NLAY):
-                    MOLWT[I] = Calc_mmw(VMR[I], ID)
 
         #Use the dust density information
         if DUST.ndim > 1:
             for J in range(NDUST):
                 DD = interp(H, DUST[:,J],HEIGHT)  
-                CONT[:,J] = DD * DELS
-
+                if DUST_UNITS is not None:
+                    if DUST_UNITS[J] == -1:  #dust units are particles per gram of atm
+                        CONT[:,J] =  DD * TOTAM * MOLWT / AVOGAD
+                    else:
+                         CONT[:,J] = DD * DELS  
+                else:  
+                    CONT[:,J] = DD * DELS
         else:
             DD = interp(H, DUST,HEIGHT)  
-            CONT = DD * DELS
+            if DUST_UNITS is not None:
+                if DUST_UNITS[0] == -1: #dust units are particles per gram of atm
+                    CONT =  DD * TOTAM * MOLWT / AVOGAD
+                else:
+                    CONT = DD * DELS
+            else:
+                CONT = DD * DELS
 
     elif LAYINT == 1:
         # Curtis-Godson equivalent path for a gas with constant mixing ratio
@@ -818,18 +847,19 @@ def layer_average(RADIUS, H, P, T, ID, VMR, DUST, PARAH2, BASEH, BASEP,
             p = interp(H,P,h)
             temp = interp(H,T,h)
             frac = interp(H,PARAH2,h)
+            molwt = interp(H,XMOLWT,h)
             
             duds = p/(k_B*temp)
 
             amount = np.zeros((NINT, NVMR))
-            molwt = np.zeros(NINT)
-
+            
             TOTAM[I] = simpson(duds,x=S)
             HEIGHT[I]  = simpson(h*duds,x=S)/TOTAM[I]
             PRESS[I] = simpson(p*duds,x=S)/TOTAM[I]
             TEMP[I]  = simpson(temp*duds,x=S)/TOTAM[I]
             FRAC[I]  = simpson(frac*duds,x=S)/TOTAM[I]
-
+            MOLWT[I] = simpson(molwt*duds,x=S)/TOTAM[I]
+            
             if VMR.ndim > 1:
                 amount = np.zeros((NINT, NVMR))
                 for J in range(NVMR):
@@ -838,41 +868,32 @@ def layer_average(RADIUS, H, P, T, ID, VMR, DUST, PARAH2, BASEH, BASEP,
                 pp = (amount.T * p).T     # gas partial pressures
                 for J in range(NVMR):
                     PP[I, J] = simpson(pp[:,J]*duds,x=S)/TOTAM[I]
-                
-                if AMFORM==0:
-                    raise ValueError('error :: AMFORM=0 needs to be implemented in Layer.py')
-                else:
-                    for K in range(NPRO):
-                        MOLWT[K] = Calc_mmw(VMR[K], ID)
             else:
                 amount = interp(H, VMR, h)
                 pp = amount * p
                 AMOUNT[I] = simpson(amount*duds,x=S)
                 PP[I] = simpson(pp*duds,x=S)/TOTAM[I]
-
-                if AMFORM==0:
-                    raise ValueError('error :: AMFORM=0 needs to be implemented in Layer.py')
-                else:
-                    for K in range(NPRO):
-                        MOLWT[K] = Calc_mmw(VMR[K], ID)
+                        
             if DUST.ndim > 1:
                 dd = np.zeros((NINT,NDUST))
                 for J in range(NDUST):
                     dd[:,J] = interp(H, DUST[:,J], h)
                     if DUST_UNITS is not None:
-                        if DUST_UNITS[J] == -1:
-                            CONT[I,J] = simpson(dd[:,J]*duds,x=S) * np.interp(I/NLAY,np.arange(NPRO)/NPRO,MOLWT) / AVOGAD
-                            continue
-                    CONT[I,J] = simpson(dd[:,J],x=S)
-                    
-                            
+                        if DUST_UNITS[J] == -1: #dust units are particles per gram of atm
+                            CONT[I,J] = simpson(dd[:,J]*duds*molwt/AVOGAD,x=S)
+                        else:
+                            CONT[I,J] = simpson(dd[:,J],x=S)
+                    else:
+                        CONT[I,J] = simpson(dd[:,J],x=S)     
             else:
                 dd = interp(H, DUST, h) 
                 if DUST_UNITS is not None:
-                    if DUST_UNITS[0] == -1:
-                        CONT[I] = simpson(dd*duds,x=S) * np.interp(I/NLAY,np.arange(NPRO)/NPRO,MOLWT) / AVOGAD
-                        continue
-                CONT[I] = simpson(dd,x=S)
+                    if DUST_UNITS[0] == -1: #dust units are particles per gram of atm
+                        CONT[I] = simpson(dd*duds*molwt/AVOGAD,x=S)
+                    else:
+                        CONT[I] = simpson(dd,x=S)
+                else:
+                    CONT[I] = simpson(dd,x=S)
             
     # Scale back to vertical layers
     TOTAM = TOTAM / LAYSF
@@ -890,7 +911,7 @@ def layer_average(RADIUS, H, P, T, ID, VMR, DUST, PARAH2, BASEH, BASEP,
 #########################################################################################
 
 def layer_averageg(RADIUS, H, P, T, ID, VMR, DUST, PARAH2, BASEH, BASEP,
-                  LAYANG=0.0, LAYINT=0, LAYHT=0.0, NINT=101, AMFORM=1):
+                  LAYANG=0.0, LAYINT=0, LAYHT=0.0, NINT=101, DUST_UNITS=None, XMOLWT=None):
     """
     Calculates average layer properties.
     Takes an atmosphere profile and a layering shceme specified by
@@ -931,11 +952,8 @@ def layer_averageg(RADIUS, H, P, T, ID, VMR, DUST, PARAH2, BASEH, BASEP,
         Height of the base of the lowest layer. Default 0.0.
     @param NINT: int
         Number of integration points to be used if LAYINT=1.
-    @param AMFORM: int,
-        Flag indicating how the molecular weight must be calculated:
-        0 - The mean molecular weight of the atmosphere is passed in XMOLWT
-        1 - The mean molecular weight of each layer is calculated (atmosphere previously adjusted to have sum(VMR)=1.0)
-        2 - The mean molecular weight of each layer is calculated (VMRs do not necessarily add up to 1.0)
+    @param XMOLWT: 1D array
+        Molecular weight vertical profile in kg mol-1 (only required if DUST_UNITS is activated)
 
     Returns
     -------
@@ -1006,6 +1024,16 @@ def layer_averageg(RADIUS, H, P, T, ID, VMR, DUST, PARAH2, BASEH, BASEP,
     else:
         NDUST = len(DUST[0])
 
+    #Checking consistency of DUST_UNITS and XMOLWT
+    if DUST_UNITS is not None:
+        for j in range(NDUST):
+            if DUST_UNITS[j]==-1:
+                if XMOLWT is None:
+                    raise ValueError('error in layer_average :: if DUST_UNITS=-1 (particles per gram of atm), the XMOLWT must be defined')
+        XMOLWT *= 1000. #Converting to molecular weight in g mol-1
+    else:
+        XMOLWT = np.zeros(NPRO)
+
     # HEIGHT = average layer height
     HEIGHT = np.zeros(NLAY)
     # PRESS = average layer pressure
@@ -1037,11 +1065,15 @@ def layer_averageg(RADIUS, H, P, T, ID, VMR, DUST, PARAH2, BASEH, BASEP,
     #DPH = matrix to relate para-H2 in each layer (FRAC) to that in the input profiles (PARAH2)
     DPH = np.zeros((NLAY, NPRO))
 
-    #Defining the weights for the integration with the Simpson's rule
-    w = np.ones(NINT) * 4.
-    w[::2] = 2.
-    w[0] = 1.0
-    w[NINT-1] = 1.0
+    # Ensure NINT is odd for Simpson's rule
+    if NINT % 2 == 0:
+        raise ValueError("NINT must be odd for Simpson's rule.")
+    # Initialize weights for Simpson's rule
+    w = np.ones(NINT)  # Start with all ones
+    # Set 4s for odd indices (1-based, so 1,3,5,... -> 0-based 1,3,5,...)
+    w[1:-1:2] = 4.
+    # Set 2s for even indices (1-based 2,4,6,... -> 0-based 2,4,6,...)
+    w[2:-1:2] = 2.
 
     # Calculate average properties depending on intergration type
     if LAYINT == 0:
@@ -1052,7 +1084,7 @@ def layer_averageg(RADIUS, H, P, T, ID, VMR, DUST, PARAH2, BASEH, BASEP,
         # Derive other properties from S
         HEIGHT = np.sqrt(S**2+z0**2+2*S*z0*cos) - RADIUS
         PRESS = interp(H,P,HEIGHT)
-        #TEMP = interp(H,T,HEIGHT)
+        MOLWT = interp(H,XMOLWT,HEIGHT)
         TEMP,J,F = interpg(H,T,HEIGHT)
         for ilay in range(NLAY):
             DTE[ilay,J[ilay]] = DTE[ilay,J[ilay]] + (1.0-F[ilay])
@@ -1077,11 +1109,6 @@ def layer_averageg(RADIUS, H, P, T, ID, VMR, DUST, PARAH2, BASEH, BASEP,
             AMOUNT,JJ,F = interpg(H, VMR, HEIGHT)
             PP = AMOUNT * PRESS
             AMOUNT = AMOUNT * TOTAM
-            if AMFORM==0:
-                raise ValueError('error :: AMFORM=0 needs to be implemented in Layer.py')
-            else:
-                for I in range(NLAY):
-                    MOLWT[I] = Calc_mmw(VMR[I], ID)
 
         for ilay in range(NLAY):
             DAM[ilay,JJ[ilay]] = DAM[ilay,JJ[ilay]] + (1.0-F[ilay])*TOTAM[ilay]
@@ -1092,17 +1119,46 @@ def layer_averageg(RADIUS, H, P, T, ID, VMR, DUST, PARAH2, BASEH, BASEP,
             for J in range(NDUST):
                 DD,JJ,F = interpg(H, DUST[:,J],HEIGHT)  
                 CONT[:,J] = DD * DELS
-
         else:
             #DD = interp(H, DUST,HEIGHT)  
             DD,JJ,F = interpg(H, DUST,HEIGHT)
-            CONT = DD * DELS
+            CONT = DD * DELS            
 
-        for ilay in range(NLAY):
-            DCO[ilay,JJ[ilay]] = DCO[ilay,JJ[ilay]] + (1.0-F[ilay])
-            DCO[ilay,JJ[ilay]+1] = DCO[ilay,JJ[ilay]+1] + (F[ilay])
 
+        #Use the dust density information
+        dust_units_flag = False
+        if DUST.ndim > 1:
+            for J in range(NDUST):
+                DD = interp(H, DUST[:,J],HEIGHT)  
+                if DUST_UNITS is not None:
+                    if DUST_UNITS[J] == -1:  #dust units are particles per gram of atm
+                        dust_units_flag = True
+                        CONT[:,J] =  DD * TOTAM * MOLWT / AVOGAD
+                    else:
+                         CONT[:,J] = DD * DELS  
+                else:  
+                    CONT[:,J] = DD * DELS
+        else:
+            DD = interp(H, DUST,HEIGHT)  
+            if DUST_UNITS is not None:
+                if DUST_UNITS[0] == -1: #dust units are particles per gram of atm
+                    dust_units_flag = True
+                    CONT =  DD * TOTAM * MOLWT / AVOGAD
+                else:
+                    CONT = DD * DELS
+            else:
+                CONT = DD * DELS
+
+        if dust_units_flag is False:
+            for ilay in range(NLAY):
+                DCO[ilay,JJ[ilay]] = DCO[ilay,JJ[ilay]] + (1.0-F[ilay])
+                DCO[ilay,JJ[ilay]+1] = DCO[ilay,JJ[ilay]+1] + (F[ilay])
+        else:
+                DCO[ilay,JJ[ilay]] = DCO[ilay,JJ[ilay]] + (1.0-F[ilay]) * TOTAM * MOLWT /AVOGAD
+                DCO[ilay,JJ[ilay]+1] = DCO[ilay,JJ[ilay]+1] + (F[ilay]) * TOTAM * MOLWT /AVOGAD
+            
     elif LAYINT == 1:
+        
         # Curtis-Godson equivalent path for a gas with constant mixing ratio
         for I in range(NLAY):
             S0 = BASES[I]
@@ -1114,12 +1170,12 @@ def layer_averageg(RADIUS, H, P, T, ID, VMR, DUST, PARAH2, BASEH, BASEP,
             S = np.linspace(S0, S1, NINT)
             h = np.sqrt(S**2+z0**2+2*S*z0*cos)-RADIUS   #altitude of the NINT points (m)
             p = interp(H,P,h)                           #pressure at the NINT points (Pa)
+            molwt = interp(H,XMOLWT,h)                           #molecular weight at the NINT points (g mol-1)
             temp,JJ,F = interpg(H,T,h)                  #temperature at the NINT points (K)
             frac,JJP,FP = interpg(H,PARAH2,h)           #fraction of para-H2 at the NINT points 
             duds = p/(k_B*temp)                         #number density at the NINT points (m-3)
 
             amount = np.zeros((NINT, NVMR))
-            molwt = np.zeros(NINT)
 
             TOTAM[I] = simpson(duds,x=S)                #column density (m-2)
             HEIGHT[I]  = simpson(h*duds,x=S)/TOTAM[I]   #effective altitude of the layer (m)
@@ -1135,6 +1191,7 @@ def layer_averageg(RADIUS, H, P, T, ID, VMR, DUST, PARAH2, BASEH, BASEP,
                 DPH[I,JJP[iint]+1] = DPH[I,JJP[iint]+1] + (FP[iint])*w[iint]*duds[iint]
 
                 
+            #Computing the gas column densities and gradients
             if VMR.ndim > 1:
                 amount = np.zeros((NINT, NVMR))
                 for J in range(NVMR):
@@ -1143,48 +1200,57 @@ def layer_averageg(RADIUS, H, P, T, ID, VMR, DUST, PARAH2, BASEH, BASEP,
                 pp = (amount.T * p).T     # gas partial pressures at the NINT points
                 for J in range(NVMR):
                     PP[I, J] = simpson(pp[:,J]*duds,x=S)/TOTAM[I]   #effective partial pressure of gas J in the layer
-                
-                if AMFORM==0:
-                    raise ValueError('error :: AMFORM=0 needs to be implemented in Layer.py')
-                else:
-                    for K in range(NINT):
-                        molwt[K] = Calc_mmw(amount[K,:], ID)
-                    MOLWT[I] = simpson(molwt*duds,x=S)/TOTAM[I]  #effective mean molecular weight of the layer
             else:
                 amount,JJ,F = interpg(H, VMR, h)   
                 pp = amount * p
                 AMOUNT[I] = simpson(amount*duds,x=S)
                 PP[I] = simpson(pp*duds,x=S)/TOTAM[I]
 
-                if AMFORM==0:
-                    raise ValueError('error :: AMFORM=0 needs to be implemented in Layer.py')
-                else:
-                    for K in range(NINT):
-                        molwt[K] = Calc_mmw(amount[K], ID)
-                    MOLWT[I] = simpson(molwt*duds,x=S)/TOTAM[I]
-
             for iint in range(NINT):
                 DAM[I,JJ[iint]] = DAM[I,JJ[iint]] + (1.-F[iint])*duds[iint]*w[iint]
                 DAM[I,JJ[iint]+1] = DAM[I,JJ[iint]+1] + (F[iint])*duds[iint]*w[iint]
 
+
+            #Computing the aerosol column densities and gradients
+            dust_units_flag = False
             if DUST.ndim > 1:
                 dd = np.zeros((NINT,NDUST))
                 for J in range(NDUST):
                     dd[:,J],JJ,F = interpg(H, DUST[:,J], h)   #dust density (m-3) of dust population J at the NINT points
-                    CONT[I,J] = simpson(dd[:,J],x=S)          #column density of dust population J in the layer (m-2)
+                    if DUST_UNITS is not None:
+                        if DUST_UNITS[J] == -1: #dust units are in particles per gram of atm
+                            dust_units_flag = True
+                            CONT[I,J] = simpson(dd[:,J]*duds*molwt/AVOGAD,x=S)  #column density of dust population J in the layer (m-2)
+                        else:
+                            CONT[I,J] = simpson(dd[:,J],x=S)          #column density of dust population J in the layer (m-2)
+                    else:
+                        CONT[I,J] = simpson(dd[:,J],x=S)          #column density of dust population J in the layer (m-2)
             else:
                 dd,JJ,F = interpg(H, DUST, h) 
-                CONT[I] = simpson(dd,x=S)
+                if DUST_UNITS is not None:
+                    if DUST_UNITS[0] == -1: #dust units are in particles per gram of atm
+                        dust_units_flag = True
+                        CONT[I] = simpson(dd*duds*molwt/AVOGAD,x=S)
+                    else:
+                        CONT[I] = simpson(dd,x=S)
+                else:
+                    CONT[I] = simpson(dd,x=S)
+                
+            if dust_units_flag is False:
+                for iint in range(NINT):
+                    DCO[I,JJ[iint]] = DCO[I,JJ[iint]] + (1.-F[iint])*w[iint]
+                    DCO[I,JJ[iint]+1] = DCO[I,JJ[iint]+1] + (F[iint])*w[iint]
+            else:
+                for iint in range(NINT):
+                    DCO[I,JJ[iint]] = DCO[I,JJ[iint]] + (1.-F[iint])*w[iint]*duds[iint]*molwt[iint]/AVOGAD
+                    DCO[I,JJ[iint]+1] = DCO[I,JJ[iint]+1] + (F[iint])*w[iint]*duds[iint]*molwt[iint]/AVOGAD
 
-            for iint in range(NINT):
-                DCO[I,JJ[iint]] = DCO[I,JJ[iint]] + (1.-F[iint])*w[iint]
-                DCO[I,JJ[iint]+1] = DCO[I,JJ[iint]+1] + (F[iint])*w[iint]
-
-    #Finishing the integration for the matrices
-    for IPRO in range(NPRO):
-        DTE[:,IPRO] = DTE[:,IPRO] * DELS / 100. / 3. / TOTAM
-        DAM[:,IPRO] = DAM[:,IPRO] * DELS / 100. / 3.
-        DCO[:,IPRO] = DCO[:,IPRO] * DELS / 100. / 3.
+        #Finishing the integration for the matrices
+        for IPRO in range(NPRO):
+            DTE[:,IPRO] = DTE[:,IPRO] * DELS / (NINT-1.) / 3. / TOTAM
+            DPH[:,IPRO] = DPH[:,IPRO] * DELS / (NINT-1.) / 3. / TOTAM
+            DAM[:,IPRO] = DAM[:,IPRO] * DELS / (NINT-1.) / 3.
+            DCO[:,IPRO] = DCO[:,IPRO] * DELS / (NINT-1.) / 3.
 
     # Scale back to vertical layers
     TOTAM = TOTAM / LAYSF

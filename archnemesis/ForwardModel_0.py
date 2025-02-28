@@ -2452,7 +2452,7 @@ class ForwardModel_0:
             Layer.LAYHT = Scatter.SOL_ANG * 1.0e3
             Layer.LAYANG = 90.0
 
-        Layer.calc_layering(H=Atmosphere.H,P=Atmosphere.P,T=Atmosphere.T, ID=Atmosphere.ID,VMR=Atmosphere.VMR, DUST=Atmosphere.DUST, PARAH2=Atmosphere.PARAH2)
+        Layer.calc_layering(H=Atmosphere.H,P=Atmosphere.P,T=Atmosphere.T, ID=Atmosphere.ID, VMR=Atmosphere.VMR, DUST=Atmosphere.DUST, PARAH2=Atmosphere.PARAH2, MOLWT=Atmosphere.MOLWT)
         
         #Setting the flags for the Path and calculation types
         ##############################################################################
@@ -2596,7 +2596,7 @@ class ForwardModel_0:
             Layer.LAYHT = Scatter.SOL_ANG * 1.0e3
             Layer.LAYANG = 90.0
 
-        Layer.calc_layeringg(H=Atmosphere.H,P=Atmosphere.P,T=Atmosphere.T, ID=Atmosphere.ID,VMR=Atmosphere.VMR, DUST=Atmosphere.DUST, PARAH2=Atmosphere.PARAH2)
+        Layer.calc_layeringg(H=Atmosphere.H,P=Atmosphere.P,T=Atmosphere.T, ID=Atmosphere.ID,VMR=Atmosphere.VMR, DUST=Atmosphere.DUST, PARAH2=Atmosphere.PARAH2, MOLWT=Atmosphere.MOLWT)
 
         #Setting the flags for the Path and calculation types
         ##############################################################################
@@ -2722,7 +2722,7 @@ class ForwardModel_0:
         Layer.LAYANG = 90.0
         
         #Calculating the atmospheric layering
-        Layer.calc_layering(H=Atmosphere.H,P=Atmosphere.P,T=Atmosphere.T, ID=Atmosphere.ID,VMR=Atmosphere.VMR, DUST=Atmosphere.DUST, PARAH2=Atmosphere.PARAH2)
+        Layer.calc_layering(H=Atmosphere.H,P=Atmosphere.P,T=Atmosphere.T, ID=Atmosphere.ID, VMR=Atmosphere.VMR, DUST=Atmosphere.DUST, PARAH2=Atmosphere.PARAH2, MOLWT=Atmosphere.MOLWT)
 
         #Based on the atmospheric layerinc, we calculate each required atmospheric path to model the measurements
         #############################################################################################################
@@ -2814,7 +2814,7 @@ class ForwardModel_0:
         Layer.LAYANG = 90.0
 
         #Calculating the atmospheric layering
-        Layer.calc_layeringg(H=Atmosphere.H,P=Atmosphere.P,T=Atmosphere.T, ID=Atmosphere.ID,VMR=Atmosphere.VMR, DUST=Atmosphere.DUST, PARAH2=Atmosphere.PARAH2)
+        Layer.calc_layeringg(H=Atmosphere.H,P=Atmosphere.P,T=Atmosphere.T, ID=Atmosphere.ID,VMR=Atmosphere.VMR, DUST=Atmosphere.DUST, PARAH2=Atmosphere.PARAH2, MOLWT=Atmosphere.MOLWT)
 
         #Based on the atmospheric layerinc, we calculate each required atmospheric path to model the measurements
         #############################################################################################################
@@ -2937,7 +2937,7 @@ class ForwardModel_0:
             Layer.LAYANG = 90.0
 
         #Calculating the atmospheric layering
-        Layer.calc_layering(H=Atmosphere.H,P=Atmosphere.P,T=Atmosphere.T, ID=Atmosphere.ID,VMR=Atmosphere.VMR, DUST=Atmosphere.DUST,PARAH2=Atmosphere.PARAH2)
+        Layer.calc_layering(H=Atmosphere.H,P=Atmosphere.P,T=Atmosphere.T, ID=Atmosphere.ID, VMR=Atmosphere.VMR, DUST=Atmosphere.DUST, PARAH2=Atmosphere.PARAH2, MOLWT=Atmosphere.MOLWT)
 
         #Setting the flags for the Path and calculation types
         ##############################################################################

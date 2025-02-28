@@ -560,7 +560,7 @@ def model32(atm,ipar,pref,fsh,tau,MakePlot=False):
             atm :: Python class defining the atmosphere
             pref :: Base pressure of cloud profile (atm)
             fsh :: Fractional scale height (km)
-            tau :: Total integrated column density of the cloud (m-2)
+            tau :: Total integrated column density of the cloud (m-2) or cloud optical depth (if kext is normalised)
         
         OPTIONAL INPUTS:
 
@@ -596,8 +596,7 @@ def model32(atm,ipar,pref,fsh,tau,MakePlot=False):
     R = const["R"]
     scale = R * atm.T / (atm.MOLWT * atm.GRAV)   #scale height (m)
     rho = atm.calc_rho()*1e-3    #density (kg/m3)
-#     print(scale)
-#     print(rho)
+
     #This gradient is calcualted numerically (in this function) as it is too hard otherwise
     xprof = np.zeros(atm.NP)
     npar = atm.NVMR+2+atm.NDUST
@@ -666,8 +665,9 @@ def model32(atm,ipar,pref,fsh,tau,MakePlot=False):
             delh = atm.H[jknee] - atm.H[j]
             xf = 1000.    #The cloud below is set to decrease with a scale height of 1 km
             ND[j] = np.exp(-delh/xf)
+            
         #Now that we have the initial cloud number density (m-3) we can just divide by the mass density to get specific density
-        Q[:] = ND[:] / rho[:] #particles per kg of atm
+        Q[:] = ND[:] / rho[:] / 1.0e3 #particles per gram of atm
         
         #Now we integrate the optical thickness (calculate column density essentially)
         OD[atm.NP-1] = ND[atm.NP-1] * (scale[atm.NP-1] * xfsh * 1.0e2)  #the factor 1.0e2 is for converting from m to cm
@@ -713,6 +713,7 @@ def model32(atm,ipar,pref,fsh,tau,MakePlot=False):
 
     #Now updating the atmosphere class with the new profile
     atm.DUST[:,icont] = xprof[:]
+    
     if MakePlot==True:
         
         fig,ax1 = plt.subplots(1,1,figsize=(3,4))
@@ -725,7 +726,7 @@ def model32(atm,ipar,pref,fsh,tau,MakePlot=False):
         ax1.grid()
         plt.tight_layout()
 
-    atm.DUST_RENORMALISATION[icont] = tau
+    atm.DUST_RENORMALISATION[icont] = tau  #Adding flag to ensure that the dust optical depth is tau
     
     return atm,xmap
 
@@ -892,10 +893,10 @@ def model47(atm, ipar, tau, pref, fwhm, MakePlot=False):
         Y = np.log(P[j])
 
         # Compute Q[j]
-        Q[j] = 1.0 / (XWID * np.sqrt(np.pi)) * np.exp(-((Y - Y0) / XWID) ** 2)
+        Q[j] = 1.0 / (XWID * np.sqrt(np.pi)) * np.exp(-((Y - Y0) / XWID) ** 2)  #Q is specific density in particles per gram of atm
 
         # Compute ND[j]
-        ND[j] = Q[j] * rho[j]
+        ND[j] = Q[j] * (rho[j] / 1.0e3) #ND is m-3
 
         # Compute OD[j]
         OD[j] = ND[j] * scale[j] * 1e5  # The factor 1e5 converts m to cm
@@ -952,7 +953,7 @@ def model47(atm, ipar, tau, pref, fwhm, MakePlot=False):
         plt.tight_layout()
         plt.show()
 
-    atm.DUST_RENORMALISATION[icont] = tau
+    atm.DUST_RENORMALISATION[icont] = tau   #Adding flag to ensure that the dust optical depth is tau
 
     return atm, xmap
 
