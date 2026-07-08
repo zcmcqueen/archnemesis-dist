@@ -102,6 +102,8 @@ To mitigate those risks, I suggest the following way of using **git** (NOTE: Thi
 
 ### Initial Setup ###
 
+[ADD GRAPHICAL REPRESENTATION OF PROCESS]
+
 1) Make a **fork** of the [main ArchNemesis repo](https://github.com/juanaldayparejo/archnemesis-dist) for yourself. We will only send changes to the **upstream repo** via **pull requests**, that way someone will have to review the changes and everything breaks it's not only your fault (the person who accepted the changes should have caught it too).
 
     [ADD INSTRUCTIONS ON HOW TO MAKE A FORK OF THE MAIN ARCHNEMESIS REPO]
@@ -117,6 +119,8 @@ To mitigate those risks, I suggest the following way of using **git** (NOTE: Thi
 
 
 ### Update From Main ArchNemesis Repo ###
+
+[ADD GRAPHICAL REPRESENTATION OF PROCESS]
 
 NOTE: These instructions are for updating the "main" **branch**, but can apply to any **branch**, just replace "main" with the name of the desired **branch**.
 
@@ -155,6 +159,8 @@ If the final step completed successfully, the "main" branch is now up-to-date wi
 
 ### When Starting Work on a New Task ###
 
+[ADD GRAPHICAL REPRESENTATION OF PROCESS]
+
 NOTE: If you just want to work from a single **branch**, you can apply the below to a "current" **branch** instead of making one for each new task.
 
 1) Perform the steps in [Update From Main ArchNemesis Repo].
@@ -165,6 +171,8 @@ NOTE: If you just want to work from a single **branch**, you can apply the below
 
 
 ### When Finishing Work on a Task - Issuing a Pull Request ###
+
+[ADD GRAPHICAL REPRESENTATION OF PROCESS]
 
 NOTE: If you just want to work from a single **branch**, you can apply the below to "current" **branch** that is used repeatedly (but don't delete it at the end).
 
