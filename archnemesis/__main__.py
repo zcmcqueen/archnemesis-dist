@@ -19,13 +19,17 @@ _lgr.setLevel(logging.INFO)
 
 def create_parser():
 
-	parser = ap.ArgumentParser()
-	parser.add_argument('paths', type=str, nargs='+', help='Path to a file (<runname>.inp or <runname>.h5 file) or directory. If a directory, will try and guess runname and HDF5(preferred) or LEGACY input.')
-	parser.add_argument('--log_at', choices=('DEBUG', 'INFO', 'WARN', 'ERROR', 'CRIT'), help='Level to set all logging to', default=None)
-	parser.add_argument('--log_stream', action='append', choices=('package', 'progress'), help='Logging stream to set level of (applied in order after `log_at`)', default=[])
-	parser.add_argument('--log_stream_level', action='append', choices=('DEBUG', 'INFO', 'WARN', 'ERROR', 'CRIT'), help='Level to set logging stream to (applied in order after `log_at`)', default=[])
+	parser = ap.ArgumentParser(
+		prog = 'python -m archnemesis',
+		description = 'Retrieves state of (exo)planetary atmospheres for many different planet types and geometries.',
+        epilog = None,
+	)
+	parser.add_argument('paths', type=str, nargs='+', help='Path to a ("<runname>.inp" or "<runname>.h5") file or a directory. If a directory, will try and guess runname and HDF5(preferred) or LEGACY input based on directory contents.')
+	parser.add_argument('--log_at', choices=('DEBUG', 'INFO', 'WARN', 'ERROR', 'CRIT'), help='Level to set all logging to, applied before any other logging changes.', default=None)
+	parser.add_argument('--log_stream', action='append', choices=('package', 'progress'), help='Logging stream to set level of. Can be specified multiple times, must be paired with a `--log_stream_level` argument.', default=[])
+	parser.add_argument('--log_stream_level', action='append', choices=('DEBUG', 'INFO', 'WARN', 'ERROR', 'CRIT'), help='Level to set logging stream to. Can be specified multiple times, must be paired with a `--log_stream` argument.', default=[])
 
-	parser.add_argument('--convert', type=lambda x: ArchNemesisFileTypeEnum[x.upper()], choices=(ArchNemesisFileTypeEnum.HDF5, ArchNemesisFileTypeEnum.LEGACY), help='Will convert inputs to specified format', default=ArchNemesisFileTypeEnum.UNDEFINED)
+	parser.add_argument('--convert', type=lambda x: ArchNemesisFileTypeEnum[x.upper()], choices=tuple(x.name for x in ArchNemesisFileTypeEnum if x.name != 'UNDEFINED'), help='Will convert inputs to specified format', default=ArchNemesisFileTypeEnum.UNDEFINED)
 	parser.add_argument('--no_plot', dest='do_plot', action='store_false', help='if present, will not create any plots', default=True)
 	parser.add_argument('--no_write', dest='do_write', action='store_false', help='if present, will not write the results to disk', default=True)
 	#parser.add_argument('--redirect_path', type=redirect_file_access.Redirector.from_string, action='append', help='Creates a redirect from as string formatted as "{old_path}->{new_path}" any paths relative to {old_path} are redirected to be relative to {new_path}', default=[])
@@ -33,7 +37,7 @@ def create_parser():
 
 	retrieval_engine_subparsers = parser.add_subparsers(
 		title = 'Retrieval Engine',
-		description = 'Method to use when retrieving parameters (default=OptimalEstimation)',
+		description = 'Method to use when retrieving parameters (default=OptimalEstimation). Use `-h` argument to get usage help message for each engine (e.g. `python -m archnemesis ./path OptimalEstimation -h`).',
 		required = False,
 		help = None, #'Choose retrieval engine to use (default=OptimalEstimation)',
 		dest='retrieval_engine',
@@ -42,7 +46,7 @@ def create_parser():
 	optimal_estimation_parser = retrieval_engine_subparsers.add_parser('OptimalEstimation', help='PLACEHOLDER')
 	optimal_estimation_parser.add_argument('-n', '--n_cores', type=int, help='Number of cores to run parallelised processes on (default is to use the number specified in the input files)', default=None)
 	optimal_estimation_parser.add_argument('--iter', dest='n_iter', type=int, help='Number of iterations to perform if running optimal estimation (default is to use number specified in the input files)', default=None)
-	optimal_estimation_parser.add_argument('--write_itr', action='store_true', help='if running optimal estimation, should we write a *.itr file?', default=False)
+	optimal_estimation_parser.add_argument('--write_itr', action='store_true', help='Should we write a *.itr file that stores information about each iteration?', default=False)
 
 	retrieval_engine_subparsers._choices_actions[-1].help = ' '.join(optimal_estimation_parser._get_formatter()._get_actions_usage_parts(optimal_estimation_parser._actions, optimal_estimation_parser._mutually_exclusive_groups))
 	#optimal_estimation_parser.help = optimal_estimation_parser.usage

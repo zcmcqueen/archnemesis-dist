@@ -30,25 +30,25 @@ class BaseDatabaseDownloader:
         """
         Returns `None` if none or both "<database_name>.(no_)download" files are present, otherwise True (or False) if download should (or not) be performed.
         """
-        ui_show('Checking sentry files...')
+        ui_show('  Checking sentry files:')
         
         
         a = self.DBASE_DOWNLOAD_SENTRY_FILE.exists()
-        ui_show(f'  [{"+" if a else "-"}] Download sentry file {"exists" if a else "does not exist"} at {self.DBASE_DOWNLOAD_SENTRY_FILE}')
+        ui_show(f'    [{"+" if a else "-"}] Download sentry file {"EXISTS" if a else "DOES NOT EXIST"} at {self.DBASE_DOWNLOAD_SENTRY_FILE}')
         b = self.DBASE_NO_DOWNLOAD_SENTRY_FILE.exists()
-        ui_show(f'  [{"+" if b else "-"}] No-Download sentry file {"exists" if b else "does not exist"} at {self.DBASE_DOWNLOAD_SENTRY_FILE}')
+        ui_show(f'    [{"+" if b else "-"}] No-Download sentry file {"EXISTS" if b else "DOES NOT EXIST"} at {self.DBASE_DOWNLOAD_SENTRY_FILE}')
         
         if (a and b):
-            ui_show('  Both "download" and "no_download" sentry files exist, asking user...')
+            ui_show('  Both "download" and "no_download" sentry files exist, result indeterminate.')
             return None
         if not (a or b):
-            ui_show('  Neither "download" or "no_download" sentry files exist, asking user...')
+            ui_show('  Neither "download" or "no_download" sentry files exist, result indeterminate.')
             return None
         if a:
-            ui_show('  Only "download" sentry file exists, **will** perform download.')
+            ui_show('  Only "download" sentry file exists, WILL perform download.')
             return True
         if b:
-            ui_show('  Only "no_download" sentry file exists, **will not** perform download.')
+            ui_show('  Only "no_download" sentry file exists, WILL NOT perform download.')
             return False
         raise RuntimeError('Could not get sentry file state, this should never happen.')
 
@@ -59,35 +59,57 @@ class BaseDatabaseDownloader:
             return True
         return False
 
-    
-
-    def should_do_download(self, refresh : bool = False) -> bool:
+    def should_do_download_non_interactive(self, refresh : bool = False) -> bool:
+        ui_show(f'Checking if download of spectral database "{self.DBASE_NAME}" is required:')
+        
         if self.is_in_pytest_environment():
-            ui_show('In `pytest` environment, no downloads will be performed.')
+            ui_show('  In `pytest` environment, no downloads will be performed.')
             return False
         
         if self.is_database_present():
-            ui_show(f'Database is present at "{self.DBASE_PATH}".')
+            ui_show(f'  Database IS present at "{self.DBASE_PATH}".')
             if not refresh:
+                ui_show('  No reason to redownload.')
                 return False
             else:
-                ui_show('Refresh has been requested...')
-        
-        if (sentry_file_state := self.get_sentry_file_state()) is not None:
-            return sentry_file_state
-        
-        if ui_ask_yn(f'Download spectral database {self.DBASE_NAME}?', default=True):
-            ui_show('User requested download...')
-            return True
+                ui_show('  Refresh has been requested, redownloading...')
+                return True
         else:
-            ui_show('User declined download.')
-            return False
+            ui_show(f'  Database IS NOT present at "{self.DBASE_PATH}".')
+        
+        return self.get_sentry_file_state()
+
+    def should_do_download(self, refresh : bool = False) -> bool:
+        
+        if (do_download := self.should_do_download_non_interactive(refresh)) is None:
+            
+            return ui_ask_yn(
+                f'QUESTION: Download spectral database {self.DBASE_NAME}?', 
+                default=True,
+                msg_yes = 'User requested download...',
+                msg_no = 'User declined download.',
+            )
+        else:
+            return do_download
         
         raise RuntimeError('Cannot work out whether download should continue. This should never happen.')
 
     def action_check_and_download_reference_database(self, refresh : bool = False) -> None:
-        if self.should_do_download():
-            self.action_download_reference_database()
+        if self.should_do_download(refresh):
+            self._download_reference_database()
+    
+    def action_non_interactive_check_and_download_reference_database(
+            self, 
+            refresh : bool = False,
+            msg_indeterminate : str = 'Non-interactive assumes download should go ahead in indeterminate case.',
+            result_indeterminate : bool = True,
+    ) -> None:
+        if (do_download := self.should_do_download_non_interactive(refresh)) is None:
+            ui_show(f'  {msg_indeterminate}')
+            do_download = result_indeterminate
+        
+        if do_download:
+            self._download_reference_database()
 
-    def action_download_reference_database(self) -> None:
+    def _download_reference_database(self) -> None:
         fetch.safe_download(self.DBASE_URL, self.DBASE_PATH, ui_show = ui_show)
