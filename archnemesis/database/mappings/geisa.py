@@ -8,6 +8,8 @@ radtran_to_geisa : dict[tuple[int,int], tuple[int,int]] = {
     (1, 5): (51, 182),   # HD(18O)
     (1, 6): (51, 172),   # HD(17O)
     (1, 7): (1, 262),    # D2(16O)
+    (1, 8): (1, 282),    # D2(18O)
+    (1, 9): (1, 272),    # D2(17O)
 
     # CO2
     (2, 1): (2, 626),    # (12C)(16O)2
@@ -36,6 +38,9 @@ radtran_to_geisa : dict[tuple[int,int], tuple[int,int]] = {
     (4,3): (4,546),      #(15N)(14N)(16O)
     (4,4): (4,448),      #(14N)2(18O)
     (4,5): (4,447),      #(14N)2(17O)
+    (4,6): (4,458),      #(14N)(15N)(18O)
+    (4,7): (4,548),      #(15N)(14N)(18O)
+    (4,8): (4,556),      #(15N)2(16O)
 
     # CO
     (5,1): (5,26),       #(12C)(16O)
@@ -69,8 +74,8 @@ radtran_to_geisa : dict[tuple[int,int], tuple[int,int]] = {
 
     # NO2
     (10,1): (10,646),    #(14N)(16O)2
-    # (10,2) 15NO2 not included in current GEISA table
-    # (10,3) 14N16O18O not included in current GEISA table
+    (10,2): (10,656),    #(15N)(16O)2
+    # (10,3) 18O14N16O not included in current GEISA table
 
     # NH3
     (11,1): (11,411),    #(14N)(1H)3
@@ -87,23 +92,23 @@ radtran_to_geisa : dict[tuple[int,int], tuple[int,int]] = {
 
     # HF
     (14,1): (15,19),     #(1H)(19F)
-    # (14,2) DF not present in GEISA
+    (14,2): (15,29),     #(2H)(19F)
 
     # HCl
     (15,1): (16,15),     #(1H)(35Cl)
     (15,2): (16,17),     #(1H)(37Cl)
-    # (15,3) D35Cl not present
-    # (15,4) D37Cl not present
+    (15,3): (16,25),     #(2H)(35Cl)
+    (15,4): (16,27),     #(2H)(37Cl)
 
     # HBr
     (16,1): (17,19),     #(1H)(79Br)
     (16,2): (17,11),     #(1H)(81Br)
-    # (16,3) D79Br not present
-    # (16,4) D81Br not present
+    (16,3): (17,29),     #(2H)(79Br)
+    (16,4): (17,21),     #(2H)(81Br)
 
     # HI
     (17,1): (18,17),     #(1H)(127I)
-    # (17,2) DI not present
+    (17,2): (18,27),     #(2H)(127I)
 
     # ClO
     (18,1): (19,56),     #(35Cl)(16O)
@@ -135,6 +140,7 @@ radtran_to_geisa : dict[tuple[int,int], tuple[int,int]] = {
     (23,1): (27,124),    #(1H)(12C)(14N)
     (23,2): (27,134),    #(1H)(13C)(14N)
     (23,3): (27,125),    #(1H)(12C)(15N)
+    (23,4): (27,224),    #(2H)(12C)(14N)
 
     # CH3Cl
     (24,1): (34,215),    #(12C)(1H)3(35Cl)
@@ -146,7 +152,7 @@ radtran_to_geisa : dict[tuple[int,int], tuple[int,int]] = {
     # C2H2
     (26,1): (24,221),      #(12C)2(1H)2
     (26,2): (24,231),      #(12C)(13C)(1H)2
-    (26,3): (48,122),      # C2HD
+    (26,3): (48,122),      #C2HD
 
     # C2H6
     (27,1): (22,226),      #(12C)2(1H)6
@@ -175,7 +181,10 @@ radtran_to_geisa : dict[tuple[int,int], tuple[int,int]] = {
 
     # GeH4
     (33,1): (26,411),     #(74Ge)(1H)4
-    # Other Ge isotopes not included in the GEISA table
+    (33,2): (26,211),     #(72Ge)(1H)4
+    (33,3): (26,11),      #(70Ge)(1H)4
+    (33,4): (26,311),     #(73Ge)(1H)4
+    (33,5): (26,611),     #(76Ge)(1H)4
 
     #C3H8
     (34,1): (28,221),     #(12C)3(1H)8
@@ -218,9 +227,6 @@ radtran_to_geisa : dict[tuple[int,int], tuple[int,int]] = {
     # CH3CN
     (50,1): (50,234),    #(12C)(1H)3(12C)(14N)
 
-    # CH3I
-    (55,1): (55,1),
-
     # HNC
     (59,1): (46,142),    #(1H)(12C)(14N)
     # Other isotopologues not present in GEISA2020
@@ -236,18 +242,18 @@ radtran_to_geisa : dict[tuple[int,int], tuple[int,int]] = {
     (74,1): (52,26),     #(32S)(16O)3
 
     # CH3F
-    (95,1): (56,1),    #(12C)(1H)3(19F)
+    (95,1): (56,219),    #(12C)(1H)3(19F)
     # Other isotopologues not present in GEISA2020
 
-    #CH3I 
-    (139,1): (55,1),   #(12C)(1H)3(127I)
+    # CH3I
+    (139,1): (55,217),    #(12C)(1H)3(127I)
 
     # COFCl
     (142,1): (54,265), #(12C)(16O)(19F)(35Cl)
     (142,2): (54,267), #(12C)(16O)(19F)(37Cl)
 
     # HONO
-    (143,1): (53,1),   #(1H)(16O)(14N)(16O)
+    (143,1): (53,646),   #(1H)(16O)(14N)(16O)
 
     # RuO4
     (145,1): (57,102), #(102Ru)(16O)4
@@ -260,6 +266,9 @@ radtran_to_geisa : dict[tuple[int,int], tuple[int,int]] = {
     (145,8): (57,106), #(106Ru)(16O)4
     (145,9): (57,103), #(103Ru)(16O)4
     # (96Ru)(16O)4 not present in GEISA2020
+
+    # H2C3H2
+    (146,1): (58,121), #(1H)2(12C)3(1H)2
 
 }
 
