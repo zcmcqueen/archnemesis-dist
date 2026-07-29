@@ -133,6 +133,8 @@ NOTE: This process is designed so you can start again at any point by deleting t
 
 1) In your **local repo**, create a new **branch** from "main" called "main-updates" and **checkout** "main-updates".
 
+    <img src="../_static/contributors_guide/tty_git_create_main_updates_small.gif" width="60%" alt="HOW TO CREATE MAIN-UPDATES BRANCH">
+
 1) On **github**, **sync** the "tracking" **branch** with the **upstream repo**.
 
     <img src="../_static/contributors_guide/instructions_sync_tracking.svg" width="60%" alt="HOW TO SYNC TRACKING WITH UPSTREAM">
