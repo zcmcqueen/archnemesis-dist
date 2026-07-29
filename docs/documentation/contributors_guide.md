@@ -44,13 +44,13 @@ So far I have been using "project" to describe the thing being worked upon, howe
 
 ![FORKS ARE A COPY OF ANOTHER REPO OWNED BY YOU](../_static/contributors_guide/repo_operations.svg)
 
-When moving changes between **repos** there are two things that are analogous to **merges**, the process of *sending* changes from a source **repo** to a destination **repo** is called **pushing**, and *getting* changes into destination **repo** from a source **repo** is called **pulling**. When both source and destination **repos** are controlled by you that works fine. However, normally otherpeople don't let you send data to their **repo** without their say-so, to *ask* a **repo** to accept changes you send a **pull request** which *asks* them to **pull** changes from your **repo** into theirs. **pull requests** are the main way of sharing code between **forks**.
+When moving changes between **repos** there are two things that are analogous to **merges**, the process of *sending* changes from a source **repo** to a destination **repo** is called **pushing**, and *getting* changes into destination **repo** from a source **repo** is called **pulling**. When both source and destination **repos** are controlled by you that works fine. However, normally otherpeople don't let you send data to their **repo** without their say-so, to *ask* a **repo** to accept changes you send a **pull request** which *asks* them to **pull** changes from your **repo** into theirs. **pull requests** are the main way of sharing code between **forks**. NOTE: **pull** and **push** always operate between specific branches of the source and destination **repos**, but I may be a bit sloppy with my language and imply that they occur between **repos** not **branches** of **repos** elsewhere in this guide.
 
 ![CLONING A REPO AND HOW PUSHING AND PULLING WORK](../_static/contributors_guide/repo_clone.svg)
 
 To share **repos** between people, they are generally hosted on a **git server** which is a web-server that runs **git** and generally allows **forking** and **cloning** of **repos** hosted on it. **Github** is such a **git server**, it has extra functionality to help you manage **repos**. When you take a **repo** from **github** and put it on your local machine, you are actually making a **clone** on your local machine, a **clone** is very similar to a **fork**, but instead of an **upstream repo** it has an **origin repo** (the **repo** it was **cloned** from). Any changed (e.g., **commits**, **branches**, etc.) to the **local repo** are not sent to the **repo** on the server (the **origin repo**) until you **sync** them (i.e. **push** local changes and **pull** remote changes).
 
-[INSERT PICTURE OF HOW GIT SERVERS WORK]
+![HOW GIT SERVERS WORK](../_static/contributors_guide/git_server.svg)
 
 
 #### Nomenclature ####
@@ -110,16 +110,17 @@ To mitigate those risks, I suggest the following way of using **git** (NOTE: Thi
 
 1) Make a **fork** of the [main ArchNemesis repo](https://github.com/juanaldayparejo/archnemesis-dist) for yourself. We will only send changes to the **upstream repo** via **pull requests**, that way someone will have to review the changes and everything breaks it's not only your fault (the person who accepted the changes should have caught it too).
 
-    [ADD INSTRUCTIONS ON HOW TO MAKE A FORK OF THE MAIN ARCHNEMESIS REPO]
+    <img src="../_static/contributors_guide/instructions_fork.png" width="40%" alt="HOW TO FORK A REPO">
 
 1) Delete all other **branches** (if there are any) except the "main" **branch**, and mark it as the "default" **branch** if it is not already. This **branch** will be where most other **branches** are created from and **merged** into, but in-progress work will be done in different **branches** we create later.
 
-    [ADD INSTRUCTIONS ON HOW TO DELETE BRANCHES]
-    [ADD INSTRUCTIONS ON HOW TO MARK A BRANCH AS DEFAULT]
+    <img src="../_static/contributors_guide/instructions_delete_branch.svg" width="60%" alt="HOW TO DELETE BRANCHES">
+
+    [HOW TO MARK A BRANCH AS DEFAULT](https://docs.github.com/en/repositories/configuring-branches-and-merges-in-your-repository/managing-branches-in-your-repository/changing-the-default-branch#changing-the-default-branch)
 
 1) Create a new **branch** from the "main" **branch** called "tracking". The idea is that we will periodically manually sync the "tracking" branch with the **upstream repo** (the main ArchNemesis repo) so we can control when the changes come in.
 
-    [ADD INSTRUCTIONS ON HOW CREATE BRANCHES]
+    [HOW CREATE BRANCHES](https://docs.github.com/en/pull-requests/how-tos/commit-changes/managing-branches-within-your-repository#creating-a-branch-via-the-branches-overview)
 
 
 ### Update From Main ArchNemesis Repo ###
@@ -134,7 +135,7 @@ NOTE: This process is designed so you can start again at any point by deleting t
 
 1) On **github**, **sync** the "tracking" **branch** with the **upstream repo**.
 
-    [ADD INSTRUCTIONS ON HOW TO SYNC TRACKING WITH UPSTREAM]
+    <img src="../_static/contributors_guide/instructions_sync_tracking.svg" width="60%" alt="HOW TO SYNC TRACKING WITH UPSTREAM">
 
 1) In your **local repo**, **pull** the changes from the **origin repo** into your local "tracking" **branch**.
 
