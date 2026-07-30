@@ -229,4 +229,8 @@ Dependencies
    
    examples
 
+.. toctree::
+   :caption: Contributors Guide
+   :hidden:
 
+   documentation/contributors_guide.md

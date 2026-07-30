@@ -1,13 +1,11 @@
-# Contributors Guide #
-
-Adding code to a project like [ArchNemesis](https://github.com/juanaldayparejo/archnemesis-dist) is not a trivial thing to get right, especially when multiple people will be working on the same files at the same time and their changes may conflict with eachother. There are various tools that have been created to deal with this problem, ArchNemesis uses the [**git**](https://git-scm.com/) version control software. If you are already familiar with **git** you can skip most of this guide but please read [INSERT IMPORTANT BITS HERE].
+Adding code to a project like [archNEMESIS](https://github.com/juanaldayparejo/archnemesis-dist) is not a trivial thing to get right, especially when multiple people will be working on the same files at the same time and their changes may conflict with each other. There are various tools that have been created to deal with this problem. ArchNEMESIS uses the [**git**](https://git-scm.com/) version control software. If you are already familiar with **git** you can skip most of this guide but please read the suggested git usage for archNEMESIS.
 
 I will assume that you are able to **install git** and have a **github account** set up. Most of this guide will be devoted to using **git** in such a way that is (hopefully) easy to understand, easy to reverse any problems, and has a low risk of breaking anything in local or remote repositories.
 
 
 #### Useful Links ####
 
-* [ArchNemesis](https://github.com/juanaldayparejo/archnemesis-dist)
+* [archNEMESIS](https://github.com/juanaldayparejo/archnemesis-dist)
 
 * [git](https://git-scm.com/)
 
@@ -24,31 +22,31 @@ A **patch** is a *difference* that can be applied to a file (or directory) to pu
 
 ![HOW A PATCH WORKS](../_static/contributors_guide/patch.svg)
 
-A **commit** is a set of **patches** that are grouped together for ease of recording *why* the changes in those **patches** were made. As **commits** are just sets of **patches**, they can be applied and reversed just like **patches** can. And the **commit message** should tell you what the intent of the changes were. For example, one of the **commits** in ArchNemesis involves moving a large number of values from a single large file to separate files (which makes it easier to find them, and easier to only use the bits you need). This involved lots of changes across lots of files, they could not be all contained in a single **patch** (and even if they could, a human would have difficulty understanding what the **patch** did). The **commit** grouped all the required changes together and the **commit message** briefly told other people what those changes did. In **git**, the **commits** are what you will be interacting with most of the time, **patches** are automatically created by **git** (using fancy algorithms) so ideally you never touch them directly, you only deal with sets of them (and a set may have only one member if needed) via **commits**.
+A **commit** is a set of **patches** that are grouped together for ease of recording *why* the changes in those **patches** were made. As **commits** are just sets of **patches**, they can be applied and reversed just like **patches** can. And the **commit message** should tell you what the intent of the changes were. For example, one of the **commits** in archNEMESIS involves moving a large number of values from a single large file to separate files (which makes it easier to find them, and easier to only use the bits you need). This involved lots of changes across lots of files, they could not be all contained in a single **patch** (and even if they could, a human would have difficulty understanding what the **patch** did). The **commit** grouped all the required changes together and the **commit message** briefly told other people what those changes did. In **git**, the **commits** are what you will be interacting with most of the time, **patches** are automatically created by **git** (using fancy algorithms) so ideally you never touch them directly, you only deal with sets of them (and a set may have only one member if needed) via **commits**.
 
 ![HOW A COMMIT IS A SET OF PATCHES](../_static/contributors_guide/commit.svg)
 
-So far, you can sort of see how **git** works as a version control system. Assuming I have a directory tree that contains my project (ArchNemesis in our case), whenever I make a change to ArchNemesis, **git** creates a **patch** that records that change. I periodically **commit** those patches with a **commit message** that tells me what the changes I made since the last **commit** are (and do). The current state of my project is completely described by the **chain of commits** I have made. If I ever decide I don't like the changes I made, I can ask **git** to *reverse* the **commits**, and I read the **commit messagess** to know when to stop *reversing* them. Then, all of the bad changes are undone and I can start again.
+So far, you can sort of see how **git** works as a version control system. Assuming I have a directory tree that contains my project (archNEMESIS in our case), whenever I make a change to archNEMESIS, **git** creates a **patch** that records that change. I periodically **commit** those patches with a **commit message** that tells me what the changes I made since the last **commit** are (and do). The current state of my project is completely described by the **chain of commits** I have made. If I ever decide I don't like the changes I made, I can ask **git** to *reverse* the **commits**, and I read the **commit messagess** to know when to stop *reversing* them. Then, all of the bad changes are undone and I can start again.
 
 ![HOW A CHAIN OF COMMITS DESCIRIBES A PROJECT](../_static/contributors_guide/chain_of_commits.svg)
 
-When there is only one person working on a project, you can get away with just using **commits**. However, when two or more people are working on the project that starts to become a problem. For example, assume we are both working on ArchNemesis. We are both adding new atmospheric models, so we both need to add a file to ".../archnemesis/Models/PreRTModels/". As we are adding separate files, that's not to bad. I make my changes and **commit** them, then you make your changes and **commit** them. However, if I now want to undo my changes I have to *reverse both* **commits** (because mine was first), but I cannot just re-apply your **commit** as your **commit** assumes the ArchNemesis project is in the state *after* my **commit**, so I have to ask you to re-do your work. That's a pretty simple example, but imagine the problems that happen if we both edit the *same* file. We could have problems where we both make changes that break the others code. What we would need in this situation is a way for both of us to have our own copy of the project, make our changes, then reconcile our changes after we are both happy with them. In **git** doing this is called making a **branch**.
+When there is only one person working on a project, you can get away with just using **commits**. However, when two or more people are working on the project that starts to become a problem. For example, assume we are both working on archNEMESIS. We are both adding new atmospheric models, so we both need to add a file to ".../archnemesis/Models/PreRTModels/". As we are adding separate files, that's not too bad. I make my changes and **commit** them, then you make your changes and **commit** them. However, if I now want to undo my changes I have to *reverse both* **commits** (because mine was first), but I cannot just re-apply your **commit** as your **commit** assumes the archNEMESIS project is in the state *after* my **commit**, so I have to ask you to re-do your work. That's a pretty simple example, but imagine the problems that happen if we both edit the *same* file. We could have problems where we both make changes that break the others code. What we would need in this situation is a way for both of us to have our own copy of the project, make our changes, then reconcile our changes after we are both happy with them. In **git** doing this is called making a **branch**.
 
 ![BRANCHES ARE ALTERNATE CHAINS OF COMMITS](../_static/contributors_guide/branch.svg)
 
-As the current state of a project is completely described by the **chain of commits** made to that project, a **branch** is an *alternate* **chain of commits** that **branches** off from the **parent chain of commits**. Really, a **branch** *is a* **chain of commits**. So I can use the terms **parent branch** to describe the **chain of commits** a **branch** starts from, and I can call the first **chain of commits** the **main branch**. Therefore, if our hypothetical project consists of a single **main branch** (i.e. the **chain of commits** up to the current point), if we both want to work on it we can both create a **branch** from the **main branch**, make all the changes we need then we can **merge** our **branches** back into the **main branch** after we are done. The **merge** operation is how we reconcile all the changes we both made. Often **git** is clever enough to require no action on your part, but if we have both altered same place of the same file we will have **merge conflicts** that need to be addressed manually. This may sound much like the problem we started with (one of us has do re-do work), but generally **merge conflicts** are much easier to **resolve** than trying to do the same thing without **branches**. The process of switching **branches** is to **checkout** a **branch**.
+As the current state of a project is completely described by the **chain of commits** made to that project, a **branch** is an *alternate* **chain of commits** that **branches** off from the **parent chain of commits**. Really, a **branch** *is a* **chain of commits**. So I can use the terms **parent branch** to describe the **chain of commits** a **branch** starts from, and I can call the first **chain of commits** the **main branch**. Therefore, if our hypothetical project consists of a single **main branch** (i.e. the **chain of commits** up to the current point), if we both want to work on it we can both create a **branch** from the **main branch**, make all the changes we need and then we can **merge** our **branches** back into the **main branch** after we are done. The **merge** operation is how we reconcile all the changes we both made. Often **git** is clever enough to require no action on your part, but if we have both altered same place of the same file we will have **merge conflicts** that need to be addressed manually. This may sound much like the problem we started with (one of us has do re-do work), but generally **merge conflicts** are much easier to **resolve** than trying to do the same thing without **branches**. The process of switching **branches** is to **checkout** a **branch**.
 
 ![HOW BRANCHES ARE CREATED AND MERGED](../_static/contributors_guide/branch_operations.svg)
 
-So far I have been using "project" to describe the thing being worked upon, however the proper **git** name is **repository** or "**repo**". You may also have come across the term **fork** (used as in "to **fork** a **repo**"). There is a bit more to it, but you can think of **forks** as "super **branches**". A **fork** is a copy of a **repo** made at a certain point in the **upstream repo**'s **commit history**. **Forks** are full copies are *owned* by you, they can end up dramatically divierging from the **upstream repo**. For ArchNemesis, I recommend creating a **fork** of the main ArchNemesis **repo** to provide a barrier that means it is harder to add bad code to the **upstream repo**. 
+So far I have been using "project" to describe the thing being worked upon, however the proper **git** name is **repository** or "**repo**". You may also have come across the term **fork** (used as in "to **fork** a **repo**"). There is a bit more to it, but you can think of **forks** as "super **branches**". A **fork** is a copy of a **repo** made at a certain point in the **upstream repo**'s **commit history**. **Forks** are full copies that are *owned* by you, and they can end up dramatically divierging from the **upstream repo**. For archNEMESIS, I recommend creating a **fork** of the main archNEMESIS **repo** to provide a barrier that means it is harder to add bad code to the **upstream repo**. 
 
 ![FORKS ARE A COPY OF ANOTHER REPO OWNED BY YOU](../_static/contributors_guide/repo_operations.svg)
 
-When moving changes between **repos** there are two things that are analogous to **merges**, the process of *sending* changes from a source **repo** to a destination **repo** is called **pushing**, and *getting* changes into destination **repo** from a source **repo** is called **pulling**. When both source and destination **repos** are controlled by you that works fine. However, normally otherpeople don't let you send data to their **repo** without their say-so, to *ask* a **repo** to accept changes you send a **pull request** which *asks* them to **pull** changes from your **repo** into theirs. **pull requests** are the main way of sharing code between **forks**. NOTE: **pull** and **push** always operate between specific branches of the source and destination **repos**, but I may be a bit sloppy with my language and imply that they occur between **repos** not **branches** of **repos** elsewhere in this guide.
+When moving changes between **repos** there are two things that are analogous to **merges**, the process of *sending* changes from a source **repo** to a destination **repo** is called **pushing**, and *getting* changes into destination **repo** from a source **repo** is called **pulling**. When both source and destination **repos** are controlled by you that works fine. However, normally other people don't let you send data to their **repo** without their say-so. To *ask* a **repo** to accept changes you send a **pull request**, which *asks* them to **pull** changes from your **repo** into theirs. **pull requests** are the main way of sharing code between **forks**. NOTE: **pull** and **push** always operate between specific branches of the source and destination **repos**, but I may be a bit sloppy with my language and imply that they occur between **repos** not **branches** of **repos** elsewhere in this guide.
 
 ![CLONING A REPO AND HOW PUSHING AND PULLING WORK](../_static/contributors_guide/repo_clone.svg)
 
-To share **repos** between people, they are generally hosted on a **git server** which is a web-server that runs **git** and generally allows **forking** and **cloning** of **repos** hosted on it. **Github** is such a **git server**, it has extra functionality to help you manage **repos**. When you take a **repo** from **github** and put it on your local machine, you are actually making a **clone** on your local machine, a **clone** is very similar to a **fork**, but instead of an **upstream repo** it has an **origin repo** (the **repo** it was **cloned** from). Any changed (e.g., **commits**, **branches**, etc.) to the **local repo** are not sent to the **repo** on the server (the **origin repo**) until you **sync** them (i.e. **push** local changes and **pull** remote changes).
+To share **repos** between people, they are generally hosted on a **git server** which is a web-server that runs **git** and generally allows **forking** and **cloning** of **repos** hosted on it. **GitHub** is such a **git server**, it has extra functionality to help you manage **repos**. When you take a **repo** from **GitHub** and put it on your local machine, you are actually making a **clone** on your local machine. A **clone** is very similar to a **fork**, but instead of an **upstream repo** it has an **origin repo** (the **repo** it was **cloned** from). Any changes (e.g., **commits**, **branches**, etc.) to the **local repo** are not sent to the **repo** on the server (the **origin repo**) until you **sync** them (i.e. **push** local changes and **pull** remote changes).
 
 ![HOW GIT SERVERS WORK](../_static/contributors_guide/git_server.svg)
 
@@ -98,7 +96,7 @@ To share **repos** between people, they are generally hosted on a **git server**
 
 
 
-## Suggested Git Usage for ArchNemesis ##
+## Suggested Git Usage for archNEMESIS ##
 
 If you are confident and familiar with **git** you can probably skip this section. Like any useful and powerful tool, **git** has the ability to do very bad things (e.g. delete not just yours, but everyone elses data). It's quite hard to get it to do anything *really* bad, but it is less difficult to get into a state that is *very frustrating* for even someone with experience to recover from. The main operations that cause problems are: **merging** branches that have lots of changes, and you don't notice that some of your files get deleted; **pushing** changes to an **upstream repo** and breaking things for other users of that **repo**.
 
@@ -108,7 +106,7 @@ To mitigate those risks, I suggest the following way of using **git** (NOTE: Thi
 
 ![GRAPHICAL REPRESENTATION OF PROCESS](../_static/contributors_guide/ans_git_suggested_setup.svg)
 
-1) Make a **fork** of the [main ArchNemesis repo](https://github.com/juanaldayparejo/archnemesis-dist) for yourself. We will only send changes to the **upstream repo** via **pull requests**, that way someone will have to review the changes and everything breaks it's not only your fault (the person who accepted the changes should have caught it too).
+1) Make a **fork** of the [main archNEMESIS repo](https://github.com/juanaldayparejo/archnemesis-dist) for yourself. We will only send changes to the **upstream repo** via **pull requests**, that way someone will have to review the changes and if everything breaks, it's not only your fault (the person who accepted the changes should have caught it too).
 
     <img src="../_static/contributors_guide/instructions_fork.png" width="40%" alt="HOW TO FORK A REPO">
 
@@ -118,12 +116,12 @@ To mitigate those risks, I suggest the following way of using **git** (NOTE: Thi
 
     [HOW TO MARK A BRANCH AS DEFAULT](https://docs.github.com/en/repositories/configuring-branches-and-merges-in-your-repository/managing-branches-in-your-repository/changing-the-default-branch#changing-the-default-branch)
 
-1) Create a new **branch** from the "main" **branch** called "tracking". The idea is that we will periodically manually sync the "tracking" branch with the **upstream repo** (the main ArchNemesis repo) so we can control when the changes come in.
+1) Create a new **branch** from the "main" **branch** called "tracking". The idea is that we will periodically manually sync the "tracking" branch with the **upstream repo** (the main archNEMESIS repo) so we can control when the changes come in.
 
     [HOW CREATE BRANCHES](https://docs.github.com/en/pull-requests/how-tos/commit-changes/managing-branches-within-your-repository#creating-a-branch-via-the-branches-overview)
 
 
-### Update From Main ArchNemesis Repo ###
+### Update From Main archNEMESIS Repo ###
 
 ![GRAPHICAL REPRESENTATION OF PROCESS](../_static/contributors_guide/ans_git_update_process.svg)
 
@@ -141,11 +139,7 @@ NOTE: This process is designed so you can start again at any point by deleting t
 
 1) In your **local repo**, **pull** the changes from the **origin repo** into your local "tracking" **branch**.
 
-1) **merge** the "tracking" **branch** with "main-updates", and resolve any **merge conflicts**.
-
-    [ADD INSTRUCTIONS ON HOW TO SOLVE MERGE CONFLICTS]
-
-    1. If the **merge conflicts** are difficult to solve, ask for help.
+1) **merge** the "tracking" **branch** with "main-updates", and resolve any **merge conflicts**. If the **merge conflicts** are difficult to solve, ask for help.
 
 1) Check through the "main-updates" **branch** and make sure the changes did not do anything unexpected.
 
@@ -161,7 +155,7 @@ NOTE: This process is designed so you can start again at any point by deleting t
 
 1) **sync** the "main" **branch** in your **local repo** with the **origin repo**.
 
-If the final step completed successfully, the "main" branch is now up-to-date with the **upstream ArchNemesis repo**, both locally and remotely.
+If the final step completed successfully, the "main" branch is now up-to-date with the **upstream archNEMESIS repo**, both locally and remotely.
 
 
 ### When Starting Work on a New Task ###
@@ -170,7 +164,7 @@ If the final step completed successfully, the "main" branch is now up-to-date wi
 
 NOTE: If you just want to work from a single **branch**, you can apply the below to a "current" **branch** instead of making one for each new task.
 
-1) Perform the steps in [Update From Main ArchNemesis Repo].
+1) Perform the steps in [Update From Main archNEMESIS Repo].
 
 1) Create a new **branch** from "main" with a descriptive name for the task you are doing, I will call this **branch** "task-branch" for now.
 
@@ -185,17 +179,17 @@ NOTE: If you just want to work from a single **branch**, you can apply the below
 
 NOTE: I will call the **branch** for the task "task-branch".
 
-1) Swapping "main" for "task-branch", perform the steps in [Update From Main ArchNemesis Repo].
+1) Swapping "main" for "task-branch", perform the steps in [Update From Main archNEMESIS Repo].
 
-1) Run all the tests. If they do not pass, fix any issues and run the tests again until they do.
+1) Run all the tests. If they do not pass, fix any issues and run the tests again until they do. You may also want to create your own tests for the specific functionality you implemented in this branch. That way, the tests will need to pass in future pull requests by other users and we will ensure this functionality never breaks.
 
 1) **sync** "task-branch" with the **origin repo** (the **repo** on the server).
 
-1) Within **github** navigate to the `Actions` for your **repo**. The workflow runs here are the same tests you ran earlier, but run for all versions of Python that ArchNemesis supports. It is possible that they fail even though the ones you ran earlier passed. If any fail, fix the issue and **sync** again until they pass.
+1) Within **github** navigate to the `Actions` for your **repo**. The workflow runs here are the same tests you ran earlier, but run for all versions of Python that archNEMESIS supports. It is possible that they fail even though the ones you ran earlier passed. If any fail, fix the issue and **sync** again until they pass.
 
     [ADD INFORMATION ABOUT WORKFLOW RUNS AND HOW TO TELL WHY THEY FAIL]
 
-1) Start a **pull request** to the **upstream ArchNemesis repo**. 
+1) Start a **pull request** to the **upstream archNEMESIS repo**. 
   [ADD SCREEN CAPS TO SHOW PROCESS]
 
     1. Within **github** navigate to the "task-branch".
@@ -216,7 +210,7 @@ NOTE: I will call the **branch** for the task "task-branch".
         
         1. Which files pertain to which changes.
         
-        1. Any problems you forsee that you want the reviewer to check.
+        1. Any problems you foresee that you want the reviewer to check.
         
         1. How to run a check that the changes work if it is non-trivial.
 
@@ -226,7 +220,7 @@ NOTE: I will call the **branch** for the task "task-branch".
 
 1) Wait for the **pull request** to be accepted. There may be comments that need addressing before acceptance, address them and mark the comment as resolved.
 
-1) When the **pull request** has been accepted, perform the steps in [Update From Main ArchNemesis Repo] to pull the changes into your **repo**.
+1) When the **pull request** has been accepted, perform the steps in [Update From Main archNEMESIS Repo] to pull the changes into your **repo**.
 
 1) The "task-branch" **branch** can now be deleted. NOTE: You will have to delete it on your **local repo** and the **origin repo**.
 
