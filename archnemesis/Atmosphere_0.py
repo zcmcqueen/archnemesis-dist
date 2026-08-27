@@ -1700,6 +1700,58 @@ class Atmosphere_0:
         
     ##################################################################################
 
+    def plot_gas(self,gasID,isoID,SavePlot=None,ILOCATION=0):
+
+        """
+        Makes a summary plot of the current atmospheric profiles
+        """
+        
+        from archnemesis.Data.gas_data import gas_info#, const
+
+        fig, (ax1) = plt.subplots(1, 1, sharey=True,figsize=(4,4))
+        gasID = np.atleast_1d(gasID)
+        isoID = np.atleast_1d(isoID)
+        
+        if self.NLOCATIONS==1:
+            p = self.P
+            t = self.T
+            h = self.H
+            vmr = self.VMR
+        elif self.NLOCATIONS>1:
+            p = self.P[:,ILOCATION]
+            t = self.T[:,ILOCATION]
+            h = self.H[:,ILOCATION]
+            vmr = self.VMR[:,:,ILOCATION]
+        if len(gasID)>1:
+            for i in range(len(gasID)):
+                label = gas_info[str(gasID[i])]['name']
+                if isoID[i]!=0:
+                            label = label+' ('+str(isoID[i])+')' 
+                color = np.random.rand(3)              
+                ax1.semilogx(self.VMR[:,(self.ID == gasID[i]) & (self.ISO == isoID[i])],h/1.0e3,c=color,label=label)
+        elif len(gasID)==1:
+            label1 = gas_info[str(gasID[0])]['name']
+            if isoID!=0:
+                label1 = label1+' ('+str(isoID)+')'
+            color = np.random.rand(3)   
+            ax1.semilogx(self.VMR[:,(self.ID == gasID[0]) & (self.ISO == isoID[0])],h/1.0e3,c=color,label=label1)
+        
+       
+   
+        ax1.set_ylabel('Altitude (km)')
+
+        ax1.set_xlabel('Volume mixing ratio')
+        plt.subplots_adjust(left=0.08,bottom=0.12,right=0.88,top=0.96,wspace=0.16,hspace=0.20)
+  
+        ax1.grid()
+        ax1.legend()
+     
+
+        if SavePlot is not None:
+            fig.savefig(SavePlot)
+        else:
+            plt.show()
+
     def plot_Atm(self,SavePlot=None,ILOCATION=0):
 
         """
